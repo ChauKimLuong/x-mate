@@ -1,0 +1,14 @@
+.mt-2 { margin-top: var(--space-2); }
+.mt-3 { margin-top: var(--space-3); }
+.mt-4 { margin-top: var(--space-4); }
+
+.text-ellipsis {
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+
+.btn {
+  display:inline-flex; align-items:center; justify-content:center;
+  padding: 8px 14px; border-radius: 10px; font-weight: 700;
+  background: var(--brand); color:#031; transition:.2s;
+}
+.btn:hover { filter: brightness(1.08); }

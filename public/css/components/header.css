@@ -1,0 +1,15 @@
+header {
+  border-bottom: 1px solid rgba(255,255,255,.06);
+  padding: var(--space-4) var(--space-5);
+  display: flex; align-items: center; justify-content: space-between;
+}
+header .logo a { color: var(--brand); font-weight: 900; font-size: 20px; }
+header nav { display: flex; gap: var(--space-5); }
+header nav a { color: var(--text-inverse); opacity:.9; }
+header nav a:hover { color: var(--brand-600); }
+header form { display:flex; gap:8px; }
+header input[type="text"]{
+  background:#0f2030; border:1px solid rgba(255,255,255,.08);
+  color: var(--text-inverse); padding:8px 10px; border-radius:10px;
+}
+header button[type="submit"]{ @apply: none; } /* chỉ để nhắc – tránh Tailwind */

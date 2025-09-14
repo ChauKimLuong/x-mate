@@ -1,0 +1,5 @@
+.swatches{ display:flex; gap:8px; padding: 8px 14px 0; }
+.swatch{
+  width:22px; height:22px; border-radius:999px;
+  border:2px solid var(--line); background: var(--swatch, #111);
+}

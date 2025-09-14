@@ -1,0 +1,149 @@
+:root {
+  --bg: #0f172a;          /* slate-900 */
+  --card: #111827;        /* gray-900 */
+  --text: #e5e7eb;        /* gray-200 */
+  --muted: #9ca3af;       /* gray-400 */
+  --brand: #1db954;       /* xanh Spotify */
+  --brand-hover: #1ed760; /* xanh hover */
+  --danger: #ef4444;      /* đỏ cảnh báo */
+}
+
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+  font-family: "Inter", sans-serif;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  line-height: 1.6;
+}
+
+/* ===== HEADER ===== */
+header {
+  background: var(--card);
+  padding: 1rem 2rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #30363d;
+}
+
+header .logo a {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: var(--brand);
+  text-decoration: none;
+}
+
+header nav a {
+  margin-left: 1.5rem;
+  text-decoration: none;
+  color: var(--text);
+  transition: color 0.2s ease;
+}
+
+header nav a:hover {
+  color: var(--brand);
+}
+
+/* ===== FOOTER ===== */
+footer {
+  margin-top: 3rem;
+  padding: 2rem;
+  text-align: center;
+  font-size: 0.9rem;
+  color: var(--muted);
+  border-top: 1px solid #30363d;
+}
+
+/* ===== BANNER ===== */
+.home-banner {
+  text-align: center;
+  padding: 4rem 2rem;
+  background: linear-gradient(135deg, #1db954, #1ed760);
+  color: #fff;
+  border-radius: 1rem;
+  margin: 2rem;
+}
+
+/* ===== PRODUCT GRID ===== */
+.products {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: 1.5rem;
+  padding: 2rem;
+}
+
+/* ===== PRODUCT CARD ===== */
+.product-card {
+  background: var(--card);
+  border-radius: 1rem;
+  overflow: hidden;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+  transition: transform 0.2s ease;
+}
+
+.product-card:hover {
+  transform: translateY(-5px);
+}
+
+.product-card img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+}
+
+.product-card .info {
+  padding: 1rem;
+}
+
+.product-card .title {
+  font-weight: 600;
+  margin-bottom: 0.5rem;
+}
+
+.price-row {
+  display: flex;
+  align-items: baseline;
+  gap: .5rem;
+}
+
+.price {
+  color: var(--brand);
+  font-weight: bold;
+}
+
+.old {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+
+.discount-pill {
+  font-size: .75rem;
+  font-weight: 700;
+  padding: .1rem .4rem;
+  border-radius: .4rem;
+  background: #0ea5e9;
+  color: #031018;
+}
+
+/* ===== SWATCHES ===== */
+.swatches { display: flex; gap: .5rem; padding: .75rem 1rem 0; }
+.swatch {
+  width: 18px; height: 18px; border-radius: 999px;
+  border: 2px solid #30363d; display: inline-block;
+}
+
+/* ===== BADGE NEW ===== */
+.badge {
+  position: absolute;
+  top: .75rem; right: .75rem;
+  font-size: .75rem; font-weight: 700;
+  padding: .25rem .5rem;
+  border-radius: .5rem;
+  background: #1ed760;
+  color: #0b1320;
+}

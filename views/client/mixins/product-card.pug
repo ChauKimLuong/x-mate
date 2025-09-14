@@ -1,0 +1,39 @@
+mixin productCard(p)
+    - const thumb = p?.thumbnail || (p?.variants && p.variants[0]?.images?.[0]) || (p?.images && p.images[0]) || '/images/placeholder.jpg';
+    - const sizes = (Array.isArray(p?.sizes) && p.sizes.length) ? p.sizes : (Array.isArray(p?.size) && p.size.length ? p.size : ['S','M','L','XL','2XL','3XL']);
+    - const colors = (Array.isArray(p?.colors) && p.colors.length) ? p.colors : (Array.isArray(p?.variants) ? p.variants.map(v => v.color).filter(Boolean) : []);
+    - const activeColor = colors[0];
+
+    .product-card
+        .thumb-wrap
+            if p.isNew
+                span.badge NEW
+            a.product-link(href=`/product/${p._id}`, aria-label=p.title)
+                img.product-thumb(src=thumb, alt=p.title, loading="lazy")
+            .thumb-ratio
+                a.product-link(href=`/product/${p._id}`, aria-label=p.title)
+                img.product-thumb(src=thumb, alt=p.title, loading="lazy")
+            //- Overlay chọn size: CHỈ hiện khi hover ảnh
+            .quick-add(tabindex="0")
+                .qa-title
+                    span Thêm nhanh vào giỏ hàng
+                    span.plus +
+                .sizes
+                    each s in sizes
+                        button.size-btn(type="button", data-size=s)= s
+
+        //- Swatches luôn hiển thị, KHÔNG text
+        if colors && colors.length
+            .swatches
+                each c, i in colors
+                    - const act = (c === activeColor) ? ' is-active' : '';
+                    button.swatch(class=act, type="button", style=`--swatch:${c}`)
+                        span.visually-hidden= c
+
+        .info
+            a.title(href=`/product/${p._id}`)= p.title
+            .price-row
+                span.final= p.finalPriceText || p.priceText
+                if p.discount && p.discount > 0
+                    span.discount-pill -#{p.discount}%
+                    span.old= p.priceText

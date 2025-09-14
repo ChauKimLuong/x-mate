@@ -1,0 +1,42 @@
+//- Base layout (KHÔNG dùng extends ở đây)
+doctype html
+html(lang="vi")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1")
+    //- Title: trang con có thể override bằng block
+    block title
+      title X-Mate Shop
+
+    //- CSS chung
+    link(rel="stylesheet", href="/css/app.css")
+
+
+    //- Trang con có thể thêm CSS riêng
+    block extra_css
+
+  body
+    //- Header
+    include ../partials/header.pug
+
+    //- (Optional) include mixins dùng chung cho mọi trang
+    include ../mixins/product-card.pug
+
+    //- Nội dung trang
+    main
+      block content
+
+    //- Footer
+    include ../partials/footer.pug
+
+    //- Script chung (nếu có)
+    script.
+      // JS nhẹ cho toggle menu mobile (demo)
+      document.addEventListener('click', (e)=>{
+        const btn = e.target.closest('[data-menu-toggle]');
+        if(!btn) return;
+        document.querySelector('[data-menu]').classList.toggle('open');
+      });
+
+    //- Trang con có thể thêm script riêng
+    block extra_js

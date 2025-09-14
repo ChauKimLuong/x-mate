@@ -1,0 +1,17 @@
+extends ../../layouts/default.pug
+include ../../mixins/product-card.pug
+
+block title
+  title X-Mate | Trang chủ
+
+block content
+  .home-banner
+    h1 Sản phẩm mới
+    p Dữ liệu lấy từ MongoDB theo schema của em.
+
+  .products
+    if products && products.length
+      each p in products
+        +productCard(p)
+    else
+      p(style="padding:1rem") Chưa có sản phẩm nào.

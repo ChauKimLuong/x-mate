@@ -1,0 +1,8 @@
+footer {
+  margin-top: var(--space-6);
+  padding: var(--space-5);
+  text-align: center; color: var(--muted);
+  border-top: 1px solid rgba(255,255,255,.06);
+}
+footer a { color: var(--text-inverse); opacity:.8; }
+footer a:hover { color: var(--brand-600); }
