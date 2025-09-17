@@ -1,9 +1,11 @@
 import { Request, Response } from "express";
-import Product from "../../models/product.model"
+import prisma from "../../config/database";
 
 export const index = async (req: Request, res: Response) => {
     try {
-        const products = await Product.find();
+        const products = await prisma.product.findMany();
+
+        console.log(products);
         res.render("client/pages/home/index", { 
             products: products
         });

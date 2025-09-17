@@ -1,14 +1,15 @@
-import mongoose from "mongoose";
+import { PrismaClient } from "@prisma/client";
 
-export const connect = async (): Promise<void> => {
-    try {
-        if (!process.env.MONGO_URL) {
-            throw new Error("MONGO_URL is not defined");
-        }
+const prisma = new PrismaClient();
 
-        await mongoose.connect(process.env.MONGO_URL);
-        console.log("KẾT NỐI THÀNH CÔNG!");
-    } catch (error) {
-        console.error("KẾT NỐI THẤT BẠI:", error);
-    }
-}
+export const connect = async () => {
+  try {
+    await prisma.$connect();
+    console.log("✅ Kết nối Postgres thành công!");
+  } catch (err) {
+    console.error("❌ Kết nối Postgres thất bại:", err);
+    process.exit(1);
+  }
+};
+
+export default prisma;
