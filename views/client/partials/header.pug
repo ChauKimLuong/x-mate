@@ -1,18 +1,49 @@
-header
-  .logo
-    a(href="/", aria-label="Trang chủ") X-Mate
-  //- Menu + Search
-  nav
-    a(href="/") Trang chủ
-    a(href="/men") Nam
-    a(href="/women") Nữ
-    a(href="/sale") Sale
-    a(href="/about") Giới thiệu
-
-  //- Search đơn giản
-  form(action="/search", method="get")
-    input(type="text", name="q", placeholder="Tìm áo thun, hoodie...")
-    button(type="submit") Tìm
-
-  //- Mobile toggle (ẩn/hiện bằng CSS @media nếu cần)
-  button(type="button", data-menu-toggle, aria-label="Mở menu") ☰
+﻿header.site-header
+  .top-strip
+    .container
+      ul.top-links
+        li
+          a(href="/ve-chung-toi") VỀ X-MATE
+        li
+          a(href="/cxp") CXP
+      ul.top-links.top-links--right
+        li
+          a(href="/coolclub") Coolclub
+        li
+          a(href="/blog") Blog
+        li
+          a(href="/cskh") CSKH
+        li
+          a(href="/auth/sign-in") Đăng nhập
+  .main-bar
+    .container
+      a.brand(href="/", aria-label="Trang chủ X-Mate")
+        span.brand-icon +
+        span.brand-name
+          span.brand-name__main X-
+          span.brand-name__accent MATE
+      nav.primary-nav
+        a.primary-nav__item.is-new(href="/hang-moi") NEW
+        a.primary-nav__item(href="/nam") NAM
+        a.primary-nav__item(href="/nu") NỮ
+        a.primary-nav__item(href="/the-thao") THỂ THAO
+        a.primary-nav__item.is-sale(href="/sale")
+          span.primary-nav__sale SALE
+          span.primary-nav__sale-tag -50%
+        a.primary-nav__item(href="/cs") C&S
+      .header-actions
+        form.search-form(action="/search", method="get")
+          label.sr-only(for="header-search") Tìm kiếm sản phẩm
+          input#header-search(type="search", name="q", placeholder="Tìm kiếm...")
+          button(type="submit", aria-label="Tìm kiếm")
+            span.icon.icon--search
+        a.action-link(href="/account", aria-label="Tài khoản")
+          span.icon.icon--user
+        a.action-link.cart(href="/cart", aria-label="Giỏ hàng")
+          span.icon.icon--cart
+          span.cart__badge 0
+  .promo-strip
+    .container
+      p.promo-strip__message
+        | [KHÁCH HÀNG MỚI] NHẬP COOLNEW GIẢM 50K CHO ĐƠN TỪ 299K
+        a(href="/khuyen-mai")  KHÁM PHÁ

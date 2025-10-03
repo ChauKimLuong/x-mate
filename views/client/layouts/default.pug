@@ -1,10 +1,10 @@
-//- Base layout (KHÔNG dùng extends ở đây)
+﻿//- Base layout (Khung dang extends day)
 doctype html
 html(lang="vi")
   head
     meta(charset="utf-8")
     meta(name="viewport", content="width=device-width, initial-scale=1")
-    //- Title: trang con có thể override bằng block
+    //- Title: trang con co the override bang block
     block title
       title X-Mate Shop
 
@@ -12,31 +12,62 @@ html(lang="vi")
     link(rel="stylesheet", href="/css/app.css")
 
 
-    //- Trang con có thể thêm CSS riêng
+    //- Trang con co the them CSS rieng
     block extra_css
 
   body
     //- Header
     include ../partials/header.pug
 
-    //- (Optional) include mixins dùng chung cho mọi trang
+    //- (Optional) include mixins dung chung cho moi trang
     include ../mixins/product-card.pug
 
-    //- Nội dung trang
+    //- Noi dung trang
     main
       block content
 
     //- Footer
     include ../partials/footer.pug
 
-    //- Script chung (nếu có)
+    //- Script chung (neu co)
     script.
-      // JS nhẹ cho toggle menu mobile (demo)
-      document.addEventListener('click', (e)=>{
-        const btn = e.target.closest('[data-menu-toggle]');
-        if(!btn) return;
-        document.querySelector('[data-menu]').classList.toggle('open');
-      });
+      (function () {
+        document.addEventListener('click', function (e) {
+          var btn = e.target.closest('[data-menu-toggle]');
+          if (!btn) return;
+          var menu = document.querySelector('[data-menu]');
+          if (menu) menu.classList.toggle('open');
+        });
 
-    //- Trang con có thể thêm script riêng
+        var body = document.body;
+        var header = document.querySelector('.site-header');
+        if (!header) return;
+
+        var lastScrollState = false;
+        var SCROLL_THRESHOLD = 80;
+
+        function updateScrollState() {
+          var y = window.scrollY || window.pageYOffset;
+          var nextState = y > SCROLL_THRESHOLD;
+          if (nextState !== lastScrollState) {
+            body.classList.toggle('has-scrolled', nextState);
+            lastScrollState = nextState;
+          }
+        }
+
+        var ticking = false;
+        window.addEventListener('scroll', function () {
+          if (ticking) return;
+          ticking = true;
+          window.requestAnimationFrame(function () {
+            updateScrollState();
+            ticking = false;
+          });
+        }, { passive: true });
+
+        updateScrollState();
+      })();
+
+    //- Trang con co the them script rieng
     block extra_js
+

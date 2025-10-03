@@ -20,7 +20,7 @@ model Category {
   deleted     Boolean   @default(false)
   deletedAt   DateTime?
   createdAt   DateTime  @default(now())
-  updatedAt   DateTime
+  updatedAt   DateTime  @default(now())
   Product     Product[]
 
   @@index([parentId])
@@ -38,7 +38,8 @@ model Product {
   status         Status           @default(active)
   deleted        Boolean          @default(false)
   createdAt      DateTime         @default(now())
-  updatedAt      DateTime
+  updatedAt      DateTime         @default(now())
+  slug           String           @default("")
   Category       Category         @relation(fields: [categoryId], references: [id])
   ProductVariant ProductVariant[]
 

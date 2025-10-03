@@ -1,3 +1,5 @@
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,100..1000;1,9..40,100..1000&family=Nunito:ital,wght@0,200..1000;1,200..1000&display=swap');
+
 :root {
   /* Màu nền tổng thể (dark) */
   --bg: #0f172a;
@@ -29,5 +31,5 @@
   --shadow-2: 0 8px 20px rgba(0,0,0,.12);
 
   /* Font */
-  --font: "SF Pro Display", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  --font: "Nunito", system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
 }
