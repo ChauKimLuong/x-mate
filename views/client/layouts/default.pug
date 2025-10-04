@@ -1,22 +1,23 @@
-﻿//- Base layout (Khung dang extends day)
+﻿include ../mixins/alert.pug
 doctype html
 html(lang="vi")
   head
     meta(charset="utf-8")
     meta(name="viewport", content="width=device-width, initial-scale=1")
-    //- Title: trang con co the override bang block
     block title
       title X-Mate Shop
 
     //- CSS chung
     link(rel="stylesheet", href="/css/app.css")
+    link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css")
 
 
     //- Trang con co the them CSS rieng
     block extra_css
 
   body
-    //- Header
+    +alert-success(5000)
+    +alert-error(5000)
     include ../partials/header.pug
 
     //- (Optional) include mixins dung chung cho moi trang
@@ -30,44 +31,6 @@ html(lang="vi")
     include ../partials/footer.pug
 
     //- Script chung (neu co)
-    script.
-      (function () {
-        document.addEventListener('click', function (e) {
-          var btn = e.target.closest('[data-menu-toggle]');
-          if (!btn) return;
-          var menu = document.querySelector('[data-menu]');
-          if (menu) menu.classList.toggle('open');
-        });
-
-        var body = document.body;
-        var header = document.querySelector('.site-header');
-        if (!header) return;
-
-        var lastScrollState = false;
-        var SCROLL_THRESHOLD = 80;
-
-        function updateScrollState() {
-          var y = window.scrollY || window.pageYOffset;
-          var nextState = y > SCROLL_THRESHOLD;
-          if (nextState !== lastScrollState) {
-            body.classList.toggle('has-scrolled', nextState);
-            lastScrollState = nextState;
-          }
-        }
-
-        var ticking = false;
-        window.addEventListener('scroll', function () {
-          if (ticking) return;
-          ticking = true;
-          window.requestAnimationFrame(function () {
-            updateScrollState();
-            ticking = false;
-          });
-        }, { passive: true });
-
-        updateScrollState();
-      })();
-
-    //- Trang con co the them script rieng
+    script(src="/js/home.js")
     block extra_js
 

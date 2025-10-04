@@ -1,0 +1,13 @@
+﻿mixin alert-success(time = 5000)
+  if messages && messages.success
+    div(show-alert class="alert alert--success" data-time=time)
+      i(class="fa-solid fa-circle-check alert__icon")
+      span.alert__message= messages.success
+      button.alert__close(type="button" close-alert aria-label="Đóng thông báo") ×
+
+mixin alert-error(time = 5000)
+  if messages && messages.error
+    div(show-alert class="alert alert--error" data-time=time)
+      i(class="fa-solid fa-circle-exclamation alert__icon")
+      span.alert__message= messages.error
+      button.alert__close(type="button" close-alert aria-label="Đóng thông báo") ×

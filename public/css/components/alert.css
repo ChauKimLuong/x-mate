@@ -1,0 +1,80 @@
+﻿[show-alert] {
+  position: fixed;
+  top: 28px;
+  right: 28px;
+  z-index: 2000;
+  min-width: 260px;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+[show-alert].alert-hidden {
+  opacity: 0;
+  transform: translateX(120%);
+}
+
+.alert {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 10px;
+  /* bo tròn nhẹ như ảnh */
+  box-shadow: none;
+  /* bỏ bóng để nhìn “mềm” hơn */
+  border: none;
+  /* không viền hoặc rất nhẹ */
+  font-weight: 500;
+  font-size: 15px;
+}
+
+.alert__message {
+  flex: 1;
+}
+
+.alert__close {
+  border: none;
+  background: rgba(0, 0, 0, 0.06);
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  cursor: pointer;
+  color: inherit;
+  transition: background 0.2s ease;
+}
+
+.alert__close:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+/* ✅ Success: nền xanh nhạt + chữ xanh đậm */
+.alert--success {
+  background: #c7f9cc;
+  /* nền xanh lá rất nhạt */
+  color: #065f46;
+  /* chữ xanh đậm */
+}
+
+/* ✅ Error: nền đỏ nhạt + chữ đỏ đậm */
+.alert--error {
+  background: #fcd5ce;
+  /* nền đỏ rất nhạt */
+  color: #9b1c1c;
+  /* chữ đỏ đậm */
+}
+
+.alert__icon {
+  font-size: 18px;
+  flex-shrink: 0;
+}
+
+.alert--success .alert__icon {
+  color: #16a34a; /* xanh đậm */
+}
+
+.alert--error .alert__icon {
+  color: #dc2626; /* đỏ đậm */
+}
