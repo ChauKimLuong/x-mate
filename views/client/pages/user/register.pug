@@ -1,0 +1,47 @@
+﻿extends ../../layouts/default.pug
+
+block title
+    title X-Mate | Đăng ký CoolClub
+
+block content
+    .auth-page
+        .auth-card
+            a.auth-card__close(href="/" aria-label="Đóng cửa sổ")
+                span(aria-hidden="true") &times;
+            span.auth-card__badge COOL CLUB
+            h1.auth-card__title Rất nhiều đặc quyền và quyền lợi mua sắm đang chờ bạn
+            p.auth-card__subtitle Quyền lợi dành riêng cho bạn khi tham gia Coolclub
+            ul.auth-perks
+                li.auth-perk
+                    span.auth-perk__icon VC
+                    span Voucher ưu đãi
+                li.auth-perk
+                    span.auth-perk__icon QT
+                    span Quà tặng độc quyền
+                li.auth-perk
+                    span.auth-perk__icon HC
+                    span Hoàn tiền Coolcash
+            .auth-social
+                p.auth-social__title Đăng nhập hoặc đăng ký (miễn phí)
+                .auth-social__buttons
+                    a.auth-social__btn.auth-social__btn--google(href="/auth/google")
+                        span(aria-hidden="true") G
+                        span.visually-hidden Đăng nhập bằng Google
+                    a.auth-social__btn.auth-social__btn--facebook(href="/auth/facebook")
+                        span(aria-hidden="true") f
+                        span.visually-hidden Đăng nhập bằng Facebook
+            .auth-divider Hoặc
+            form.auth-form(action="/auth/register" method="post")
+                .auth-form__row
+                    label.visually-hidden(for="fullName") Họ và tên
+                    input#fullName.auth-input(type="text" name="fullName" placeholder="Họ và tên", required)
+                    label.visually-hidden(for="phone") Số điện thoại
+                    input#phone.auth-input(type="tel" name="phone" placeholder="Số điện thoại", required)
+                label.visually-hidden(for="email") Email
+                input#email.auth-input(type="email" name="email" placeholder="Email", required)
+                label.visually-hidden(for="password") Mật khẩu
+                input#password.auth-input(type="password" name="password" placeholder="Mật khẩu", required)
+                button.auth-submit(type="submit") Đăng ký tài khoản
+            .auth-links
+                a(href="/auth/login") Đăng nhập
+                a(href="/auth/forgot-password") Quên mật khẩu

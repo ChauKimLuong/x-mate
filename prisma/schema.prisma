@@ -7,55 +7,71 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-model Category {
-  id          String    @id
+model categories {
+  id          String     @id(map: "Category_pkey")
   title       String
   parentId    String?
   description String?
   thumbnail   String?
-  status      Status    @default(active)
-  isFeatured  Boolean   @default(false)
-  slug        String    @unique
-  position    Int       @default(0)
-  deleted     Boolean   @default(false)
+  status      Status     @default(active)
+  isFeatured  Boolean    @default(false)
+  slug        String     @unique(map: "Category_slug_key")
+  position    Int        @default(0)
+  deleted     Boolean    @default(false)
   deletedAt   DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @default(now())
-  Product     Product[]
+  createdAt   DateTime   @default(now())
+  updatedAt   DateTime   @default(now())
+  products    products[]
 
-  @@index([parentId])
+  @@index([parentId], map: "Category_parentId_idx")
 }
 
-model Product {
-  id             String           @id
-  title          String
-  description    String?
-  price          Int
-  discount       Int              @default(0)
-  categoryId     String
-  size           String[]
-  thumbnail      String
-  status         Status           @default(active)
-  deleted        Boolean          @default(false)
-  createdAt      DateTime         @default(now())
-  updatedAt      DateTime         @default(now())
-  slug           String           @default("")
-  Category       Category         @relation(fields: [categoryId], references: [id])
-  ProductVariant ProductVariant[]
-
-  @@index([categoryId])
-  @@index([status, deleted])
-}
-
-model ProductVariant {
-  id        String   @id
+model productVariants {
+  id        String   @id(map: "ProductVariant_pkey")
   productId String
   color     String
   images    String[]
   stock     Int      @default(0)
-  Product   Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  products  products @relation(fields: [productId], references: [id], onDelete: Cascade, map: "ProductVariant_productId_fkey")
 
-  @@index([productId])
+  @@index([productId], map: "ProductVariant_productId_idx")
+}
+
+model products {
+  id              String            @id(map: "Product_pkey")
+  title           String
+  description     String?
+  price           Int
+  discount        Int               @default(0)
+  categoryId      String
+  size            String[]
+  thumbnail       String
+  status          Status            @default(active)
+  deleted         Boolean           @default(false)
+  createdAt       DateTime          @default(now())
+  updatedAt       DateTime          @default(now())
+  slug            String            @default("")
+  productVariants productVariants[]
+  categories      categories        @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
+
+  @@index([categoryId], map: "Product_categoryId_idx")
+  @@index([status, deleted], map: "Product_status_deleted_idx")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model users {
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  full_name  String
+  email      String    @unique
+  password   String
+  token_user String    @unique
+  phone      String?   @db.VarChar(20)
+  avatar     String?
+  status     String    @default("active")
+  deleted    Boolean   @default(false)
+  deleted_at DateTime? @db.Timestamptz(6)
+  created_at DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at DateTime  @default(now()) @db.Timestamptz(6)
 }
 
 enum Status {
