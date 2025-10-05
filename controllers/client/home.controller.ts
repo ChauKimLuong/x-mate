@@ -3,7 +3,10 @@ import prisma from "../../config/database";
 
 export const index = async (req: Request, res: Response) => {
     try {
-        const products = await prisma.products.findMany();
+        const products = await prisma.products.findMany({
+            include: { productVariants: true, categories: true },
+        });
+
 
         console.log(products);
         res.render("client/pages/home/index", { 

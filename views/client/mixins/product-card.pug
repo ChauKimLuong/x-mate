@@ -1,39 +1,58 @@
-mixin productCard(p)
-    - const thumb = p?.thumbnail || (p?.variants && p.variants[0]?.images?.[0]) || (p?.images && p.images[0]) || '/images/placeholder.jpg';
-    - const sizes = (Array.isArray(p?.sizes) && p.sizes.length) ? p.sizes : (Array.isArray(p?.size) && p.size.length ? p.size : ['S','M','L','XL','2XL','3XL']);
-    - const colors = (Array.isArray(p?.colors) && p.colors.length) ? p.colors : (Array.isArray(p?.variants) ? p.variants.map(v => v.color).filter(Boolean) : []);
+﻿mixin productCard(p)
+    - const productId = p?.id || p?._id || '';
+    - const prismaVariants = Array.isArray(p?.productVariants) ? p.productVariants : [];
+    - const legacyVariants = Array.isArray(p?.variants) ? p.variants : [];
+    - const variantImages = [...legacyVariants, ...prismaVariants].flatMap(v => v?.images || []);
+    - const baseImages = Array.isArray(p?.images) ? p.images : [];
+    - const allImages = [p?.thumbnail, ...variantImages, ...baseImages].filter(Boolean);
+    - const thumb = allImages[0] || '/images/placeholder.jpg';
+    - const hoverThumb = allImages[1] || thumb;
+    - const sizeList = (Array.isArray(p?.sizes) && p.sizes.length) ? p.sizes : ((Array.isArray(p?.size) && p.size.length) ? p.size : null);
+    - const sizes = sizeList || ['S','M','L','XL','2XL','3XL'];
+    - const colorsField = Array.isArray(p?.colors) ? p.colors : [];
+    - const colorsLegacy = legacyVariants.map(v => v?.color).filter(Boolean);
+    - const colorsPrisma = prismaVariants.map(v => v?.color).filter(Boolean);
+    - const colors = [...new Set([...colorsField, ...colorsLegacy, ...colorsPrisma].filter(Boolean))].slice(0, 5);
     - const activeColor = colors[0];
+    - const rawPrice = typeof p?.price === 'number' ? p.price : null;
+    - const discountValue = typeof p?.discount === 'number' && p.discount > 0 ? p.discount : 0;
+    - const computedFinal = rawPrice !== null ? Math.round(rawPrice * (100 - discountValue) / 100) : null;
+    - const formatVnd = (value) => typeof value === 'number' ? value.toLocaleString('vi-VN') + 'đ' : null;
+    - const finalPriceText = p?.finalPriceText || (typeof p?.finalPrice === 'number' ? formatVnd(p.finalPrice) : (computedFinal !== null ? formatVnd(computedFinal) : null));
+    - const originalPriceText = p?.priceText || formatVnd(rawPrice);
+    - const hasDiscount = discountValue > 0;
 
     .product-card
         .thumb-wrap
-            if p.isNew
-                span.badge NEW
-            a.product-link(href=`/product/${p._id}`, aria-label=p.title)
-                img.product-thumb(src=thumb, alt=p.title, loading="lazy")
             .thumb-ratio
-                a.product-link(href=`/product/${p._id}`, aria-label=p.title)
-                img.product-thumb(src=thumb, alt=p.title, loading="lazy")
-            //- Overlay chọn size: CHỈ hiện khi hover ảnh
-            .quick-add(tabindex="0")
-                .qa-title
-                    span Thêm nhanh vào giỏ hàng
-                    span.plus +
-                .sizes
-                    each s in sizes
-                        button.size-btn(type="button", data-size=s)= s
+                a.product-link(href=`/product/${productId}` aria-label=p.title)
+                    img.product-thumb(src=thumb alt=p.title loading="lazy")
+                    if hoverThumb && hoverThumb !== thumb
+                        img.product-thumb.product-thumb--hover(src=hoverThumb alt=p.title loading="lazy")
+            if sizes && sizes.length
+                .quick-add(tabindex="0")
+                    .quick-add__title
+                        span Thêm nhanh vào giỏ hàng
+                        span.quick-add__plus +
+                    .quick-add__sizes
+                        each s in sizes
+                            button.quick-add__btn(type="button" data-size=s)= s
 
-        //- Swatches luôn hiển thị, KHÔNG text
         if colors && colors.length
             .swatches
-                each c, i in colors
+                each c in colors
                     - const act = (c === activeColor) ? ' is-active' : '';
-                    button.swatch(class=act, type="button", style=`--swatch:${c}`)
-                        span.visually-hidden= c
+                    button.swatch(class=act type="button" style=`--swatch:${c || '#1f2937'}`)
+                        span.visually-hidden= c || 'Màu khác'
 
         .info
-            a.title(href=`/product/${p._id}`)= p.title
+            a.title(href=`/product/${productId}`)= p.title
             .price-row
-                span.final= p.finalPriceText || p.priceText
-                if p.discount && p.discount > 0
-                    span.discount-pill -#{p.discount}%
-                    span.old= p.priceText
+                if finalPriceText
+                    span.final= finalPriceText
+                else if originalPriceText
+                    span.final= originalPriceText
+                if hasDiscount
+                    span.discount-pill -#{discountValue}%
+                if hasDiscount && originalPriceText
+                    span.old= originalPriceText

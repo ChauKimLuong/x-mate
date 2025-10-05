@@ -1,8 +1,8 @@
-extends ../../layouts/default.pug
+﻿extends ../../layouts/default.pug
 include ../../mixins/product-card.pug
 
 block title
-  title X-Mate | Trang chủ
+  title X-Mate | Trang chá»§
 
 block content
   .home-banner
@@ -12,4 +12,9 @@ block content
       each p in products
         +productCard(p)
     else
-      p(style="padding:1rem") Chưa có sản phẩm nào.
+      p(style="padding:1rem") ChÆ°a cÃ³ sáº£n pháº©m nÃ o.
+
+block extra_js
+  script(src="/js/header.js")
+  script(src="/js/alerts.js")
+  script(src="/js/home.js")
