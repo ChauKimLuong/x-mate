@@ -93,6 +93,7 @@
 }
 
 .site-header .brand {
+  flex: 1;
   display: inline-flex;
   align-items: center;
   gap: 12px;
@@ -137,14 +138,14 @@
 }
 
 .site-header .primary-nav {
-  flex: 1;
+  flex: 2;
   display: flex;
   align-items: center;
   justify-content: center;
   gap: 32px;
   text-transform: uppercase;
-  font-size: 14px;
-  font-weight: 600;
+  font-size: 16px;
+  font-weight: 800;
   letter-spacing: 0.08em;
 }
 
@@ -183,6 +184,7 @@
 }
 
 .site-header .header-actions {
+  flex: 1;
   display: flex;
   align-items: center;
   gap: 16px;
@@ -208,6 +210,7 @@
   padding-bottom: 6px;
   flex: 1;
   font-size: 14px;
+  font-family: var(--font);
 }
 
 .site-header .search-form button {
@@ -278,6 +281,7 @@
   overflow: hidden;
   clip: rect(0, 0, 0, 0);
   border: 0;
+  font-family: var(--font);
 }
 
 .site-header .icon {

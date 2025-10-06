@@ -2,7 +2,7 @@
 include ../../mixins/product-card.pug
 
 block title
-  title X-Mate | Trang chá»§
+  title X-Mate | Trang chủ
 
 block content
   .home-banner
@@ -12,7 +12,7 @@ block content
       each p in products
         +productCard(p)
     else
-      p(style="padding:1rem") ChÆ°a cÃ³ sáº£n pháº©m nÃ o.
+      p(style="padding:1rem") Chưa có sản phẩm nào
 
 block extra_js
   script(src="/js/header.js")

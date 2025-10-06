@@ -58,9 +58,9 @@
   opacity: 1;
 }
 
-.product-card:hover .product-thumb:not(.product-thumb--hover) {
+/* .product-card:hover .product-thumb:not(.product-thumb--hover) {
   opacity: 0;
-}
+} */
 
 .quick-add {
   position: absolute;

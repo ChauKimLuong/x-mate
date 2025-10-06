@@ -25,7 +25,7 @@
     .product-card
         .thumb-wrap
             .thumb-ratio
-                a.product-link(href=`/product/${productId}` aria-label=p.title)
+                a.product-link(href=`/product/detail/${p.slug}` aria-label=p.title)
                     img.product-thumb(src=thumb alt=p.title loading="lazy")
                     if hoverThumb && hoverThumb !== thumb
                         img.product-thumb.product-thumb--hover(src=hoverThumb alt=p.title loading="lazy")
@@ -46,7 +46,7 @@
                         span.visually-hidden= c || 'Màu khác'
 
         .info
-            a.title(href=`/product/${productId}`)= p.title
+            a.title(href=`/product/detail/${p.slug}`)= p.title
             .price-row
                 if finalPriceText
                     span.final= finalPriceText

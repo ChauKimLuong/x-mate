@@ -1,0 +1,97 @@
+﻿extends ../../layouts/default.pug
+
+block title
+  if product && product.title
+    title= product.title
+  else
+    title Chi tiết sản phẩm
+
+block extra_css
+  link(rel="stylesheet" href="/css/product-detail.css")
+  link(rel="stylesheet", href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css")
+
+
+block extra_js
+  script(src="/js/header.js")
+  script(src="/js/alerts.js")
+  script(src="/js/product-detail.js")
+
+block content
+  if !product
+    section.product-detail-page
+      .product-detail-empty
+        p Không tìm thấy sản phẩm.
+  else
+    section.product-detail-page
+      .product-detail
+        .product-detail__gallery
+          if product.allImages && product.allImages.length
+            ul.product-detail__thumbs.gallery__thumbs
+              each img, idx in product.allImages
+                li(class=idx === 0 ? 'is-active' : '')
+                  button(type="button" data-index=idx data-src=img)
+                    img(src=img alt=`${product.title} - ${idx + 1}` loading="lazy")
+          .product-detail__main
+            img#mainImage(src=product.allImages && product.allImages[0] ? product.allImages[0] : product.thumbnail alt=product.title)
+        .product-detail__info
+          header.product-detail__header
+            .product-detail__header-text
+              if product.category
+                a.product-detail__category(href=`/category/${product.categorySlug || product.category}`)
+                  span #{product.category}
+
+              h1.product-detail__title= product.title
+            if product.shareUrl
+              a.product-detail__share(href=product.shareUrl target="_blank" rel="noopener")
+                span.icon 🔗
+                span Chia sẻ
+          .product-detail__price-box
+            span.product-detail__price-current= product.finalPriceText || product.priceText
+            if product.priceText && product.discount > 0
+              span.product-detail__price-original= product.priceText
+            if product.discount > 0
+              span.product-detail__price-discount -#{product.discount}%
+          if product.freeShip
+            div.product-detail__freeship
+              <i class="fa-solid fa-truck-fast"></i>
+              span Freeship
+
+          if product.vouchers && product.vouchers.length
+            .product-detail__voucher
+              span.product-detail__voucher-label Mã giảm giá
+              ul.product-detail__voucher-list
+                each voucher in product.vouchers
+                  li.product-detail__voucher-badge= voucher
+          if product.colors && product.colors.length
+            .product-detail__section
+              .product-detail__section-head
+                span.product-detail__section-label Màu sắc:
+                if product.selectedColor
+                  span.product-detail__section-value= product.selectedColor
+              .product-detail__swatches.swatches
+                each color in product.colors
+                  - const colorActive = color === (product.selectedColor || product.colors[0]) ? 'is-active' : ''
+                  button(type="button" class=colorActive data-color=color style=`--swatch:${color || '#1f2937'}`)
+                    span.visually-hidden= color || 'Màu khác'
+          if product.sizes && product.sizes.length
+            .product-detail__section
+              .product-detail__section-head
+                span.product-detail__section-label Kích thước:
+                if product.selectedSize
+                  span.product-detail__section-value= product.selectedSize
+              .product-detail__sizes.sizes
+                each size in product.sizes
+                  - const sizeActive = size === (product.selectedSize || product.sizes[0]) ? 'is-active' : ''
+                  button(type="button" class=sizeActive data-size=size)= size
+          .product-detail__purchase
+            .product-detail__quantity
+              button.qty-btn(type="button" data-action="decrease") -
+              input#qty(type="number" min="1" value="1")
+              button.qty-btn(type="button" data-action="increase") +
+            button.btn--primary(type="button" data-action="add-to-cart")
+              span.icon 🛒
+              span Thêm vào giỏ
+          if product.description
+            details.product-detail__description
+              summary Mô tả sản phẩm
+              != product.description

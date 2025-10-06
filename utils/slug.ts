@@ -15,7 +15,7 @@ export async function makeUniqueCategorySlug(
     let i = 2;
 
     while (true) {
-        const exists = await prisma.category.findFirst({
+        const exists = await prisma.categories.findFirst({
             where: {
                 slug: candidate,
                 ...(currentId ? { NOT: { id: currentId } } : {}),
@@ -34,7 +34,7 @@ export async function makeUniqueProductSlug(title: string, currentId?: string) {
     let i = 2;
 
     while (true) {
-        const exists = await prisma.product.findFirst({
+        const exists = await prisma.products.findFirst({
             where: {
                 slug: candidate,
                 ...(currentId ? { NOT: { id: currentId } } : {}),
