@@ -18,10 +18,7 @@
   .main-bar
     .container
       a.brand(href="/", aria-label="Trang chủ X-Mate")
-        span.brand-icon +
-        span.brand-name
-          span.brand-name__main X-
-          span.brand-name__accent MATE
+        img(src="/images/logo1.png", alt="X-Mate", height="60")
       nav.primary-nav
         a.primary-nav__item.is-new(href="/hang-moi") NEW
         a.primary-nav__item(href="/nam") NAM
@@ -38,9 +35,9 @@
           button(type="submit", aria-label="Tìm kiếm")
             span.icon.icon--search
         a.action-link(href="/account", aria-label="Tài khoản")
-          span.icon.icon--user
+          span.fa-solid.fa-user
         a.action-link.cart(href="/cart", aria-label="Giỏ hàng")
-          span.icon.icon--cart
+          span.fa-solid.fa-cart-shopping
           span.cart__badge 0
   //- .promo-strip
   //-   .container
