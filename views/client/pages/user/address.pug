@@ -1,0 +1,41 @@
+extends ../../layouts/default.pug
+include ../../mixins/user-sidebar.pug
+
+block title
+  title Sổ địa chỉ
+
+block extra_css
+  link(rel="stylesheet" href="/css/components/user.css")
+
+block content
+  .account-page
+    +accountSidebar('addresses')
+
+    main.account-main
+      .white-surface
+        .surface-header
+          h1.surface-title Địa chỉ của tôi
+          a.btn-pill(href="/account/addresses/new")
+            i + 
+            |  THÊM ĐỊA CHỈ MỚI
+
+        h3.address-header Sổ địa chỉ
+
+        if !addresses || !addresses.length
+          .empty-state Bạn chưa có địa chỉ nào!
+        else
+          .address-list
+            each a in addresses
+              .address-card
+                if a.isDefault
+                  span.address-badge Mặc định
+                div.address-card__name #{a.fullName}
+                div.address-card__meta #{a.phone}
+                div.address-card__line #{a.line1}
+                if a.line2
+                  div.address-card__line #{a.line2}
+                div.address-card__line #{a.ward}, #{a.district}, #{a.city}
+                .address-card__actions
+                  a.btn-link(href=`/account/addresses/${a.id}/edit`) Sửa
+                  a.btn-link(href=`/account/addresses/${a.id}/default`) Đặt làm mặc định
+                  a.btn-link(href=`/account/addresses/${a.id}/delete`) Xóa

@@ -1,0 +1,65 @@
+extends ../../layouts/default.pug
+include ../../mixins/user-sidebar.pug
+
+block title
+    title Thông tin tài khoản
+
+block extra_css
+    link(rel="stylesheet" href="/css/components/user.css")
+
+block content
+    -
+        const fmtDate = (d) => {
+            if (!d) return 'Chưa cập nhật';
+            const dt = new Date(d);
+            return `${String(dt.getDate()).padStart(2,'0')}/${String(dt.getMonth()+1).padStart(2,'0')}/${dt.getFullYear()}`;
+        };
+        const fmtGender = (g) => {
+            if (!g) return 'Không tiết lộ';
+            const map = { MALE:'Nam', FEMALE:'Nữ', OTHER:'Khác', male:'Nam', female:'Nữ', other:'Khác' };
+            return map[g] || 'Không tiết lộ';
+        };
+        const numOrNull = (v) => (v===null || v===undefined || v==='') ? null : Number(v);
+        const u = (typeof user !== 'undefined' && user) ? user : {};
+        const h = numOrNull(u.height_cm);
+        const w = numOrNull(u.weight_kg);
+
+    .account-page
+        +accountSidebar('account')
+
+        main.account-main
+            .white-surface
+                .surface-header
+                    h1.surface-title Thông tin tài khoản
+
+                .surface-grid
+                    .surface-panel
+                        h3.panel-title Thông tin tài khoản
+                        .info-card--flat
+                            dl.info-list
+                                dt.info-list__label Họ và tên
+                                dd.info-list__value #{u.full_name || 'Chưa cập nhật'}
+                                dt.info-list__label Số điện thoại
+                                dd.info-list__value #{u.phone || 'Chưa cập nhật'}
+                                dt.info-list__label Giới tính
+                                dd.info-list__value #{fmtGender(u.gender)}
+                                dt.info-list__label Ngày sinh
+                                dd.info-list__value #{fmtDate(u.dob)}
+                                dt.info-list__label Chiều cao
+                                dd.info-list__value #{h ? `${h} cm` : 'Chưa cập nhật'}
+                                dt.info-list__label Cân nặng
+                                dd.info-list__value #{w ? `${w} kg` : 'Chưa cập nhật'}
+                                if u.address
+                                    dt.info-list__label Địa chỉ
+                                    dd.info-list__value #{u.address}
+                        a.button.mt-16(href="/account/edit") Cập nhật
+
+                    .surface-panel
+                        h3.panel-title Thông tin đăng nhập
+                        .info-card--flat
+                            dl.info-list
+                                dt.info-list__label Email
+                                dd.info-list__value #{u.email || 'Chưa cập nhật'}
+                                dt.info-list__label Mật khẩu
+                                dd.info-list__value ●●●●●●●●●
+                        a.button.mt-16(href="/account/change-password") Cập nhật
