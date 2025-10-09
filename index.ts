@@ -2,11 +2,12 @@
 import session from "express-session";
 import flash from "express-flash";
 import dotenv from "dotenv";
+import path from "path";
 dotenv.config();
 
 import { connect as connectDB } from "./config/database";
 connectDB();
-
+import adminRouter from "./routes/admin/index.route";
 import clientRoutes from "./routes/client/index.route";
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -29,7 +30,7 @@ app.use(
 app.use(flash());
 
 clientRoutes(app);
-
+app.use("/admin", adminRouter);
 app.listen(PORT, () => {
     console.log(`Server đang chạy tại http://localhost:${PORT}`);
 });

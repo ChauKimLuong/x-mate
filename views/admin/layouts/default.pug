@@ -1,28 +1,58 @@
-nav.flex-1.px-2.py-2.space-y-1.text-sm
-  a(href="/admin").flex.items-center.gap-2.px-3.py-2.rounded-md.hover:bg-slate-800
-    i.iconoir-pie-chart
-    span Overview
-  a(href="/admin/users").flex.items-center.gap-2.px-3.py-2.rounded-md.hover:bg-slate-800
-    i.iconoir-user
-    span Users & Roles
-  a(href="/admin/reports/revenue").flex.items-center.gap-2.px-3.py-2.rounded-md.hover:bg-slate-800
-    i.iconoir-stats-up-square
-    span Reports & Revenue
-  a(href="/admin/promotions").flex.items-center.gap-2.px-3.py-2.rounded-md.hover:bg-slate-800
-    i.iconoir-sale
-    span Promotions
-  a(href="/admin/products").flex.items-center.gap-2.px-3.py-2.rounded-md.hover:bg-slate-800
-    i.iconoir-bag
-    span Products
-  a(href="/admin/inventory").flex.items-center.gap-2.px-3.py-2.rounded-md.hover:bg-slate-800
-    i.iconoir-database
-    span Inventory
-  a(href="/admin/inventory-support").flex.items-center.gap-2.px-3.py-2.rounded-md.hover:bg-slate-800
-    i.iconoir-task-list
-    span Inventory Support
-  a(href="/admin/reviews").flex.items-center.gap-2.px-3.py-2.rounded-md.hover:bg-slate-800
-    i.iconoir-star
-    span Reviews
-  a(href="/admin/orders").flex.items-center.gap-2.px-3.py-2.rounded-md.hover:bg-slate-800
-    i.iconoir-delivery-truck
-    span Orders
+//- views/admin/layouts/default.pug
+doctype html
+html(lang="vi")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport", content="width=device-width,initial-scale=1")
+    title= title || "Admin"
+    link(rel="stylesheet", href="/css/admin/admin.css")
+    // Chart.js (cho dashboard)
+    script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js")
+  body
+    .shell
+      aside.sidebar
+        .brand
+          span.icon 💠
+          span.txt X-Mate
+        nav.menu
+          a.item(class=active==='overview'?'active':'', href="/admin")
+            span.ico 🧭
+            span.lbl Overview
+          a.item(href="/admin/users")
+            span.ico 👥
+            span.lbl Users
+          a.item(href="/admin/reports/revenue")
+            span.ico 📈
+            span.lbl Reports
+          a.item(href="/admin/promotions")
+            span.ico 🎟️
+            span.lbl Promotions
+          a.item(href="/admin/products")
+            span.ico 🛒
+            span.lbl Products
+          a.item(href="/admin/inventory")
+            span.ico 📦
+            span.lbl Inventory
+          a.item(href="/admin/inventory-support")
+            span.ico 🛠️
+            span.lbl Inventory Support
+          a.item(href="/admin/reviews")
+            span.ico ⭐
+            span.lbl Reviews
+          a.item(href="/admin/orders")
+            span.ico 🧾
+            span.lbl Orders
+      main.main
+        header.topbar
+          .left
+            input.search(type="search" placeholder="Search")
+            button.btn.btn-dark + New Task
+          .right
+            button.btn LogOut
+            .user
+              img(src="https://i.pravatar.cc/40?img=5" alt="avatar")
+              span.name Admin
+        .container
+          block content
+    //- page-level scripts
+    block scripts

@@ -1,0 +1,103 @@
+//- views/admin/pages/dashboard/index.pug
+extends ../../layouts/default
+include ../../mixins/icons
+
+block content
+  - const KP = kpis || {totalOrders:0,newLeads:0,deals:0,bookedRev:0}
+  - const DL = deltas || {totalOrders:0,newLeads:0,deals:0,bookedRev:0}
+  - const _labels = Array.isArray(labels)?labels:[]
+  - const _bar    = Array.isArray(seriesBar)?seriesBar:[]
+  - const _line   = Array.isArray(seriesLine)?seriesLine:[]
+  - const pretty = (n)=> Number(n||0).toLocaleString()
+
+  .dash-wrap
+    h2.welcome WELCOME!
+    .alert
+      | We regret to inform you that our server is currently experiencing temporary issues. Please try again later.
+
+    //- KPI ROW
+    .kpi-row
+      .kpi-card
+        .ico-bg.peach
+          +ic_bag()
+        .meta
+          .label Total Orders
+          .value #{pretty(KP.totalOrders)}
+        .delta
+          if DL.totalOrders >= 0
+            span.up ▲ #{DL.totalOrders}% 
+            span.muted Last Week
+          else
+            span.down ▼ #{Math.abs(DL.totalOrders)}%
+            span.muted Last Week
+        a.more(href="#") View More
+      .kpi-card
+        .ico-bg.peach
+          +ic_userAdd()
+        .meta
+          .label New Leads
+          .value #{pretty(KP.newLeads)}
+        .delta
+          if DL.newLeads >= 0
+            span.up ▲ #{DL.newLeads}% 
+            span.muted Last Month
+          else
+            span.down ▼ #{Math.abs(DL.newLeads)}%
+            span.muted Last Month
+        a.more(href="#") View More
+      .kpi-card
+        .ico-bg.peach
+          +ic_lock()
+        .meta
+          .label Deals
+          .value #{pretty(KP.deals)}
+        .delta
+          if DL.deals >= 0
+            span.up ▲ #{DL.deals}% 
+            span.muted Last Month
+          else
+            span.down ▼ #{Math.abs(DL.deals)}%
+            span.muted Last Month
+        a.more(href="#") View More
+      .kpi-card
+        .ico-bg.peach
+          +ic_coin()
+        .meta
+          .label Booked Rev.
+          .value $#{pretty(KP.bookedRev/1000)}k
+        .delta
+          if DL.bookedRev >= 0
+            span.up ▲ #{DL.bookedRev}% 
+            span.muted Last Month
+          else
+            span.down ▼ #{Math.abs(DL.bookedRev)}%
+            span.muted Last Month
+        a.more(href="#") View More
+
+    //- PERFORMANCE CARD
+    .perf-card
+      .perf-hd
+        .ttl Performance
+        .seg
+          button.on ALL
+          button 1M
+          button 6M
+          button 1Y
+      .perf-bd
+        canvas#perfChart(height="140")
+      .legend
+        .dot.orange
+        span Page Views
+        .gap
+        .dot.green
+        span Clicks
+
+block scripts
+  script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js")
+  script.
+    window.__chart = {
+      labels: !{JSON.stringify(_labels)},
+      bar:    !{JSON.stringify(_bar)},
+      line:   !{JSON.stringify(_line)}
+    };
+  script(src="/js/admin/admin-dashboard.js")

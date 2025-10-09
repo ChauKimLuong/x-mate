@@ -1,30 +1,21 @@
-import { Router } from 'express';
-import dashboard from './products.route'; // nếu bạn đã có, cứ giữ import khác
-import productsRouter from './products.route';
+import { Router } from "express";
+const r = Router();
 
-import usersRouter from './users.route';
-import reportsRouter from './reports.route';
-import promotionsRouter from './promotions.route';
-import inventoryRouter from './inventory.route';
-import inventorySupportRouter from './inventory-support.route';
-import reviewsRouter from './reviews.route';
-import ordersRouter from './orders.route';
+r.get("/", (_req, res) => {
+  const period = "week";
+  const labels = ["Mon","Tue","Wed","Thu","Fri","Sat","Sun"];
+  const series = [1200, 2300, 2300, 3100, 4800, 5200, 3900];
 
-import * as dashCtrl from '../../controllers/admin/dashboard.controller';
+  res.render("admin/pages/dashboard/index", {
+    title: "Overview",
+    active: "overview",
+    period,
+    labels,
+    series,
+    salesToday: 10567,
+    growth: 10.57,
+    stats: { customers: "345k", revenue: "43,594", orders: "1,208" }
+  });
+});
 
-const router = Router();
-
-// Dashboard (overview)
-router.get('/', dashCtrl.index);
-
-// Sub-modules
-router.use('/users', usersRouter);
-router.use('/reports', reportsRouter);
-router.use('/promotions', promotionsRouter);
-router.use('/products', productsRouter);
-router.use('/inventory', inventoryRouter);
-router.use('/inventory-support', inventorySupportRouter);
-router.use('/reviews', reviewsRouter);
-router.use('/orders', ordersRouter);
-
-export default router;
+export default r;
