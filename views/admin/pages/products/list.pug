@@ -1,0 +1,91 @@
+extends ../../layouts/default
+include ../../mixins/icons
+
+block content
+  - const rows = Array.isArray(products) && products.length ? products : []
+
+  h2(style="margin:0 0 16px") PRODUCT LIST
+
+  .card(style="padding:0;border-radius:18px;box-shadow:0 8px 24px rgba(16,24,40,.06)")
+    .perf-hd
+      .ttl All Product List
+      .seg
+        button.btn.btn-dark(onclick="location.href='/admin/products/new'" style="background:#E6612A") Add Product
+
+        //- Dropdown filter ranges
+        .filter(style="position:relative;display:inline-block;margin-left:8px")
+            button#filterBtn(type="button" style="padding:6px 10px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;cursor:pointer;min-width:140px;display:inline-flex;align-items:center;justify-content:space-between;gap:6px")
+                span #{filterLabel || 'This Month'}
+                span ▾
+            .menu#filterMenu(style="position:absolute;right:0;top:110%;min-width:180px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.06);padding:8px;display:none;z-index:30")
+                a(href="/admin/products?range=today" style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='today'?'background:#f6f7fb;':''}`) Today
+                a(href="/admin/products?range=week"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='week'?'background:#f6f7fb;':''}`) This Week
+                a(href="/admin/products?range=month" style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='month'?'background:#f6f7fb;':''}`) This Month
+                a(href="/admin/products?range=year"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='year'?'background:#f6f7fb;':''}`) This Year
+
+
+    table(style="width:100%; border-collapse:separate; border-spacing:0")
+      thead
+        tr
+          th(style="width:48px; padding:14px 16px; border-bottom:1px solid #eef0f5")
+            input(type="checkbox")
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Product Name & Size
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Price
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Stock
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Category
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Rating
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Action
+      tbody
+        each p in rows
+          tr
+            td(style="width:48px; padding:14px 16px; border-top:1px solid #f2f3f7")
+              input(type="checkbox" value=p.id)
+
+            td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
+              .prodCell(style="display:flex; align-items:center; gap:14px")
+                img(src=p.img alt=p.name style="width:52px;height:52px;border-radius:12px;object-fit:cover;background:#f3f4f6")
+                .info
+                  .name(style="font-weight:700")= p.name
+                  .muted(style="color:#8c98a9; font-size:13px") Size :
+                    |  #{Array.isArray(p.sizes)?p.sizes.join(' , '):p.sizes}
+
+            td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= p.priceText
+
+            td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
+              span(style="font-weight:700") #{p.left}
+              |  Item Left
+              br
+              span(style="color:#8c98a9; font-size:13px") #{p.sold} Sold
+
+            //- Category
+            td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= p.category
+
+            //- Rating (ngôi sao + điểm + số review)
+            td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
+              span(style="display:inline-flex;align-items:center;gap:6px;background:#eef2ff;border-radius:10px;padding:4px 8px;color:#f59e0b")
+                +ic_star(14)
+                span(style="color:#111") #{(p.rating || 0).toFixed(1)}
+              span(style="color:#8c98a9; margin-left:8px") #{p.reviews || 0} Review
+
+            td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
+              .actions(style="display:flex; gap:8px; align-items:center")
+                a(href=`/admin/products/${p.id}` title="View" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e5e7eb;border-radius:10px;background:#fff")
+                  +ic_eye()
+                a(href=`/admin/products/${p.id}/edit` title="Edit" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
+                  +ic_edit()
+                form(method="post" action=`/admin/products/${p.id}?_method=DELETE` onsubmit="return confirm('Delete this product?')")
+                  button(type="submit" title="Delete" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5;cursor:pointer")
+                    +ic_trash()
+block scripts
+  script.
+    (function(){
+      const btn = document.getElementById('filterBtn');
+      const menu = document.getElementById('filterMenu');
+      if(!btn || !menu) return;
+      btn.addEventListener('click', () => {
+        menu.style.display = (menu.style.display === 'block') ? 'none' : 'block';
+      });
+      document.addEventListener('click', (e) => {
+        if(!menu.contains(e.target) && !btn.contains(e.target)) menu.style.display = 'none';
+      });
+    })();

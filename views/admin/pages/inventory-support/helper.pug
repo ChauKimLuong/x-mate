@@ -1,0 +1,236 @@
+extends ../../layouts/default
+include ../../mixins/icons
+
+block head
+  style.
+    .tabs{display:flex;gap:8px;margin:0 0 16px}
+    .tabs .tab{padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
+    .tabs .tab[aria-selected="true"]{background:#f97316;color:#fff;border-color:#f97316}
+    .panel{display:none}
+    .panel.active{display:block}
+    .card{background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(16,24,40,.06)}
+    .hstack{display:flex;gap:8px;align-items:center}
+    .btn{padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
+    .btn.primary{background:#f97316;border-color:#f97316;color:#fff}
+    .btn.danger{border-color:#fecaca;background:#fff5f5}
+    .num{text-align:right;font-variant-numeric:tabular-nums}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    thead th{padding:12px 14px;border-bottom:1px solid #eef0f5;text-align:left}
+    tbody td{padding:12px 14px;border-top:1px solid #f2f3f7}
+    .muted{color:#98A2B3}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #e5e7eb;background:#fff}
+    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
+    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:60}
+    .modal{width:min(960px,94vw);background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.25);overflow:hidden}
+    .modal-hd{padding:18px 22px;font-weight:700;font-size:18px;border-bottom:1px solid #f1f3f5}
+    .modal-bd{padding:18px 22px}
+    .modal-ft{padding:14px 22px;border-top:1px solid #f1f3f5;display:flex;justify-content:flex-end;gap:8px}
+    .empty{padding:18px;text-align:center;color:#98A2B3}
+
+block content
+  h2(style="margin:0 0 16px") INVENTORY SUPPORT
+
+  // Toolbar chung
+  .toolbar(style="margin-bottom:12px")
+    button.btn(onclick="location.href='/admin/inventory-support/export'") ⬇️ Export CSV
+    button.btn(onclick="location.href='/admin/inventory-support/rebuild-onhand'") ♻️ Rebuild OnHand
+    button.btn.primary(onclick="document.getElementById('upModal').style.display='flex'") ⬆️ Upload CSV
+
+  // Tabs
+  .tabs(role="tablist")
+    button.tab( role="tab" aria-selected="true" aria-controls="p-low"   id="t-low") Low-Stock / Reorder
+    button.tab( role="tab" aria-selected="false" aria-controls="p-stock" id="t-stock") Stocktake
+    button.tab( role="tab" aria-selected="false" aria-controls="p-bulk"  id="t-bulk") Bulk Adjust
+    button.tab( role="tab" aria-selected="false" aria-controls="p-code"  id="t-code") Barcode / QR
+    button.tab( role="tab" aria-selected="false" aria-controls="p-diag"  id="t-diag") Diagnostics
+
+  // Panel: Low-Stock / Reorder
+  .panel.active#p-low
+    .card(style="padding:16px")
+      .hstack(style="justify-content:space-between;margin-bottom:8px")
+        .hstack
+          .lbl(style="font-weight:700") Low-Stock (Top N)
+          span.badge #{(lowStock && lowStock.length) || 0} items
+        .hstack
+          form.hstack(method="get" action="/admin/inventory-support/low-stock")
+            input(type="number" name="limit" min="1" max="200" placeholder="Limit" style="width:100px;padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px")
+            button.btn(type="submit") Refresh
+          button.btn.primary(onclick="createDraftPO()") Create Draft PO
+      if lowStock && lowStock.length
+        table
+          thead
+            tr
+              th Product
+              th.classic Reorder Point
+              th On hand
+              th Suggest
+          tbody
+            each r in lowStock
+              - const rp = r.reorderPoint || 10
+              - const need = Math.max(0, rp - (r.stock || 0))
+              tr
+                td= r.title
+                td.num= rp
+                td.num= r.stock
+                td.num= need
+      else
+        .empty No low-stock items.
+
+  // Panel: Stocktake
+  .panel#p-stock
+    .grid2
+      .card(style="padding:16px")
+        h3(style="margin:0 0 10px") Create Stocktake Session
+        form(method="post" action="/admin/inventory-support/stocktake")
+          .hstack(style="gap:12px;flex-wrap:wrap")
+            input(type="text" name="name" placeholder="Session name" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
+            select(name="scope" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px")
+              option(value="all") All products
+              option(value="active") Active only
+              option(value="low") Low-stock only
+            button.btn.primary(type="submit") Create
+        p.muted(style="margin:8px 0 0") Sau khi tạo, tải CSV mẫu, nhập số đếm thực tế rồi upload để post chênh lệch.
+
+      .card(style="padding:16px")
+        h3(style="margin:0 0 10px") Recent Sessions
+        if sessions && sessions.length
+          table
+            thead
+              tr
+                th Name
+                th Status
+                th Created
+                th Action
+            tbody
+              each s in sessions
+                tr
+                  td= s.name
+                  td
+                    span.badge= s.status
+                  td= s.createdAt
+                  td
+                    .hstack
+                      a.btn(href=`/admin/inventory-support/stocktake/${s.id}`) View
+                      if s.status === 'draft' || s.status === 'reviewing'
+                        a.btn.primary(href=`/admin/inventory-support/stocktake/${s.id}/download`) ⬇️ CSV
+                        form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/post`)
+                          button.btn(type="submit") Post
+        else
+          .empty No sessions.
+
+  // Panel: Bulk Adjust
+  .panel#p-bulk
+    .card(style="padding:16px")
+      .hstack(style="justify-content:space-between;margin-bottom:8px")
+        h3(style="margin:0") Bulk Adjust from CSV
+        a.btn(href="/admin/inventory-support/template.csv") ⬇️ Download template
+      p.muted CSV columns: productId, variantId(optional), delta, reason(manualImport|manualAdjust|returnIn|returnOut), note(optional)
+      if bulkPreview && bulkPreview.length
+        table
+          thead
+            tr
+              th Product
+              th Variant
+              th.delta Delta
+              th Reason
+              th Note
+          tbody
+            each r in bulkPreview
+              tr
+                td= r.productId
+                td= r.variantId || '-'
+                td.num= r.delta
+                td= r.reason
+                td= r.note || ''
+        form(method="post" action="/admin/inventory-support/bulk-adjust/commit")
+          button.btn.primary(type="submit") Commit changes
+      else
+        .empty No preview yet. Use “Upload CSV” to preview.
+
+  // Panel: Barcode / QR
+  .panel#p-code
+    .card(style="padding:16px")
+      h3(style="margin:0 0 10px") Generate Barcode / QR
+      form.hstack(method="get" action="/admin/inventory-support/barcode")
+        input(type="text" name="productId" placeholder="productId" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:240px")
+        input(type="text" name="variantId" placeholder="variantId (optional)" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:240px")
+        select(name="type" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px")
+          option(value="barcode") Barcode
+          option(value="qr") QR Code
+        button.btn.primary(type="submit") Generate
+      if barcodeUrl
+        .hstack(style="margin-top:12px")
+          img(src=barcodeUrl alt="code" style="max-height:160px")
+          a.btn(href=barcodeUrl target="_blank") Open
+
+  // Panel: Diagnostics
+  .panel#p-diag
+    .grid2
+      .card(style="padding:16px")
+        h3(style="margin:0 0 10px") Negative Stock
+        if diagnostics && diagnostics.negative && diagnostics.negative.length
+          table
+            thead
+              tr
+                th VariantId
+                th ProductId
+                th Stock
+            tbody
+              each v in diagnostics.negative
+                tr
+                  td= v.id
+                  td= v.productId
+                  td.num= v.stock
+        else
+          .empty No negative stock.
+      .card(style="padding:16px")
+        h3(style="margin:0 0 10px") Orphan Variants
+        if diagnostics && diagnostics.orphan && diagnostics.orphan.length
+          table
+            thead
+              tr
+                th VariantId
+            tbody
+              each v in diagnostics.orphan
+                tr
+                  td= v.id
+        else
+          .empty No orphan variants.
+
+  // Upload CSV Modal
+  .modal-backdrop#upModal
+    .modal(role="dialog" aria-modal="true" aria-labelledby="upTitle")
+      .modal-hd#upTitle Upload CSV
+      form(method="post" action="/admin/inventory-support/bulk-adjust/upload" enctype="multipart/form-data")
+        .modal-bd
+          input(type="file" name="file" accept=".csv" required)
+          p.muted(style="margin:8px 0 0") File CSV sẽ được parse để preview trước khi commit.
+        .modal-ft
+          button.btn(type="button" onclick="document.getElementById('upModal').style.display='none'") Cancel
+          button.btn.primary(type="submit") Upload
+
+block scripts
+  script.
+    // Tabs
+    (function(){
+      const tabs=[...document.querySelectorAll('.tabs .tab')];
+      const panels=[...document.querySelectorAll('.panel')];
+      function show(id){
+        tabs.forEach(t=>t.setAttribute('aria-selected', String(t.getAttribute('aria-controls')===id)));
+        panels.forEach(p=>p.classList.toggle('active', p.id===id));
+      }
+      tabs.forEach(t=>t.addEventListener('click',()=>show(t.getAttribute('aria-controls'))));
+      // Deep-link by hash (#p-low ...)
+      if(location.hash && document.querySelector(location.hash)) show(location.hash.slice(1));
+      window.createDraftPO = function(){
+        fetch('/admin/inventory-support/reorder-draft', {method:'POST'})
+          .then(r=>r.ok?r.blob():Promise.reject(r))
+          .then(b=>{
+            const url=URL.createObjectURL(b);
+            const a=document.createElement('a'); a.href=url; a.download='reorder-draft.csv'; a.click();
+            setTimeout(()=>URL.revokeObjectURL(url), 2000);
+          })
+          .catch(()=>alert('Cannot create draft PO.'));
+      }
+    })();

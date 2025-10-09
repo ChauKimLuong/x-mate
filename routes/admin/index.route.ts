@@ -1,4 +1,7 @@
 import { Router } from "express";
+import productsRouter from "./products.route";
+import inventoryRouter from "./inventory.route";
+import inventorySupportRouter from "./inventory-support.route";
 const r = Router();
 
 r.get("/", (_req, res) => {
@@ -17,5 +20,7 @@ r.get("/", (_req, res) => {
     stats: { customers: "345k", revenue: "43,594", orders: "1,208" }
   });
 });
-
+r.use("/products", productsRouter);
+r.use("/inventory", inventoryRouter);
+r.use("/inventory-support", inventorySupportRouter);
 export default r;
