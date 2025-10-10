@@ -136,8 +136,8 @@ export const changePassword = async (req: Request, res: Response) => {
 
         await prisma.users.update({
             where: { token_user: "tok_izr1yfxb5q" },
-            data: { password: hashedNewPassword }
-        })
+            data: { password: hashedNewPassword },
+        });
 
         req.flash("success", "Đổi mật thành công!");
         return res.redirect(req.get("Referer") || "/user/info");
@@ -146,5 +146,50 @@ export const changePassword = async (req: Request, res: Response) => {
         res.status(500).send("Internal Server Error");
         req.flash("error", "Có lỗi xảy ra!");
         return res.redirect(req.get("Referer") || "/user/info");
+    }
+};
+
+// [POST] /user/address
+export const addressPost = async (req: Request, res: Response) => {
+    try {
+        const { full_name, phone, city, district, ward, line1 } = req.body;
+
+        if (!full_name || !phone || !city || !district || !ward || !line1) {
+            req.flash("error", "Vui lòng điền đầy đủ thông tin!");
+            return res.redirect(req.get("Referer") || "/user/address");
+        }
+
+        const isDefault: boolean =
+            req.body.isDefault === "on" ||
+            req.body.isDefault === "true" ||
+            req.body.isDefault === true;
+
+        const tokenUser = "tok_izr1yfxb5q";
+        if (isDefault) {
+            await prisma.addresses.updateMany({
+                where: { token_user: tokenUser },
+                data: { is_default: false },
+            });
+        }
+
+        await prisma.addresses.create({
+            data: {
+                token_user: tokenUser,
+                full_name,
+                phone,
+                city,
+                district,
+                ward,
+                line1,
+                is_default: isDefault,
+            },
+        });
+
+        req.flash("success", "Thêm địa chỉ thành công!");
+        return res.redirect(req.get("Referer") || "/user/address");
+    } catch (error) {
+        console.error("ERROR:", error);
+        req.flash("error", "Có lỗi xảy ra!");
+        return res.redirect(req.get("Referer") || "/user/address");
     }
 };

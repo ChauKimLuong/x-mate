@@ -7,5 +7,6 @@ router.get("/info", userController.info);
 router.post("/update-info", userController.updateInfo)
 router.post("/change-password", userController.changePassword)
 router.get("/address", userController.address);
+router.post("/address", userController.addressPost)
 
 export default router;
