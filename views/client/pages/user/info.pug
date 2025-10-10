@@ -16,8 +16,7 @@ block content
         };
         const fmtGender = (g) => {
             if (!g) return 'Không tiết lộ';
-            const map = { MALE:'Nam', FEMALE:'Nữ', OTHER:'Khác', male:'Nam', female:'Nữ', other:'Khác' };
-            return map[g] || 'Không tiết lộ';
+            return g;
         };
         const numOrNull = (v) => (v===null || v===undefined || v==='') ? null : Number(v);
         const u = (typeof user !== 'undefined' && user) ? user : {};
@@ -52,7 +51,7 @@ block content
                                 if u.address
                                     dt.info-list__label Địa chỉ
                                     dd.info-list__value #{u.address}
-                        a.button.mt-16(href="/account/edit") Cập nhật
+                        button.button.mt-16(data-open="#modal-info") Cập nhật
 
                     .surface-panel
                         h3.panel-title Thông tin đăng nhập
@@ -62,4 +61,21 @@ block content
                                 dd.info-list__value #{u.email || 'Chưa cập nhật'}
                                 dt.info-list__label Mật khẩu
                                 dd.info-list__value ●●●●●●●●●
-                        a.button.mt-16(href="/account/change-password") Cập nhật
+                        button.button.mt-16(data-open="#modal-password") Cập nhật
+
+    //- Modal 1: Cập nhật thông tin
+    .modal#modal-info(hidden aria-hidden="true")
+        .modal__overlay(data-close)
+        .modal__dialog
+            button.modal__close(type="button" data-close aria-label="Đóng") ×
+            include ./_form-update-info.pug
+
+    //- Modal 2: Đổi mật khẩu
+    .modal#modal-password(hidden aria-hidden="true")
+        .modal__overlay(data-close)
+        .modal__dialog
+            button.modal__close(type="button" data-close aria-label="Đóng") ×
+            include ./_form-change-password.pug
+
+block extra_js
+    script(src="/js/user-info.js")
