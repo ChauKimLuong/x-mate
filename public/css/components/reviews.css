@@ -1,0 +1,135 @@
+/* ===============================
+   X-MATE ADMIN REVIEWS STYLE
+   =============================== */
+.reviews-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  gap: 24px;
+  padding: 16px 0 40px;
+}
+
+/* --- Card --- */
+.review-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: 0 6px 18px rgba(30, 35, 55, 0.06);
+  overflow: hidden;
+  transition: all 0.25s ease;
+  min-height: 340px; /* ✅ cố định chiều cao */
+}
+.review-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 10px 26px rgba(30, 35, 55, 0.12);
+}
+
+/* --- Body --- */
+.card-body {
+  padding: 20px 22px;
+  flex: 1;
+}
+.card-body small {
+  color: var(--muted);
+  font-weight: 600;
+  font-size: 13px;
+  letter-spacing: 0.2px;
+}
+.card-body p {
+  font-size: 15px;
+  line-height: 1.55;
+  margin-top: 10px;
+  color: var(--text);
+  min-height: 70px; /* để các đoạn đều nhau */
+}
+
+/* --- Stars --- */
+.stars {
+  margin-top: 10px;
+  display: flex;
+  align-items: center;
+  gap: 3px;
+  flex-wrap: wrap;
+}
+.stars i {
+  color: #ffb703;
+  font-size: 16px;
+}
+.stars .bi-star {
+  color: #d9d9d9;
+}
+.quality {
+  font-weight: 600;
+  color: #667085;
+  margin-left: 8px;
+  font-size: 14px;
+}
+
+/* --- Footer --- */
+.review-footer {
+  background: #1e293b;
+  color: #fff;
+  padding: 16px 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  border-bottom-left-radius: var(--radius);
+  border-bottom-right-radius: var(--radius);
+  min-height: 84px;
+}
+
+/* Avatar căn giữa tuyệt đối */
+.review-footer img {
+  width: 56px;
+  height: 56px;
+  border-radius: 50%;
+  object-fit: cover;
+  object-position: center;
+  border: 2px solid #fff;
+  flex-shrink: 0;
+  transition: transform 0.25s ease;
+}
+.review-card:hover .review-footer img {
+  transform: scale(1.08);
+}
+
+/* Info */
+.review-footer .info {
+  flex: 1;
+  margin-left: 12px;
+  overflow: hidden;
+}
+.review-footer .info strong {
+  font-size: 15px;
+  display: block;
+  color: #fff;
+  font-weight: 700;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.review-footer .info small {
+  font-size: 13px;
+  color: #d1d5db;
+}
+
+/* Quote icon */
+.review-footer i {
+  font-size: 34px;
+  opacity: 0.8;
+  color: #ffffffcc;
+  transition: opacity 0.25s, color 0.25s;
+}
+.review-card:hover .review-footer i {
+  opacity: 1;
+  color: #38bdf8;
+}
+
+/* --- Responsive --- */
+@media (max-width: 768px) {
+  .reviews-grid {
+    grid-template-columns: 1fr;
+  }
+}

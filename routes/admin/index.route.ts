@@ -2,6 +2,8 @@ import { Router } from "express";
 import productsRouter from "./products.route";
 import inventoryRouter from "./inventory.route";
 import inventorySupportRouter from "./inventory-support.route";
+import reviewsRouter from "./reviews.route";
+import ordersRouter from "./orders.route";
 const r = Router();
 
 r.get("/", (_req, res) => {
@@ -23,4 +25,6 @@ r.get("/", (_req, res) => {
 r.use("/products", productsRouter);
 r.use("/inventory", inventoryRouter);
 r.use("/inventory-support", inventorySupportRouter);
+r.use("/reviews", reviewsRouter);
+r.use("/orders", ordersRouter);
 export default r;

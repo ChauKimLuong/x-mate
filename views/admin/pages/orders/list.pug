@@ -1,0 +1,43 @@
+extends ../../layouts/default.pug
+
+block content
+  .orders-wrapper
+    .orders-header
+      h3
+        i.bi.bi-card-list
+        | Danh sách đơn hàng
+
+    .orders-card
+      .table-responsive
+        table.orders-table
+          thead
+            tr
+              th.text-center Mã đơn
+              th.text-start Khách hàng
+              th.text-end Tổng tiền
+              th.text-center Trạng thái
+              th.text-center Hành động
+          tbody
+            each order in orders
+              tr
+                td.text-center #{order.id}
+                td.text-start #{order.customer}
+                td.text-end #{order.total.toLocaleString()} đ
+                td.text-center
+                  if order.status === "Đã duyệt"
+                    span.badge.badge-success #{order.status}
+                  else if order.status === "Yêu cầu hủy"
+                    span.badge.badge-warning #{order.status}
+                  else
+                    span.badge.badge-secondary #{order.status}
+                td.text-center
+                  .action-group
+                    a.btn.btn-primary.btn-sm(href="#", title="Duyệt")
+                      i.bi.bi-check2
+                      span.btn-text Duyệt
+                    a.btn.btn-outline.btn-sm(href=`/admin/orders/${order.id}/request`, title="Yêu cầu hủy")
+                      i.bi.bi-exclamation-triangle
+                      span.btn-text Hủy
+                    a.btn.btn-outline.btn-sm(href=`/admin/orders/${order.id}/detail`, title="Chi tiết")
+                      i.bi.bi-eye
+                      span.btn-text Xem

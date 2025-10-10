@@ -1,0 +1,51 @@
+extends ../../layouts/default.pug
+
+block content
+  .orders-wrapper
+    .orders-header
+      h3
+        i.bi.bi-receipt
+        | Chi tiết đơn hàng ##{order.id}
+
+    .orders-card
+      h5.section-title Thông tin đơn hàng
+      ul.order-info
+        li
+          span.key Mã đơn:
+          span.val #{order.id}
+        li
+          span.key Khách hàng:
+          span.val #{order.customer}
+        li
+          span.key Ngày đặt:
+          span.val #{order.date}
+        li
+          span.key Địa chỉ giao hàng:
+          span.val #{order.address}
+        li
+          span.key Tổng tiền:
+          span.val #{order.total.toLocaleString()} đ
+
+      hr.divider
+
+      h5.section-title Danh sách sản phẩm
+      .table-responsive
+        table.orders-table.compact
+          thead
+            tr
+              th.text-start Sản phẩm
+              th.text-center Số lượng
+              th.text-end Đơn giá
+              th.text-end Thành tiền
+          tbody
+            each item in order.items
+              tr
+                td.text-start #{item.name}
+                td.text-center #{item.qty}
+                td.text-end #{item.price.toLocaleString()} đ
+                td.text-end #{(item.qty * item.price).toLocaleString()} đ
+
+      .action-row
+        a.btn.btn-secondary.btn-lg(href="/admin/orders")
+          i.bi.bi-arrow-left
+          | Quay lại danh sách

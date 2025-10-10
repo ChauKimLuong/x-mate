@@ -1,0 +1,244 @@
+/* ========================================
+   ADMIN ORDERS – DARK BLUE NEUTRAL THEME
+   ======================================== */
+
+body {
+  font-family: "Inter", "Segoe UI", sans-serif;
+}
+
+/* ===== Wrapper ===== */
+.orders-wrapper {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 16px 8px 48px;
+}
+
+/* ===== Header ===== */
+.orders-header h3 {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #4a90e2; /* xanh dương đậm */
+  margin: 12px 0 22px;
+}
+.orders-header h3 i {
+  color: #4a90e2;
+}
+
+/* ===== Card ===== */
+.orders-card {
+  background: #1b1e24;
+  border: 1px solid #2b2f36;
+  border-radius: 14px;
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.3);
+  padding: 30px 32px;
+}
+.section-title {
+  color: #4a90e2;
+  font-weight: 700;
+  margin: 10px 0 14px;
+  font-size: 1.05rem;
+}
+.divider {
+  border: 0;
+  border-top: 1px solid #2f3540;
+  margin: 22px 0 20px;
+}
+
+/* ===== Info list ===== */
+.order-info {
+  list-style: none;
+  margin: 0 0 6px 0;
+  padding: 0;
+}
+.order-info li {
+  display: flex;
+  gap: 10px;
+  padding: 6px 0;
+  align-items: center;
+}
+.order-info .key {
+  min-width: 180px;
+  color: #cfd3da;
+  font-weight: 600;
+}
+.order-info .val {
+  color: #ffffff;
+  font-weight: 500;
+}
+
+/* ===== Table ===== */
+.table-responsive {
+  width: 100%;
+  overflow-x: auto;
+}
+table.orders-table {
+  width: 100%;
+  border-collapse: collapse;
+  background: #181b21;
+  border-radius: 14px;
+  overflow: hidden;
+  border: 1px solid #2b3038;
+  color: #e6e6e6;
+}
+table.orders-table thead {
+  background: #1e2230;
+}
+table.orders-table th {
+  color: #4a90e2;
+  font-weight: 700;
+  font-size: 0.9rem;
+  letter-spacing: 0.02em;
+  padding: 14px 16px;
+  text-align: center;
+  vertical-align: middle;
+}
+table.orders-table td {
+  padding: 14px 16px;
+  border-top: 1px solid #2b3038;
+  font-size: 0.95rem;
+  color: #e9ebee;
+  text-align: center;
+  vertical-align: middle;
+}
+table.orders-table tr:hover td {
+  background: #1f2430;
+}
+table.orders-table th.text-start,
+table.orders-table td.text-start {
+  text-align: left;
+}
+table.orders-table th.text-end,
+table.orders-table td.text-end {
+  text-align: right;
+}
+
+/* ===== Badges ===== */
+.badge {
+  display: inline-block;
+  min-width: 110px;
+  text-align: center;
+  padding: 6px 14px;
+  border-radius: 999px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #fff;
+}
+.badge-secondary {
+  background: #3a3f4a;
+}
+.badge-success {
+  background: #204a30;
+}
+.badge-warning {
+  background: #5c4a1b;
+}
+
+/* ===== Buttons ===== */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 8px 14px;
+  border: 1px solid transparent;
+  background: #2b3038;
+  color: #e6e6e6;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.btn i {
+  margin-right: 4px;
+}
+.btn:hover {
+  background: #333844;
+  transform: translateY(-1px);
+}
+.btn:active {
+  transform: translateY(0);
+}
+.btn-sm {
+  padding: 6px 10px;
+  font-size: 0.9rem;
+  border-radius: 8px;
+}
+.btn-lg {
+  padding: 12px 22px;
+  font-size: 1rem;
+  border-radius: 12px;
+}
+.btn-primary {
+  background: #4a90e2;
+  border-color: #4a90e2;
+  color: #fff;
+}
+.btn-primary:hover {
+  background: #3878c2;
+  border-color: #3878c2;
+}
+.btn-outline {
+  background: transparent;
+  border: 1px solid #4a90e2;
+  color: #4a90e2;
+}
+.btn-outline:hover {
+  background: #4a90e2;
+  color: #fff;
+}
+.btn-secondary {
+  background: #2b3038;
+  border-color: #404654;
+  color: #e0e0e0;
+}
+.btn-secondary:hover {
+  background: #353b48;
+}
+.btn-danger {
+  background: #6a2b2b;
+  border-color: #893a3a;
+  color: #fff;
+}
+.btn-danger:hover {
+  background: #7c3434;
+}
+
+/* ===== Action buttons in table ===== */
+.action-group {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+/* ===== Textarea ===== */
+.form-control {
+  width: 100%;
+  background: #181b21;
+  color: #ffffff;
+  border: 1px solid #3e4656;
+  border-radius: 10px;
+  padding: 12px 14px;
+  outline: none;
+  font-size: 1rem;
+  font-family: "Inter", sans-serif;
+}
+.form-control::placeholder {
+  color: #7f8ca3;
+}
+.form-control:focus {
+  border-color: #4a90e2;
+  box-shadow: 0 0 0 3px rgba(74, 144, 226, 0.25);
+}
+
+/* ===== Centered action row ===== */
+.action-row {
+  display: flex;
+  justify-content: center;
+  gap: 16px;
+  margin-top: 28px;
+  flex-wrap: wrap;
+}

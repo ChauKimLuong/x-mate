@@ -1,0 +1,34 @@
+extends ../../layouts/default.pug
+
+block content
+  .orders-wrapper
+    .orders-header
+      h3
+        i.bi.bi-exclamation-octagon
+        | Yêu cầu hủy đơn hàng ##{order.id}
+
+    .orders-card
+      h5.section-title Thông tin đơn hàng
+      ul.order-info
+        li
+          span.key Mã đơn:
+          span.val #{order.id}
+        li
+          span.key Khách hàng:
+          span.val #{order.customer}
+        li
+          span.key Tổng tiền:
+          span.val #{order.total.toLocaleString()} đ
+
+      hr.divider
+
+      h5.section-title Lý do yêu cầu hủy
+      form(action="#", method="post" class="cancel-form")
+        textarea.form-control(name="reason", rows="4", placeholder="Nhập lý do yêu cầu hủy...", required)
+        .action-row
+          button.btn.btn-danger.btn-lg(type="submit")
+            i.bi.bi-check-circle
+            | Đồng ý hủy
+          a.btn.btn-secondary.btn-lg(href="/admin/orders")
+            i.bi.bi-x-circle
+            | Không đồng ý
