@@ -5,19 +5,26 @@ html(lang="vi")
     meta(charset="utf-8")
     meta(name="viewport", content="width=device-width,initial-scale=1")
     title= title || "Admin"
+
+    //- Global styles
     link(rel="stylesheet", href="/css/admin/admin.css")
     link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css")
-  
+
+    //- Page-specific styles
     if title === 'Reviews List'
       link(rel="stylesheet", href="/css/components/reviews.css")
-    if title==='Order'
+    if title === 'Order'
       link(rel="stylesheet", href="/css/components/orders.css")
 
+    //- Optional head block (for extra page-specific assets)
     block head
-    // Chart.js (cho dashboard)
+
+    //- Chart.js (Dashboard)
     script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js")
+
   body
     .shell
+      // ============ SIDEBAR ============
       aside.sidebar
         .brand
           span.icon 💠
@@ -26,30 +33,32 @@ html(lang="vi")
           a.item(class=active==='overview'?'active':'', href="/admin")
             span.ico 🧭
             span.lbl Overview
-          a.item(href="/admin/users")
+          a.item(class=active==='users'?'active':'', href="/admin/users")
             span.ico 👥
             span.lbl Users
-          a.item(href="/admin/reports/revenue")
+          a.item(class=active==='reports'?'active':'', href="/admin/reports/revenue")
             span.ico 📈
             span.lbl Reports
-          a.item(href="/admin/promotions")
+          a.item(class=active==='promotions'?'active':'', href="/admin/promotions")
             span.ico 🎟️
             span.lbl Promotions
-          a.item(href="/admin/products")
+          a.item(class=active==='products'?'active':'', href="/admin/products")
             span.ico 🛒
             span.lbl Products
-          a.item(href="/admin/inventory")
+          a.item(class=active==='inventory'?'active':'', href="/admin/inventory")
             span.ico 📦
             span.lbl Inventory
-          a.item(href="/admin/inventory-support")
+          a.item(class=active==='inventory-support'?'active':'', href="/admin/inventory-support")
             span.ico 🛠️
             span.lbl Inventory Support
-          a.item(href="/admin/reviews")
+          a.item(class=active==='reviews'?'active':'', href="/admin/reviews")
             span.ico ⭐
             span.lbl Reviews
-          a.item(href="/admin/orders")
+          a.item(class=active==='orders'?'active':'', href="/admin/orders")
             span.ico 🧾
             span.lbl Orders
+
+      // ============ MAIN CONTENT ============
       main.main
         header.topbar
           .left
@@ -60,7 +69,10 @@ html(lang="vi")
             .user
               img(src="https://i.pravatar.cc/40?img=5" alt="avatar")
               span.name Admin
+
+        //- Main page content
         .container
           block content
-    //- page-level scripts
+
+    //- Page-level scripts
     block scripts

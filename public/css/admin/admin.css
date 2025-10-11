@@ -297,3 +297,99 @@ a {
     width: 100%;
   }
 }
+/* ------------------------------------------------------- */
+
+.btn-dark {
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  padding: 10px 18px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease-in-out;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+}
+
+.btn-dark:hover {
+  background: #e25e1c;
+  box-shadow: 0 4px 8px rgba(0,0,0,0.12);
+  transform: translateY(-1px);
+}
+
+/* ===== USER FORM LOCAL STYLES ===== */
+.user-form-wrapper {
+  padding: 30px;
+}
+.user-form {
+  background: var(--panel);
+  border-radius: var(--radius);
+  box-shadow: 0 4px 20px rgba(16, 24, 40, 0.08);
+  padding: 30px 36px;
+  max-width: 900px;
+  margin: 0 auto;
+}
+.user-form h2 {
+  font-size: 22px;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.user-form p {
+  color: var(--muted);
+  font-size: 15px;
+  margin-bottom: 28px;
+}
+.user-form .grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 22px 40px;
+}
+.user-form label {
+  display: block;
+  font-weight: 600;
+  font-size: 14px;
+  margin-bottom: 6px;
+}
+.user-form input,
+.user-form select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--ring);
+  border-radius: 10px;
+  background: #fff;
+}
+.user-form input:focus,
+.user-form select:focus {
+  border-color: var(--orange);
+  outline: none;
+}
+.user-form .actions {
+  display: flex;
+  justify-content: flex-start;
+  gap: 12px;
+  margin-top: 28px;
+}
+.btn-orange {
+  background: var(--orange);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  padding: 10px 20px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-orange:hover {
+  background: #e25e1c;
+}
+.btn-cancel {
+  background: #f3f4f6;
+  color: #333;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 10px;
+  font-weight: 600;
+  cursor: pointer;
+}
+.btn-cancel:hover {
+  background: #e5e7eb;
+}

@@ -1,0 +1,45 @@
+extends ../../layouts/default
+
+block content
+  .user-form-wrapper
+    .user-form
+      h2 #{mode === 'create' ? 'Add New Staff' : 'Edit User'}
+      p Manage user details and role assignments.
+
+      form(method="post" action=(mode === 'create' ? '/admin/users' : `/admin/users/${form.id}`))
+        .grid
+          .left
+            label Full Name
+            input(type="text" name="full_name" value=form.full_name placeholder="Enter full name" required)
+
+            label Email
+            input(type="email" name="email" value=form.email placeholder="Enter email" required)
+
+            label Phone
+            input(type="text" name="phone" value=form.phone placeholder="Enter phone number")
+
+            label Gender
+            select(name="gender")
+              option(value="") Select gender
+              option(value="nam" selected=form.gender==='nam') Male
+              option(value="nữ" selected=form.gender==='nữ') Female
+
+          .right
+            label Role
+            select(name="role")
+              each r in roles
+                option(value=r.id selected=(form.role===r.id))= r.name
+
+            if mode === 'create'
+              label Password
+              input(type="password" name="password" placeholder="Enter password" required)
+
+            label Status
+            select(name="status")
+              option(value="active" selected=form.status==='active') Active
+              option(value="inactive" selected=form.status==='inactive') Inactive
+              option(value="banned" selected=form.status==='banned') Banned
+
+        .actions
+          button.btn-orange(type="submit") #{mode === 'create' ? 'Create User' : 'Update User'}
+          a.btn-cancel(href="/admin/users") Cancel

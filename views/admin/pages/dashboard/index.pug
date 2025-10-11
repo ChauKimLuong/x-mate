@@ -1,22 +1,16 @@
-//- views/admin/pages/dashboard/index.pug
 extends ../../layouts/default
 include ../../mixins/icons
 
 block content
-  - const KP = kpis || {totalOrders:0,newLeads:0,deals:0,bookedRev:0}
-  - const DL = deltas || {totalOrders:0,newLeads:0,deals:0,bookedRev:0}
-  - const _labels = Array.isArray(labels)?labels:[]
-  - const _bar    = Array.isArray(seriesBar)?seriesBar:[]
-  - const _line   = Array.isArray(seriesLine)?seriesLine:[]
-  - const pretty = (n)=> Number(n||0).toLocaleString()
+  - const KP = kpis || { totalOrders: 0, deals: 0, newLeads: 0, bookedRev: 0 }
+  - const DL = deltas || { totalOrders: 0, deals: 0, newLeads: 0, bookedRev: 0 }
+  - const pretty = (n) => Number(n || 0).toLocaleString()
 
   .dash-wrap
-    h2.welcome WELCOME!
-    .alert
-      | We regret to inform you that our server is currently experiencing temporary issues. Please try again later.
+    h2.welcome Welcome
 
-    //- KPI ROW
     .kpi-row
+      // 4 KPI
       .kpi-card
         .ico-bg.peach
           +ic_bag()
@@ -26,25 +20,11 @@ block content
         .delta
           if DL.totalOrders >= 0
             span.up ▲ #{DL.totalOrders}% 
-            span.muted Last Week
+            span.muted vs Last Month
           else
             span.down ▼ #{Math.abs(DL.totalOrders)}%
-            span.muted Last Week
-        a.more(href="#") View More
-      .kpi-card
-        .ico-bg.peach
-          +ic_userAdd()
-        .meta
-          .label New Leads
-          .value #{pretty(KP.newLeads)}
-        .delta
-          if DL.newLeads >= 0
-            span.up ▲ #{DL.newLeads}% 
-            span.muted Last Month
-          else
-            span.down ▼ #{Math.abs(DL.newLeads)}%
-            span.muted Last Month
-        a.more(href="#") View More
+            span.muted vs Last Month
+
       .kpi-card
         .ico-bg.peach
           +ic_lock()
@@ -54,50 +34,64 @@ block content
         .delta
           if DL.deals >= 0
             span.up ▲ #{DL.deals}% 
-            span.muted Last Month
+            span.muted vs Last Month
           else
             span.down ▼ #{Math.abs(DL.deals)}%
-            span.muted Last Month
-        a.more(href="#") View More
+            span.muted vs Last Month
+
+      .kpi-card
+        .ico-bg.peach
+          +ic_userAdd()
+        .meta
+          .label New Leads
+          .value #{pretty(KP.newLeads)}
+        .delta
+          if DL.newLeads >= 0
+            span.up ▲ #{DL.newLeads}% 
+            span.muted vs Last Month
+          else
+            span.down ▼ #{Math.abs(DL.newLeads)}%
+            span.muted vs Last Month
+
       .kpi-card
         .ico-bg.peach
           +ic_coin()
         .meta
-          .label Booked Rev.
-          .value $#{pretty(KP.bookedRev/1000)}k
+          .label Booked Revenue
+          .value #{pretty(KP.bookedRev / 1000)}k đ
         .delta
           if DL.bookedRev >= 0
             span.up ▲ #{DL.bookedRev}% 
-            span.muted Last Month
+            span.muted vs Last Month
           else
             span.down ▼ #{Math.abs(DL.bookedRev)}%
-            span.muted Last Month
-        a.more(href="#") View More
+            span.muted vs Last Month
 
-    //- PERFORMANCE CARD
+    // Biểu đồ bên phải
     .perf-card
       .perf-hd
-        .ttl Performance
+        .ttl Performance Overview
         .seg
-          button.on ALL
-          button 1M
-          button 6M
-          button 1Y
+          button(class=(period === "ALL" ? "on" : "") onclick="location.href='?period=ALL'") ALL
+          button(class=(period === "1M" ? "on" : "") onclick="location.href='?period=1M'") 1M
+          button(class=(period === "6M" ? "on" : "") onclick="location.href='?period=6M'") 6M
+          button(class=(period === "1Y" ? "on" : "") onclick="location.href='?period=1Y'") 1Y
       .perf-bd
         canvas#perfChart(height="140")
       .legend
         .dot.orange
-        span Page Views
+        span Booked Revenue
         .gap
         .dot.green
-        span Clicks
+        span Completed Orders
 
 block scripts
   script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js")
   script.
     window.__chart = {
-      labels: !{JSON.stringify(_labels)},
-      bar:    !{JSON.stringify(_bar)},
-      line:   !{JSON.stringify(_line)}
+      labels: !{JSON.stringify(labels)},
+      views: !{JSON.stringify(seriesViews)},
+      added: !{JSON.stringify(seriesAdded)},
+      completed: !{JSON.stringify(seriesCompleted)}
     };
   script(src="/js/admin/admin-dashboard.js")
