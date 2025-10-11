@@ -53,7 +53,7 @@
   background:#fff;
   border:1px solid var(--border);
   border-radius:16px;
-  padding:20px;
+  padding:32px 64px;
 }
 .surface-header{
   display:flex; align-items:center; justify-content:space-between;
@@ -111,26 +111,217 @@
 /* ===== Trang ĐỊA CHỈ ===== */
 .address-header { margin-top:12px; font-size:17.6px; font-weight:700; }
 .address-list{
-  margin-top:10px;
-  display:grid;
-  grid-template-columns: 1fr 1fr;
-  gap:16px;
+  margin-top:12px;
+  display:flex;
+  flex-direction:column;
+  border-top:1px solid #e5e7eb;
+  padding:12px 4px 12px 8px;
 }
 .address-card{
-  border:1px solid #eef0f2;
-  border-radius:12px;
-  padding:14px;
-  display:flex; flex-direction:column; gap:8px;
-  background:#fff;
+  padding:20px 0;
+  border-bottom:1px solid #e5e7eb;
+  display:flex;
+  flex-direction:column;
+  gap:12px;
 }
-.address-card__name{ font-weight:700; color:#111; }
-.address-card__meta{ color:#6b7280; font-size:14px; }
-.address-card__line{ color:#111; }
-.address-card__actions{ margin-top:8px; display:flex; gap:10px; flex-wrap:wrap; }
+.address-card__header{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+  flex-wrap:wrap;
+}
+.address-card__heading{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.address-card__name{
+  font-size:18px;
+  font-weight:700;
+  color:#0b0f1a;
+}
 .address-badge{
-  display:inline-flex; align-items:center;
-  padding:4px 8px; border-radius:999px;
-  background:#f3f4f6; color:#111; font-size:12px; font-weight:600;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  padding:6px 14px;
+  border-radius:999px;
+  border:1px solid #111;
+  background:#fff;
+  color:#111;
+  font-size:16px;
+  font-weight:600;
+}
+.address-badge::before{
+  content:"★";
+  font-size:16px;
+  line-height:1;
+}
+.address-card__actions{
+  display:flex;
+  align-items:center;
+  gap:12px;
+}
+.address-card__divider{
+  color:#d1d5db;
+  font-size:16px;
+}
+.address-card__action{
+  display:inline-flex;
+  align-items:center;
+  color:#2563eb;
+  font-size:16px;
+  font-weight:600;
+  background:transparent;
+  border:0;
+  padding:0;
+  cursor:pointer;
+  font-family:inherit;
+  line-height:1.4;
+  text-decoration:none;
+  white-space:nowrap;
+}
+.address-card__action:hover{
+  text-decoration:underline;
+}
+.address-card__action--danger{
+  color:#dc2626;
+}
+.address-card__action--danger:hover{
+  color:#b91c1c;
+}
+.address-card__details{
+  display:flex;
+  flex-direction:column;
+  gap:4px;
+}
+.address-card__meta{
+  color:#6b7280;
+  font-size:16px;
+}
+.address-card__line{
+  color:#111;
+  font-size:16px;
+}
+.address-card__footer{
+  display:flex;
+  justify-content:flex-end;
+}
+.address-card__button{
+  font-family: var(--font);
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  padding:8px 18px;
+  border-radius:999px;
+  border:1px solid #111;
+  color:#111;
+  text-decoration:none;
+  font-size:16px;
+  font-weight:600;
+  transition:background-color .2s ease, color .2s ease;
+}
+.address-card__button:hover{
+  background:#111;
+  color:#fff;
+}
+
+/* ===== Ví Voucher ===== */
+.voucher-wallet{
+  margin-top:20px;
+  display:flex;
+  flex-direction:column;
+  gap:18px;
+}
+.voucher-wallet__grid{
+  display:grid;
+  grid-template-columns:repeat(auto-fit, minmax(280px, 1fr));
+  gap:18px;
+}
+.voucher-card{
+  position:relative;
+  background:#f8f9fd;
+  border-radius:18px;
+  padding:22px 24px 22px 30px;
+  border:1px solid #e7e9ee;
+  border-left:2px dashed #d4d8e2;
+  box-shadow:0 1px 3px rgba(15, 23, 42, 0.08);
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+.voucher-card::before,
+.voucher-card::after{
+  content:"";
+  position:absolute;
+  top:50%;
+  width:24px;
+  height:40px;
+  background:#fff;
+  border-radius:50%;
+  transform:translateY(-50%);
+  box-shadow:0 0 0 1px #e7e9ee;
+}
+.voucher-card::before{ left:-12px; }
+.voucher-card::after{ right:-12px; }
+.voucher-card__header{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  flex-wrap:wrap;
+  padding:12px 16px;
+  background:#0b1020;
+  border-radius:12px;
+  color:#fff;
+  margin:-6px 0 0;
+  width:100%;
+}
+.voucher-card__code{
+  font-weight:800;
+  font-size:18px;
+  text-transform:uppercase;
+  color:#fff;
+  letter-spacing:0.6px;
+}
+.voucher-card__remaining{
+  font-size:16px;
+  font-weight:600;
+  color:rgba(255,255,255,0.75);
+}
+.voucher-card__description{
+  margin:0;
+  font-size:16px;
+  line-height:1.6;
+  color:#1f2937;
+  min-height:48px;
+  padding-right:12px;
+}
+.voucher-card__footer{
+  margin-top:auto;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+}
+.voucher-card__expiry{
+  font-size:16px;
+  font-weight:600;
+  color:#4b5563;
+}
+.voucher-card__terms,
+.voucher-card__terms:visited{
+  font-size:16px;
+  font-weight:600;
+  color:#2563eb;
+  text-decoration:none;
+}
+.voucher-card__terms:hover{
+  text-decoration:underline;
+}
+.voucher-card__terms{
+  white-space:nowrap;
 }
 .btn-link{ background:transparent; border:0; color:#111; text-decoration:underline; cursor:pointer; }
 

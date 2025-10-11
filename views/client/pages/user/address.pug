@@ -28,18 +28,52 @@ block content
                     .address-list
                         each a in addresses
                             .address-card
-                                if a.isDefault
-                                    span.address-badge Mặc định
-                                div.address-card__name #{a.fullName}
-                                div.address-card__meta #{a.phone}
-                                div.address-card__line #{a.line1}
-                                if a.line2
-                                    div.address-card__line #{a.line2}
-                                div.address-card__line #{a.ward}, #{a.district}, #{a.city}
-                                .address-card__actions
-                                    a.btn-link(href=`/account/addresses/${a.id}/edit`) Sửa
-                                    a.btn-link(href=`/account/addresses/${a.id}/default`) Đặt làm mặc định
-                                    a.btn-link(href=`/account/addresses/${a.id}/delete`) Xóa
+                                .address-card__header
+                                    .address-card__heading
+                                        div.address-card__name #{a.fullName}
+                                        if a.isDefault
+                                            span.address-badge Mặc định
+                                    if a.isDefault
+                                        button.address-card__action(
+                                            type="button"
+                                            data-edit-address
+                                            data-address-id=a.id
+                                            data-full-name=a.fullName
+                                            data-phone=a.phone
+                                            data-line1=a.line1
+                                            data-city=a.city
+                                            data-district=a.district
+                                            data-ward=a.ward
+                                            data-is-default=(a.isDefault ? 'true' : 'false')
+                                        ) Cập nhật
+                                    else
+                                        .address-card__actions
+                                            button.address-card__action(
+                                                type="button"
+                                                data-edit-address
+                                                data-address-id=a.id
+                                                data-full-name=a.fullName
+                                                data-phone=a.phone
+                                                data-line1=a.line1
+                                                data-city=a.city
+                                                data-district=a.district
+                                                data-ward=a.ward
+                                                data-is-default=(a.isDefault ? 'true' : 'false')
+                                            ) Cập nhật
+                                            form(action=`/user/address/delete/${a.id}` method="POST")
+                                                button.address-card__action.address-card__action--danger(type="submit") Xóa
+
+                                .address-card__details
+                                    div.address-card__meta #{a.phone}
+                                    div.address-card__line #{a.line1}
+                                    if a.line2
+                                        div.address-card__line #{a.line2}
+                                    div.address-card__line #{a.ward}, #{a.district}, #{a.city}
+                                if !a.isDefault
+                                    .address-card__footer
+                                        form(action=`/user/address/default/${a.id}`, method="POST")
+                                            button.address-card__button(type="submit") Đặt làm mặc định
+
 
     // ===== Modal thêm địa chỉ =====
     // Bên mặc định, JS sẽ bật/tắt bằng class .is-open
@@ -47,7 +81,13 @@ block content
     .address-modal.hidden(role="dialog" aria-modal="true" data-address-modal)
         button.address-modal__close(type="button" aria-label="Đóng" data-close-address-modal) ×
         h2.address-modal__title Thêm Địa Chỉ
-        form.address-form(action="/user/address" method="POST" data-address-form)
+        form.address-form(
+            action="/user/address"
+            method="POST"
+            data-address-form
+            data-update-action="/user/address/update"
+        )
+            input(type="hidden" name="id" data-address-id-field)
             .form-group.form-group--inline
                 label(for="full_name") Họ tên
                 input#full_name(type="text" name="full_name" required placeholder="Nhập họ tên")
