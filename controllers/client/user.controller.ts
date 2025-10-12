@@ -1,7 +1,6 @@
 import { Request, Response } from "express";
 import prisma from "../../config/database";
 import bcrypt from "bcrypt";
-import { hash } from "crypto";
 
 // [GET] /user/info
 export const info = async (req: Request, res: Response) => {
@@ -9,7 +8,7 @@ export const info = async (req: Request, res: Response) => {
         const user = await prisma.users.findFirst({
             where: {
                 status: "active",
-                token_user: "tok_izr1yfxb5q",
+                token_user: req.cookies.token_user
             },
             select: {
                 id: true,
@@ -41,9 +40,8 @@ export const info = async (req: Request, res: Response) => {
 // [GET] /user/address
 export const address = async (req: Request, res: Response) => {
     try {
-        const tokenUser = "tok_izr1yfxb5q";
         const addressRows = await prisma.addresses.findMany({
-            where: { token_user: tokenUser },
+            where: { token_user: req.cookies.token_user },
             orderBy: [{ is_default: "desc" }, { updated_at: "desc" }],
         });
 
@@ -68,84 +66,7 @@ export const address = async (req: Request, res: Response) => {
     }
 };
 
-// [GET] /user/voucher
-export const voucher = async (req: Request, res: Response) => {
-    try {
-        const coupons = await prisma.coupons.findMany({
-            where: { status: "ACTIVE" },
-            orderBy: [
-                { enddate: "asc" },
-                { createdat: "desc" },
-            ],
-            select: {
-                couponid: true,
-                code: true,
-                title: true,
-                enddate: true,
-                usagelimit: true,
-                usedcount: true,
-                minordervalue: true,
-                discountvalue: true,
-            },
-        });
 
-        const formatAmount = (value: any) => {
-            if (value === undefined || value === null) return null;
-            const numberValue =
-                typeof value === "number" ? value : Number(value.toString());
-            if (!Number.isFinite(numberValue)) return null;
-
-            if (numberValue >= 1000 && numberValue % 1000 === 0) {
-                const thousand = numberValue / 1000;
-                if (Number.isInteger(thousand)) {
-                    return `${thousand}K`;
-                }
-            }
-            return new Intl.NumberFormat("vi-VN").format(numberValue);
-        };
-
-        const formatDate = (date: Date | null | undefined) => {
-            if (!date) return "Không giới hạn";
-            return new Intl.DateTimeFormat("vi-VN").format(date);
-        };
-
-        const vouchers = coupons.map((coupon) => {
-            const remaining =
-                typeof coupon.usagelimit === "number"
-                    ? Math.max(coupon.usagelimit - coupon.usedcount, 0)
-                    : null;
-
-            let description = coupon.title?.trim();
-            if (!description || description.length === 0) {
-                const discountText = formatAmount(coupon.discountvalue);
-                const minOrderText = formatAmount(coupon.minordervalue);
-                if (discountText && minOrderText) {
-                    description = `Giảm ${discountText} cho đơn từ ${minOrderText}`;
-                } else if (discountText) {
-                    description = `Giảm ${discountText} cho đơn hàng`;
-                } else {
-                    description = "Ưu đãi hấp dẫn đang chờ bạn";
-                }
-            }
-
-            return {
-                id: coupon.couponid,
-                code: coupon.code,
-                description,
-                remaining,
-                expiryText: formatDate(coupon.enddate),
-                termsUrl: "#",
-            };
-        });
-
-        res.render("client/pages/user/voucher", {
-            vouchers,
-        });
-    } catch (error) {
-        console.error("ERROR:", error);
-        res.status(500).send("Internal Server Error");
-    }
-};
 // [POST] /user/update-info
 export const updateInfo = async (req: Request, res: Response) => {
     try {
@@ -168,7 +89,7 @@ export const updateInfo = async (req: Request, res: Response) => {
             res.redirect(req.get("Referer") || "/");
         }
         await prisma.users.update({
-            where: { token_user: "tok_izr1yfxb5q" },
+            where: { token_user: req.cookies.token_user },
             data: {
                 full_name: fullName,
                 dob: new Date(dob),
@@ -201,7 +122,7 @@ export const changePassword = async (req: Request, res: Response) => {
         }
 
         const user = await prisma.users.findUnique({
-            where: { token_user: "tok_izr1yfxb5q" },
+            where: { token_user: req.cookies.token_user },
         });
 
         if (!user) {
@@ -223,7 +144,7 @@ export const changePassword = async (req: Request, res: Response) => {
         const hashedNewPassword = await bcrypt.hash(newPassword, 10);
 
         await prisma.users.update({
-            where: { token_user: "tok_izr1yfxb5q" },
+            where: { token_user: req.cookies.token_user },
             data: { password: hashedNewPassword },
         });
 
@@ -252,7 +173,7 @@ export const addressPost = async (req: Request, res: Response) => {
             req.body.isDefault === "true" ||
             req.body.isDefault === true;
 
-        const tokenUser = "tok_izr1yfxb5q";
+        const tokenUser = req.cookies.token_user;
         if (isDefault) {
             await prisma.addresses.updateMany({
                 where: { token_user: tokenUser },
@@ -318,7 +239,7 @@ export const addressUpdate = async (req: Request, res: Response) => {
             req.body.isDefault === "true" ||
             req.body.isDefault === true;
 
-        const tokenUser = "tok_izr1yfxb5q";
+        const tokenUser = req.cookies.token_user
 
         const existingAddress = await prisma.addresses.findFirst({
             where: { id: addressId, token_user: tokenUser },
@@ -404,5 +325,163 @@ export const addressDelete = async (req: Request, res: Response) => {
         console.error("ERROR:", error);
         req.flash("error", "Có lỗi xảy ra!");
         return res.redirect(req.get("Referer") || "/user/address");
+    }
+};
+
+
+
+
+// [GET] /user/voucher
+export const voucher = async (req: Request, res: Response) => {
+    try {
+        const coupons = await prisma.coupons.findMany({
+            where: { status: "ACTIVE",
+                enddate: { gt: new Date }
+             },
+            orderBy: [
+                { enddate: "asc" },
+                { createdat: "desc" },
+            ],
+            select: {
+                couponid: true,
+                code: true,
+                title: true,
+                type: true,
+                enddate: true,
+                usagelimit: true,
+                usedcount: true,
+                minordervalue: true,
+                discountvalue: true,
+                maxdiscount: true,
+                startdate: true,
+            },
+        });
+
+        const formatCurrency = (value: unknown) => {
+            if (value === undefined || value === null) return null;
+            const numberValue =
+                typeof value === "number" ? value : Number(value as any);
+            if (!Number.isFinite(numberValue)) return null;
+            return new Intl.NumberFormat("vi-VN", {
+                style: "currency",
+                currency: "VND",
+                maximumFractionDigits: 0,
+            }).format(numberValue);
+        };
+
+        const formatPercent = (value: unknown) => {
+            if (value === undefined || value === null) return null;
+            const numberValue =
+                typeof value === "number" ? value : Number(value as any);
+            if (!Number.isFinite(numberValue)) return null;
+            return `${numberValue % 1 === 0 ? numberValue : numberValue.toFixed(1)}%`;
+        };
+
+        const formatDate = (date: Date | null | undefined) => {
+            if (!date) return "Không giới hạn";
+            return new Intl.DateTimeFormat("vi-VN").format(date);
+        };
+
+        const now = new Date();
+
+        const vouchers = coupons.map((coupon) => {
+            const remaining =
+                typeof coupon.usagelimit === "number"
+                    ? Math.max(coupon.usagelimit - coupon.usedcount, 0)
+                    : null;
+            const isOutOfQuota =
+                typeof remaining === "number" ? remaining <= 0 : false;
+
+            const rawTitle = coupon.title?.trim() || "";
+
+            const discountValue =
+                coupon.discountvalue !== null && coupon.discountvalue !== undefined
+                    ? Number(coupon.discountvalue as any)
+                    : null;
+            const maxDiscount =
+                coupon.maxdiscount !== null && coupon.maxdiscount !== undefined
+                    ? Number(coupon.maxdiscount as any)
+                    : null;
+            const minOrder =
+                coupon.minordervalue !== null && coupon.minordervalue !== undefined
+                    ? Number(coupon.minordervalue as any)
+                    : null;
+
+            let benefit = "";
+            switch (coupon.type) {
+                case "PERCENT": {
+                    const percent = formatPercent(discountValue);
+                    benefit = percent ? `Giảm ${percent}` : "Giảm % trên tổng đơn";
+                    if (maxDiscount) {
+                        benefit += ` (tối đa ${formatCurrency(maxDiscount)})`;
+                    }
+                    break;
+                }
+                case "AMOUNT": {
+                    const amount = formatCurrency(discountValue);
+                    benefit = amount ? `Giảm ${amount}` : "Giảm giá trực tiếp";
+                    break;
+                }
+                case "FREESHIP": {
+                    benefit = "Miễn phí vận chuyển";
+                    if (maxDiscount) {
+                        benefit += ` (tối đa ${formatCurrency(maxDiscount)})`;
+                    }
+                    break;
+                }
+                default:
+                    benefit = "Ưu đãi đặc biệt";
+            }
+
+            const notes: string[] = [];
+            if (benefit) notes.push(benefit);
+            if (minOrder) {
+                notes.push(`Đơn tối thiểu ${formatCurrency(minOrder)}`);
+            }
+            if (coupon.startdate) {
+                notes.push(`Hiệu lực từ ${formatDate(coupon.startdate)}`);
+            }
+
+            const normalizedTitle = rawTitle.toLowerCase();
+            const normalizedCode = coupon.code?.trim().toLowerCase() ?? "";
+
+            const notesForView = [...notes];
+            let description = rawTitle;
+
+            if (
+                !description ||
+                (normalizedTitle && normalizedTitle === normalizedCode)
+            ) {
+                description =
+                    notesForView.length > 0
+                        ? notesForView.shift() || "Ưu đãi hấp dẫn đang chờ bạn"
+                        : "Ưu đãi hấp dẫn đang chờ bạn";
+            }
+
+            return {
+                id: coupon.couponid,
+                code: coupon.code,
+                description,
+                notes: notesForView,
+                remaining,
+                remainingLabel:
+                    typeof remaining === "number"
+                        ? remaining > 0
+                            ? `Còn ${remaining}`
+                            : "Hết lượt"
+                        : "Không giới hạn",
+                expiryText: formatDate(coupon.enddate),
+                isExpired: coupon.enddate ? coupon.enddate < now : false,
+                isOutOfQuota,
+                termsUrl: "#",
+            };
+        });
+
+        res.render("client/pages/user/voucher", {
+            vouchers,
+        });
+    } catch (error) {
+        console.error("ERROR:", error);
+        res.status(500).send("Internal Server Error");
     }
 };

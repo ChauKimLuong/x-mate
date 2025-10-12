@@ -1,4 +1,4 @@
-﻿import { Request, Response } from "express";
+import { Request, Response } from "express";
 import prisma from "../../config/database";
 import bcrypt from "bcrypt";
 
@@ -10,7 +10,7 @@ export const login = async (req: Request, res: Response) => {
 // [POST] /auth/login
 export const loginPost = async (req: Request, res: Response) => {
     const { phoneOrEmail, password } = req.body;
-    console.log(req.body)
+    console.log(req.body);
     try {
         if (!phoneOrEmail || !password) {
             req.flash("error", "Vui lòng nhập đầy đủ thông tin đăng nhập!");
@@ -19,15 +19,12 @@ export const loginPost = async (req: Request, res: Response) => {
 
         const user = await prisma.users.findFirst({
             where: {
-                OR: [
-                    { email: phoneOrEmail },
-                    { phone: phoneOrEmail },
-                ],
+                OR: [{ email: phoneOrEmail }, { phone: phoneOrEmail }],
             },
         });
 
         if (!user) {
-            req.flash("error", "Email/SĐT không tồn tại!");
+            req.flash("error", "Email/SDT khong ton tai!");
             return res.redirect("/auth/login");
         }
 
@@ -36,12 +33,18 @@ export const loginPost = async (req: Request, res: Response) => {
             req.flash("error", "Mật khẩu không chính xác!");
             return res.redirect("/auth/login");
         }
+        const tokenUser = prisma.users.findFirst({
+            where: {
+                OR: [{ email: phoneOrEmail }, { phone: phoneOrEmail }],
+            },
+        });
+        res.cookie("token_user", tokenUser);
 
         req.flash("success", "Đăng nhập thành công!");
         return res.redirect("/");
     } catch (error) {
         console.error("ERROR:", error);
-        req.flash("error", "Đăng nhập thất bại, vui lòng thử lại sau!");
+        req.flash("error", "Đăng nhập thất bại!");
         return res.redirect("/auth/login");
     }
 };
@@ -63,15 +66,12 @@ export const registerPost = async (req: Request, res: Response) => {
 
         const existedUser = await prisma.users.findFirst({
             where: {
-                OR: [
-                    { email: email },
-                    { phone: phone },
-                ],
+                OR: [{ email: email }, { phone: phone }],
             },
         });
 
         if (existedUser) {
-            req.flash("error", "Email hoặc số điện thoại đã tồn tại!");
+            req.flash("error", "Email hoặc SĐT đã tồn tại!");
             return res.redirect("/auth/register");
         }
 
@@ -86,12 +86,36 @@ export const registerPost = async (req: Request, res: Response) => {
             },
         });
 
-        req.flash("success", "Đăng ký thành công! Đăng nhập để tiếp tục.");
+        const tokenUser = prisma.users.findFirst({
+            where: { email: email },
+        });
+        res.cookie("token_user", tokenUser);
+
+        req.flash("success", "Đăng kí thành công! Đăng nhập để tiếp tục.");
         return res.redirect("/auth/login");
     } catch (error) {
         console.error("ERROR:", error);
-        req.flash("error", "Đăng ký thất bại, vui lòng thử lại sau!");
+        req.flash("error", "Đăng kí thất bại, vui lòng thử lại sau!");
         return res.redirect("/auth/register");
     }
 };
 
+// [POST] /auth/logout
+// [POST] /auth/logout
+export const logoutPost = async (req: Request, res: Response) => {
+    try {
+        if (!req.cookies || !req.cookies.token_user) {
+            req.flash("error", "Bạn chưa đăng nhập!");
+            return res.redirect("/auth/login");
+        }
+
+        res.clearCookie("token_user");
+
+        req.flash("success", "Đăng xuất thành công!");
+        return res.redirect("/auth/login");
+    } catch (error) {
+        console.error("ERROR:", error);
+        req.flash("error", "Đăng xuất thất bại, vui lòng thử lại!");
+        return res.redirect(req.get("Referer") || "/");
+    }
+};

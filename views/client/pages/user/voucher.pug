@@ -22,18 +22,17 @@ block content
                         .voucher-wallet__grid
                             each v in vouchers
                                 article.voucher-card
+                                    - const isUnavailable = v.isExpired || v.isOutOfQuota;
                                     header.voucher-card__header
                                         span.voucher-card__code #{v.code}
-                                        if typeof v.remaining === 'number'
-                                            if v.remaining > 0
-                                                span.voucher-card__remaining (Còn #{v.remaining})
-                                            else
-                                                span.voucher-card__remaining (Hết lượt)
-                                        else
-                                            span.voucher-card__remaining (Không giới hạn)
+                                        span.voucher-card__remaining(class=isUnavailable ? 'is-expired' : '') #{v.remainingLabel}
                                     p.voucher-card__description #{v.description}
+                                    if v.notes && v.notes.length
+                                        ul.voucher-card__notes
+                                            each note in v.notes
+                                                li.voucher-card__note #{note}
                                     footer.voucher-card__footer
-                                        span.voucher-card__expiry HSD: #{v.expiryText}
+                                        span.voucher-card__expiry(class=isUnavailable ? 'is-expired' : '') HSD: #{v.expiryText}
                                         if v.termsUrl && v.termsUrl !== '#'
                                             a.voucher-card__terms(href=v.termsUrl) Điều kiện
                                         else
