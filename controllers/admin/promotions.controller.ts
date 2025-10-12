@@ -89,24 +89,51 @@ export const editForm = async (req: Request, res: Response) => {
    ============================================================ */
 export const create = async (req: Request, res: Response) => {
   try {
-    const { code, title, type, discount, start, end, status } = req.body;
+    const { code, title, type, discount, start, end, status,
+            usagelimit, minordervalue, maxdiscount } = req.body;
+
+    // Chuẩn hóa input
+    const nDiscount      = parseFloat(discount) || 0;
+    const nUsageLimit    = usagelimit === '' ? null : Number.parseInt(usagelimit, 10);
+    const nMinOrderValue = minordervalue === '' ? null : parseFloat(minordervalue);
+    const nMaxDiscount   = maxdiscount === '' ? null : parseFloat(maxdiscount);
+
+    // (tuỳ chọn) Validate cơ bản
+    if (type === 'PERCENT' && (nDiscount < 0 || nDiscount > 100)) {
+      return res.status(400).send('Percent must be between 0 and 100');
+    }
+    if (type === 'AMOUNT' && nDiscount < 0) {
+      return res.status(400).send('Fixed amount must be >= 0');
+    }
+    if (nUsageLimit !== null && nUsageLimit < 0) {
+      return res.status(400).send('Usage limit must be >= 0');
+    }
+    if (nMinOrderValue !== null && nMinOrderValue < 0) {
+      return res.status(400).send('Min order value must be >= 0');
+    }
+    if (nMaxDiscount !== null && nMaxDiscount < 0) {
+      return res.status(400).send('Max discount must be >= 0');
+    }
 
     await prisma.coupons.create({
       data: {
         code,
         title,
         type,
-        discountvalue: parseFloat(discount) || 0,
+        discountvalue: type === 'FREESHIP' ? 0 : nDiscount,
         startdate: start ? new Date(start) : null,
         enddate: end ? new Date(end) : null,
-        status: status || "INACTIVE",
+        status: status || 'INACTIVE',
+        usagelimit: nUsageLimit,
+        minordervalue: nMinOrderValue,
+        maxdiscount: nMaxDiscount,
       },
     });
 
-    res.redirect("/admin/promotions");
-  } catch (err: any) {
-    console.error("❌ Error creating promotion:", err);
-    res.status(500).send("Error creating promotion");
+    res.redirect('/admin/promotions');
+  } catch (err) {
+    console.error('❌ Error creating promotion:', err);
+    res.status(500).send('Error creating promotion');
   }
 };
 
@@ -116,7 +143,15 @@ export const create = async (req: Request, res: Response) => {
 export const update = async (req: Request, res: Response) => {
   try {
     const id = Number(req.params.id);
-    const { code, title, type, discount, start, end, status } = req.body;
+    const { code, title, type, discount, start, end, status,
+            usagelimit, minordervalue, maxdiscount } = req.body;
+
+    const nDiscount      = parseFloat(discount) || 0;
+    const nUsageLimit    = usagelimit === '' ? null : Number.parseInt(usagelimit, 10);
+    const nMinOrderValue = minordervalue === '' ? null : parseFloat(minordervalue);
+    const nMaxDiscount   = maxdiscount === '' ? null : parseFloat(maxdiscount);
+
+    // (tuỳ chọn) Validate như trên…
 
     await prisma.coupons.update({
       where: { couponid: id },
@@ -124,18 +159,21 @@ export const update = async (req: Request, res: Response) => {
         code,
         title,
         type,
-        discountvalue: parseFloat(discount) || 0,
+        discountvalue: type === 'FREESHIP' ? 0 : nDiscount,
         startdate: start ? new Date(start) : null,
         enddate: end ? new Date(end) : null,
-        status: status || "INACTIVE",
+        status: status || 'INACTIVE',
+        usagelimit: nUsageLimit,
+        minordervalue: nMinOrderValue,
+        maxdiscount: nMaxDiscount,
         updatedat: new Date(),
       },
     });
 
-    res.redirect("/admin/promotions");
+    res.redirect('/admin/promotions');
   } catch (err) {
-    console.error("❌ Error updating promotion:", err);
-    res.status(500).send("Error updating promotion");
+    console.error('❌ Error updating promotion:', err);
+    res.status(500).send('Error updating promotion');
   }
 };
 

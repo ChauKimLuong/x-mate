@@ -9,48 +9,75 @@ block content
     form(method="post" action= currentMode==='create' ? '/admin/promotions' : `/admin/promotions/${F.couponid}`)
       .grid(style="display:grid;grid-template-columns:1fr 1fr;gap:20px;")
 
-        // LEFT PANEL: Status + Schedule
-        .panel(style="background:#fff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(16,24,40,0.06);")
-          h3(style="margin-top:0") Promotion Status
-          .radio-group(style="display:flex;gap:12px;margin-bottom:14px;")
-            label
-              input(type="radio" name="status" value="ACTIVE" checked=F.status==='ACTIVE')
-              | Active
-            label
-              input(type="radio" name="status" value="INACTIVE" checked=F.status==='INACTIVE')
-              | Inactive
-            label
-              input(type="radio" name="status" value="SCHEDULED" checked=F.status==='SCHEDULED')
-              | Scheduled
-
-          h3 Date Schedule
-          label Start Date
-          input(type="date" name="start" value=F.startdate ? F.startdate.toISOString().split('T')[0] : '' style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:10px;")
-          label End Date
-          input(type="date" name="end" value=F.enddate ? F.enddate.toISOString().split('T')[0] : '' style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;")
-
-        // RIGHT PANEL: Info + Discount
+        // LEFT PANEL: Promotion Information + Discount
         .panel(style="background:#fff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(16,24,40,0.06);")
           h3(style="margin-top:0") Promotion Information
           label Code
-          input(type="text" name="code" value=F.code placeholder="e.g. SUMMER24" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;")
+          input(type="text" name="code" value=(F.code || '') placeholder="e.g. SUMMER24" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;")
           label Title
-          input(type="text" name="title" value=F.title placeholder="Short title" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;")
-
-          h3 Discount Type
-          .radio-group(style="display:flex;gap:12px;margin-bottom:8px;")
+          input(type="text" name="title" value=(F.title || '') placeholder="Short title" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;")
+          
+          h3 Date Schedule
+          label Start Date
+          input(type="date" name="start" value=(F.startdate ? new Date(F.startdate).toISOString().split('T')[0] : '') style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:10px;")
+          label End Date
+          input(type="date" name="end" value=(F.enddate ? new Date(F.enddate).toISOString().split('T')[0] : '') style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;")
+ 
+          h3(style="margin-top:0") Promotion Status
+          .radio-group(style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;")
+            - var st = F.status || 'ACTIVE';
             label
-              input(type="radio" name="type" value="PERCENT" checked=F.type==='PERCENT')
+              input(type="radio" name="status" value="ACTIVE" checked=st==='ACTIVE')
+              | Active
+            label
+              input(type="radio" name="status" value="INACTIVE" checked=st==='INACTIVE')
+              | Inactive
+            label
+              input(type="radio" name="status" value="SCHEDULED" checked=st==='SCHEDULED')
+              | Scheduled
+
+        // RIGHT PANEL: Status + Schedule + Rules
+        .panel(style="background:#fff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(16,24,40,0.06);")
+          h3 Discount Type
+          - var tp = F.type || 'PERCENT';
+          .radio-group(style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap;")
+            label
+              input(type="radio" name="type" value="PERCENT" checked=tp==='PERCENT')
               | Percentage
             label
-              input(type="radio" name="type" value="AMOUNT" checked=F.type==='AMOUNT')
+              input(type="radio" name="type" value="AMOUNT" checked=tp==='AMOUNT')
               | Fixed Amount
             label
-              input(type="radio" name="type" value="FREESHIP" checked=F.type==='FREESHIP')
+              input(type="radio" name="type" value="FREESHIP" checked=tp==='FREESHIP')
               | Free Shipping
 
           label Discount Value
-          input(type="number" name="discount" value=F.discountvalue || 0 placeholder="Value" style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;")
+          input#discountInput(
+            type="number" step="0.01" min="0"
+            name="discount"
+            value=(F.discountvalue ? F.discountvalue.toString() : 0)
+            placeholder="Value"
+            style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;"
+          )
+
+          h3 Rules
+          label Usage limit (optional)
+          input(type="number" min="0" name="usagelimit"
+                value=(typeof F.usagelimit !== 'undefined' && F.usagelimit !== null ? F.usagelimit : '')
+                placeholder="e.g. 100"
+                style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;")
+
+          label Min order value (optional)
+          input(type="number" step="0.01" min="0" name="minordervalue"
+                value=(F.minordervalue ? F.minordervalue.toString() : '')
+                placeholder="e.g. 300000"
+                style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;")
+
+          label Max discount (optional)
+          input(type="number" step="0.01" min="0" name="maxdiscount"
+                value=(F.maxdiscount ? F.maxdiscount.toString() : '')
+                placeholder="Cap amount when type = PERCENT"
+                style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;")
 
           .actions(style="margin-top:16px;display:flex;gap:10px;")
             button.btn-dark(type="submit") #{currentMode==='create' ? 'Create Promotion' : 'Update Promotion'}
@@ -58,4 +85,18 @@ block content
 
 block scripts
   script.
-    console.log("Promotion form loaded");
+    (function(){
+      const radios = document.querySelectorAll('input[name="type"]');
+      const discountInput = document.getElementById('discountInput');
+      function toggleDiscount(){
+        const type = document.querySelector('input[name="type"]:checked')?.value;
+        if(type === 'FREESHIP'){
+          discountInput.value = '0';
+          discountInput.setAttribute('disabled','disabled');
+        } else {
+          discountInput.removeAttribute('disabled');
+        }
+      }
+      radios.forEach(r => r.addEventListener('change', toggleDiscount));
+      toggleDiscount();
+    })();
