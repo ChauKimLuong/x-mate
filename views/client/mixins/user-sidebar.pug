@@ -1,47 +1,46 @@
 mixin accountSidebar(active = '')
     aside.account-sidebar
         ul.account-menu
-            - const is = (key) => (active === key ? 'account-menu__item is-active' : 'account-menu__item');
+            - const is = k => (active === k ? 'account-menu__item is-active' : 'account-menu__item');
 
             li(class=is('account'))
                 a(href="/user/info")
                     span.account-menu__icon.icon-user
                         span.fa-solid.fa-user
-                    span.account-menu__text Thong tin tai khoan
-                    span.account-menu__chev >
+                    span.account-menu__text Thông tin tài khoản
+                    span.account-menu__chev →
 
             li(class=is('orders'))
                 a(href="/user/order")
                     span.account-menu__icon.icon-order
                         span.fa-solid.fa-box
-                    span.account-menu__text Lich su don hang
-                    span.account-menu__chev >
+                    span.account-menu__text Lịch sử đơn hàng
+                    span.account-menu__chev →
 
             li(class=is('vouchers'))
                 a(href="/user/voucher")
                     span.account-menu__icon.icon-voucher
                         span.fa-solid.fa-ticket
-                    span.account-menu__text Vi Voucher
-                    span.account-menu__chev >
+                    span.account-menu__text Ví Voucher
+                    span.account-menu__chev →
 
             li(class=is('addresses'))
                 a(href="/user/address")
                     span.account-menu__icon.icon-address
                         span.fa-solid.fa-location-dot
-                    span.account-menu__text So dia chi
-                    span.account-menu__chev >
+                    span.account-menu__text Sổ địa chỉ
+                    span.account-menu__chev →
 
             li(class=is('reviews'))
                 a(href="/user/reviews")
                     span.account-menu__icon.icon-review
                         span.fa-solid.fa-star
-                    span.account-menu__text Danh gia va phan hoi
-                    span.account-menu__chev >
+                    span.account-menu__text Đánh giá và phản hồi
+                    span.account-menu__chev →
 
             li(class=is('logout'))
-                form.account-menu__logout(method="post" action="/auth/logout")
-                    button(type="submit")
-                        span.account-menu__icon.icon-logout
-                            span.fa-solid.fa-right-from-bracket
-                        span.account-menu__text Dang xuat
-                        span.account-menu__chev >
+                a(href="/auth/logout")
+                    span.account-menu__icon.icon-logout
+                        span.fa-solid.fa-right-from-bracket
+                    span.account-menu__text Đăng xuất
+                    span.account-menu__chev →

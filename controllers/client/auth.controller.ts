@@ -9,22 +9,22 @@ export const login = async (req: Request, res: Response) => {
 
 // [POST] /auth/login
 export const loginPost = async (req: Request, res: Response) => {
-    const { phoneOrEmail, password } = req.body;
+    const { identifier, password } = req.body;
     console.log(req.body);
     try {
-        if (!phoneOrEmail || !password) {
+        if (!identifier || !password) {
             req.flash("error", "Vui lòng nhập đầy đủ thông tin đăng nhập!");
             return res.redirect("/auth/login");
         }
 
         const user = await prisma.users.findFirst({
             where: {
-                OR: [{ email: phoneOrEmail }, { phone: phoneOrEmail }],
+                OR: [{ email: identifier }, { phone: identifier }],
             },
         });
 
         if (!user) {
-            req.flash("error", "Email/SDT khong ton tai!");
+            req.flash("error", "Email/SDT không tồn tại!");
             return res.redirect("/auth/login");
         }
 
@@ -35,7 +35,7 @@ export const loginPost = async (req: Request, res: Response) => {
         }
         const tokenUser = prisma.users.findFirst({
             where: {
-                OR: [{ email: phoneOrEmail }, { phone: phoneOrEmail }],
+                OR: [{ email: identifier }, { phone: identifier }],
             },
         });
         res.cookie("token_user", tokenUser);
@@ -76,23 +76,21 @@ export const registerPost = async (req: Request, res: Response) => {
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
+        const tokenUser = `tok_${Math.random().toString(36).slice(2, 14)}`;
         await prisma.users.create({
             data: {
                 full_name: fullName,
                 phone: phone,
                 email: email,
                 password: hashedPassword,
-                token_user: `tok_${Math.random().toString(36).slice(2, 14)}`,
+                token_user: tokenUser,
             },
         });
 
-        const tokenUser = prisma.users.findFirst({
-            where: { email: email },
-        });
         res.cookie("token_user", tokenUser);
 
-        req.flash("success", "Đăng kí thành công! Đăng nhập để tiếp tục.");
-        return res.redirect("/auth/login");
+        req.flash("success", "Đăng kí thành công!");
+        return res.redirect("/");
     } catch (error) {
         console.error("ERROR:", error);
         req.flash("error", "Đăng kí thất bại, vui lòng thử lại sau!");
@@ -100,9 +98,8 @@ export const registerPost = async (req: Request, res: Response) => {
     }
 };
 
-// [POST] /auth/logout
-// [POST] /auth/logout
-export const logoutPost = async (req: Request, res: Response) => {
+// [GET] /auth/logout
+export const logout = async (req: Request, res: Response) => {
     try {
         if (!req.cookies || !req.cookies.token_user) {
             req.flash("error", "Bạn chưa đăng nhập!");

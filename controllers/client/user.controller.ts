@@ -5,6 +5,7 @@ import bcrypt from "bcrypt";
 // [GET] /user/info
 export const info = async (req: Request, res: Response) => {
     try {
+        // console.log(req.cookies.token_user);
         const user = await prisma.users.findFirst({
             where: {
                 status: "active",
