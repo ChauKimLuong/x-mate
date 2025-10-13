@@ -1,14 +1,16 @@
-﻿import express, { Request, Response, NextFunction } from "express";
+import express, { Request, Response, NextFunction } from "express";
 import session from "express-session";
 import flash from "express-flash";
 import dotenv from "dotenv";
 import cookieParser from "cookie-parser";
+
 dotenv.config();
 
 import { connect as connectDB } from "./config/database";
 connectDB();
 
 import clientRoutes from "./routes/client/index.route";
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
@@ -30,8 +32,22 @@ app.use(
 );
 app.use(flash());
 
+app.use((req: Request, res: Response, next: NextFunction) => {
+    const sessionCart = (req.session as any)?.cart;
+    const cartQuantity = Array.isArray(sessionCart)
+        ? sessionCart.reduce(
+              (total: number, item: { quantity?: number }) =>
+                  total + (typeof item?.quantity === "number" ? item.quantity : 0),
+              0
+          )
+        : 0;
+
+    res.locals.cartQuantity = cartQuantity;
+    next();
+});
+
 clientRoutes(app);
 
 app.listen(PORT, () => {
-    console.log(`Server đang chạy tại http://localhost:${PORT}`);
+    console.log(`Server dang chay tai http://localhost:${PORT}`);
 });

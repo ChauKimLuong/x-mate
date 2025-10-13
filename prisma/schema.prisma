@@ -32,6 +32,7 @@ model productVariants {
   color              String
   images             String[]
   stock              Int                  @default(0)
+  cart_items         cart_items[]
   inventoryMovements inventoryMovements[]
   orderItems         orderItems[]
   products           products             @relation(fields: [productId], references: [id], onDelete: Cascade, map: "ProductVariant_productId_fkey")
@@ -56,6 +57,7 @@ model products {
   soldCount          Int                  @default(0)
   ratingAvg          Float                @default(0)
   ratingCount        Int                  @default(0)
+  cart_items         cart_items[]
   inventoryMovements inventoryMovements[]
   orderItems         orderItems[]
   productVariants    productVariants[]
@@ -223,6 +225,36 @@ model roles {
   description String?
   created_at  DateTime? @default(now()) @db.Timestamptz(6)
   users       users[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cart_items {
+  id              Int             @id @default(autoincrement())
+  cart_id         Int
+  product_id      String
+  variant_id      String
+  image_url       String?
+  size            String?
+  color           String?
+  price_unit      Decimal         @db.Decimal(12, 0)
+  quantity        Int
+  line_subtotal   Decimal?        @db.Decimal(12, 0)
+  line_discount   Decimal?        @default(0) @db.Decimal(12, 0)
+  line_total      Decimal?        @db.Decimal(12, 0)
+  carts           carts           @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products        products        @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productVariants productVariants @relation(fields: [variant_id], references: [id], onUpdate: NoAction)
+
+  @@unique([cart_id, variant_id])
+}
+
+model carts {
+  id          Int          @id @default(autoincrement())
+  token_user  String?
+  grand_total Decimal      @default(0) @db.Decimal(12, 0)
+  created_at  DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at  DateTime     @default(now()) @db.Timestamptz(6)
+  cart_items  cart_items[]
 }
 
 enum Status {
