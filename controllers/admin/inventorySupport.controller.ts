@@ -6,6 +6,9 @@ import fsp from "fs/promises";
 import path from "path";
 import dayjs from "dayjs";
 import { v4 as uuidv4 } from "uuid";
+import bwipjs from "bwip-js";
+import QRCode from "qrcode";
+
 
 /** ========= Helpers ========= */
 
@@ -409,6 +412,26 @@ export async function postStocktake(req: Request, res: Response) {
     res.status(500).send("Post stocktake error");
   }
 }
+// Delete a stocktake session
+export async function deleteStocktake(req: Request, res: Response) {
+  try {
+    const { sid } = req.params;
+    const sessions = await readSessions();
+    const idx = sessions.findIndex((x) => x.id === sid);
+    if (idx === -1) return res.status(404).send("Session not found");
+
+    // Lưu ý: việc xóa này chỉ xóa metadata trong file JSON của stocktake,
+    // không ảnh hưởng các movement đã POST trước đó.
+    sessions.splice(idx, 1);
+    await writeSessions(sessions);
+
+    res.redirect("/admin/inventory-support#p-stock");
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Delete stocktake error");
+  }
+}
+
 
 /** ========= Bulk Adjust ========= */
 
@@ -448,6 +471,54 @@ export async function bulkUpload(req: Request, res: Response) {
     res.status(500).send("Bulk upload error");
   }
 }
+export async function quickCount(req: Request, res: Response) {
+  try {
+    const { productId, variantId, counted } = req.body as {
+      productId: string;
+      variantId?: string;
+      counted: string | number;
+    };
+    const targetCount = Number(counted);
+    if (!productId || !Number.isFinite(targetCount)) {
+      return res.status(400).send("productId & counted are required");
+    }
+
+    // Lấy variant: ưu tiên variantId, nếu không có thì lấy variant đầu tiên của product
+    const variant =
+      variantId
+        ? await prisma.productVariants.findUnique({ where: { id: variantId } })
+        : await prisma.productVariants.findFirst({ where: { productId } });
+
+    if (!variant) return res.status(404).send("Variant not found");
+
+    const sys = variant.stock || 0;
+    const delta = targetCount - sys;
+
+    await prisma.$transaction(async (tx) => {
+      // movement để trace
+      await tx.inventoryMovements.create({
+        data: {
+          productId,
+          variantId: variant.id,
+          delta,
+          reason: "manualAdjust",
+          note: "quickCount",
+        },
+      });
+      // đặt tồn = counted
+      await tx.productVariants.update({
+        where: { id: variant.id },
+        data: { stock: targetCount },
+      });
+    });
+
+    res.redirect("/admin/inventory-support#p-stock");
+  } catch (e) {
+    console.error(e);
+    res.status(500).send("Quick Count error");
+  }
+}
+
 
 // Commit preview from cache
 export async function bulkCommit(req: Request, res: Response) {
@@ -503,41 +574,15 @@ export async function barcode(req: Request, res: Response) {
     const { productId, variantId, type } = req.query as any;
     if (!productId) return res.status(400).send("productId required");
 
-    // Simple inline SVG generator (placeholder barcode/QR)
-    const label = variantId ? `${productId}-${variantId}` : `${productId}`;
-    let svg = "";
-    if (type === "qr") {
-      // Very naive QR-like blocks (placeholder)
-      svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 160">
-        <rect width="160" height="160" fill="#fff"/>
-        <g fill="#000">
-          <rect x="8" y="8" width="40" height="40"/>
-          <rect x="112" y="8" width="40" height="40"/>
-          <rect x="8" y="112" width="40" height="40"/>
-          <rect x="56" y="56" width="16" height="16"/>
-          <rect x="80" y="56" width="16" height="16"/>
-          <rect x="56" y="80" width="16" height="16"/>
-          <rect x="96" y="96" width="16" height="16"/>
-        </g>
-        <text x="80" y="150" font-size="12" text-anchor="middle" fill="#000">${label}</text>
-      </svg>`;
-    } else {
-      // barcode-like bars (placeholder)
-      const bars = Array.from({ length: 40 }, (_, i) => {
-        const w = (i % 5 === 0) ? 3 : 2;
-        const h = (i % 7 === 0) ? 80 : 64;
-        const x = 10 + i * 3.5;
-        return `<rect x="${x}" y="${100 - h}" width="${w}" height="${h}" fill="#000"/>`;
-      }).join("");
-      svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 160 100">
-        <rect width="160" height="100" fill="#fff"/>
-        ${bars}
-        <text x="80" y="95" font-size="10" text-anchor="middle" fill="#000">${label}</text>
-      </svg>`;
-    }
+    // Build URL tới ảnh SVG
+    const q = new URLSearchParams();
+    q.set("productId", String(productId));
+    if (variantId) q.set("variantId", String(variantId));
+    q.set("type", String(type || "barcode"));
 
-    const dataUrl = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(svg)}`;
-    // Render page with preview URL
+    const codeUrl = `/admin/inventory-support/barcode.svg?${q.toString()}`;
+
+    // Lấy dữ liệu phụ để render trang
     const sessions = (await readSessions()).slice(0, 10);
     const negative = await prisma.productVariants.findMany({
       where: { stock: { lt: 0 } },
@@ -551,12 +596,68 @@ export async function barcode(req: Request, res: Response) {
       sessions,
       bulkPreview: bulkPreviewCache,
       diagnostics: { negative, orphan: [] },
-      barcodeUrl: dataUrl,
+      barcodeUrl: codeUrl, // <- đổi: trỏ sang endpoint ảnh SVG
       helpers: { money: fmtMoney },
     });
   } catch (e) {
     console.error(e);
-    res.status(500).send("Barcode error");
+    res.status(500).send("Barcode page error");
+  }
+}
+
+/**
+ * Trả về ẢNH SVG (Content-Type: image/svg+xml)
+ *   GET /admin/inventory-support/barcode.svg?productId=...&variantId=...&type=barcode|qr
+ */
+export async function barcodeImage(req: Request, res: Response) {
+  try {
+    const { productId, variantId, type, symbology } = req.query as any;
+    if (!productId) {
+      res.status(400).type("text/plain").send("productId required");
+      return;
+    }
+
+    const label = variantId ? `${productId}-${variantId}` : `${productId}`;
+
+    if (String(type) === "qr") {
+      // ✅ QR chuẩn (SVG)
+      const svg = await QRCode.toString(label, {
+        type: "svg",
+        errorCorrectionLevel: "M",
+        margin: 2,      // quiet zone
+        scale: 6,
+      });
+      res.setHeader("Content-Type", "image/svg+xml; charset=utf-8");
+      res.send(svg);
+      return;
+    }
+
+    // ✅ Barcode chuẩn bằng bwip-js (PNG)
+    // symbology mặc định: code128 — dễ dùng cho text chữ+số
+    // Nếu bạn muốn EAN-13: truyền ?symbology=ean13 và đảm bảo 12 chữ số (bwip sẽ tự tính checksum)
+    const bcid = String(symbology || "code128"); // e.g., 'code128', 'ean13', 'code39'...
+    // Một số lưu ý:
+    // - ean13 chỉ chấp nhận số; phải đủ 12 chữ số, checksum tự sinh.
+    // - code39/code128 cho phép chữ+số nhưng code39 có alphabet hạn chế hơn.
+
+    const png = await bwipjs.toBuffer({
+      bcid,               // barcode type
+      text: label,        // nội dung mã
+      scale: 3,           // độ dày vạch (pixel)
+      height: 12,         // chiều cao (mm)
+      includetext: true,  // in text dưới barcode
+      textxalign: 'center',
+      textsize: 10,       // cỡ chữ dưới mã
+      paddingwidth: 10,   // quiet zone trái/phải
+      paddingheight: 10,  // quiet zone trên/dưới
+      backgroundcolor: 'FFFFFF', // nền trắng
+    });
+
+    res.setHeader("Content-Type", "image/png");
+    res.send(png);
+  } catch (e: any) {
+    console.error(e);
+    res.status(500).type("text/plain").send("Barcode image error: " + (e?.message || e));
   }
 }
 

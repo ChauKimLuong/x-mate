@@ -6,73 +6,226 @@ html(lang="vi")
     meta(name="viewport", content="width=device-width,initial-scale=1")
     title= title || "Admin"
 
-    //- Global styles
+    // Global styles
     link(rel="stylesheet", href="/css/admin/admin.css")
     link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css")
 
-    //- Page-specific styles
+    // Page-specific styles
     if title === 'Reviews List'
       link(rel="stylesheet", href="/css/components/reviews.css")
     if title === 'Order'
       link(rel="stylesheet", href="/css/components/orders.css")
 
-    //- Optional head block (for extra page-specific assets)
+    // Tiny CSS (sidebar + submenu)
+    style.
+      :root{
+        --sb-bg:#0b1220;          /* nền sidebar */
+        --sb-fg:#9aa4b2;          /* chữ mặc định */
+        --sb-fg-muted:#6b7280;
+        --sb-active:#ffffff;      
+        --sb-accent:#f97316;      
+        --sb-item-hover:rgba(255,255,255,.04);
+        --sb-item-active:rgba(249,115,22,.10);
+      }
+      .container{background:#fff;}
+      .sidebar .brand{display:flex;align-items:center;gap:10px;padding:14px 16px}
+      .sidebar .brand .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#e5e7eb}
+      .sidebar .brand .logo-img{width:24px;height:24px;object-fit:contain;display:block}
+      .sidebar .brand .txt{font-weight:700;letter-spacing:.2px}
+
+      .sidebar{background:var(--sb-bg);color:var(--sb-fg)}
+      .sidebar .brand{display:flex;gap:8px;align-items:center;padding:14px 16px;font-weight:700;color:#e5e7eb}
+      .sidebar .menu{display:flex;flex-direction:column;gap:2px;padding:8px}
+      .sidebar .logo-badge{
+        width:32px;height:32px;border-radius:10px;
+        background:#fff;               /* nền sáng giúp PNG đen nổi bật */
+        display:inline-flex;align-items:center;justify-content:center;
+        box-shadow:0 8px 18px rgba(0,0,0,.25);
+      }
+      /* item */
+      .sidebar .item{
+        display:flex;align-items:center;gap:10px;
+        padding:10px 12px;border-radius:10px;color:var(--sb-fg);
+        text-decoration:none;user-select:none;cursor:pointer;background:transparent;border:0;
+      }
+      .sidebar .item:hover{background:var(--sb-item-hover)}
+      .sidebar .item .ico{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;color:var(--sb-fg-muted)}
+      .sidebar .item .ico svg{display:block;width:1em;height:1em;color:currentColor}
+      .sidebar .item .lbl{font-weight:600;letter-spacing:.2px}
+      .sidebar .item .caret{margin-left:auto;transition:transform .2s ease;color:var(--sb-fg-muted)}
+
+      .sidebar .item.active{
+        background:var(--sb-item-active); color:var(--sb-active);
+      }
+      .sidebar .item.active .ico{color:var(--sb-accent)}
+      .sidebar .item.active .caret{color:var(--sb-accent)}
+
+      /* nhóm có submenu mở */
+      .sidebar .item.has-children[aria-expanded="true"]{
+        background:var(--sb-item-active); color:var(--sb-active);
+      }
+      .sidebar .item.has-children[aria-expanded="true"] .ico{color:var(--sb-accent)}
+      .sidebar .item.has-children[aria-expanded="true"] .caret{transform:rotate(180deg);color:var(--sb-accent)}
+
+      .submenu{display:none;margin:4px 0 8px 34px;padding-left:8px;border-left:1px dashed rgba(255,255,255,.08)}
+      .submenu.open{display:block}
+      .submenu a{
+        display:flex;align-items:center;gap:10px;
+        padding:8px 10px;border-radius:8px;color:var(--sb-fg);text-decoration:none;
+      }
+      .submenu a:hover{background:var(--sb-item-hover)}
+      .submenu a.active{color:var(--sb-active);background:var(--sb-item-active)}
+      .submenu a .dot{width:6px;height:6px;border-radius:999px;background:var(--sb-fg-muted)}
+      .submenu a.active .dot{background:var(--sb-accent)}
+
+    // Optional head block
     block head
 
-    //- Chart.js (Dashboard)
+    // Chart.js (Dashboard)
     script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js")
 
   body
+    include ../mixins/icons
+
+    - const is = (k) => (active===k);
+
     .shell
       // ============ SIDEBAR ============
       aside.sidebar
         .brand
-          span.icon 💠
-          span.txt X-Mate
+          
+          a.logo(href="/admin" aria-label="X-Mate")
+            span.logo-badge
+              img.logo-img(src="/images/logo-rm-bg.png" alt="X-Mate")
+            span.txt X-Mate
+
+
         nav.menu
-          a.item(class=active==='overview'?'active':'', href="/admin")
-            span.ico 🧭
-            span.lbl Overview
-          a.item(class=active==='users'?'active':'', href="/admin/users")
-            span.ico 👥
-            span.lbl Users
-          a.item(class=active==='reports'?'active':'', href="/admin/reports/revenue")
-            span.ico 📈
-            span.lbl Reports
-          a.item(class=active==='promotions'?'active':'', href="/admin/promotions")
-            span.ico 🎟️
-            span.lbl Promotions
-          a.item(class=active==='products'?'active':'', href="/admin/products")
-            span.ico 🛒
+          // Dashboard
+          a.item(class=is('overview')?'active':'', href="/admin")
+            span.ico
+              +icon-dashboard(20)
+            span.lbl Dashboard
+
+          // Products (toggle)
+          - const openProducts = active && active.startsWith('products');
+          button.item.has-children(type="button", aria-expanded=openProducts?'true':'false', data-target="#submenu-products", class=openProducts?'active':'')
+            span.ico
+              +icon-products(20)
             span.lbl Products
-          a.item(class=active==='inventory'?'active':'', href="/admin/inventory")
-            span.ico 📦
+            span.caret ▾
+          ul.submenu#submenu-products(class=openProducts?'open':'')
+            li
+              a(class=is('products:list')?'active':'', href="/admin/products")
+                //- span.dot
+                span.lbl List
+            li
+              a(class=is('products:grid')?'active':'', href="/admin/products/edit")
+                //- span.dot
+                span.lbl Edit
+            li
+              a(class=is('products:create')?'active':'', href="/admin/products/create")
+                //- span.dot
+                span.lbl Create
+
+          // Category (ví dụ 1 nhóm khác nếu cần)
+          //- button.item.has-children(type="button", aria-expanded="false", data-target="#submenu-category")
+          //-   span.ico
+          //-     +icon-category(20)
+          //-   span.lbl Category
+          //-   span.caret ▾
+          //- ul.submenu#submenu-category
+          //-   li: a(href="#") span.dot + span.lbl List
+
+          // Inventory (single)
+          a.item(class=is('inventory')?'active':'', href="/admin/inventory")
+            span.ico
+              +icon-inventory(20)
             span.lbl Inventory
-          a.item(class=active==='inventory-support'?'active':'', href="/admin/inventory-support")
-            span.ico 🛠️
+
+          // Inventory Support
+          a.item(class=is('inventory-support')?'active':'', href="/admin/inventory-support")
+            span.ico
+              +icon-inv-support(20)
             span.lbl Inventory Support
-          a.item(class=active==='reviews'?'active':'', href="/admin/reviews")
-            span.ico ⭐
-            span.lbl Reviews
-          a.item(class=active==='orders'?'active':'', href="/admin/orders")
-            span.ico 🧾
+
+          // Orders
+          a.item(class=is('orders')?'active':'', href="/admin/orders")
+            span.ico
+              +icon-orders(20)
             span.lbl Orders
+
+          // Promotions
+          a.item(class=is('promotions')?'active':'', href="/admin/promotions")
+            span.ico
+              +icon-promotions(20)
+            span.lbl Promotions
+
+          // Reports
+          a.item(class=is('reports')?'active':'', href="/admin/reports/revenue")
+            span.ico
+              +icon-reports(20)
+            span.lbl Reports
+
+          // Reviews
+          a.item(class=is('reviews')?'active':'', href="/admin/reviews")
+            span.ico
+              +icon-reviews(20)
+            span.lbl Reviews
 
       // ============ MAIN CONTENT ============
       main.main
         header.topbar
           .left
-            input.search(type="search" placeholder="Search")
-            button.btn.btn-dark + New Task
           .right
             button.btn LogOut
             .user
               img(src="https://i.pravatar.cc/40?img=5" alt="avatar")
               span.name Admin
 
-        //- Main page content
         .container
           block content
 
-    //- Page-level scripts
+    // Sidebar toggle (đa nhóm, tự nhận data-target)
+    script.
+      (function(){
+        var KEY='sb-open';
+        function setOpen(btn, sub, open){
+          if(!btn||!sub) return;
+          btn.setAttribute('aria-expanded', open?'true':'false');
+          btn.classList.toggle('active', !!open);
+          sub.classList.toggle('open', !!open);
+        }
+        // click toggle
+        document.addEventListener('click', function(e){
+          var btn = e.target.closest && e.target.closest('.item.has-children[data-target]');
+          if(!btn) return;
+          var sel = btn.getAttribute('data-target');
+          var sub = document.querySelector(sel);
+          var open = btn.getAttribute('aria-expanded')==='true';
+          setOpen(btn, sub, !open);
+
+          // lưu trạng thái mở
+          try{
+            var raw = localStorage.getItem(KEY) || '[]';
+            var arr = JSON.parse(raw);
+            var id = sel.replace('#','');
+            if(!open){ if(!arr.includes(id)) arr.push(id); }
+            else{ arr = arr.filter(x=>x!==id); }
+            localStorage.setItem(KEY, JSON.stringify(arr));
+          }catch(_){}
+        });
+
+        // khôi phục trạng thái
+        try{
+          var arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+          arr.forEach(function(id){
+            var btn = document.querySelector('.item.has-children[data-target="#'+id+'"]');
+            var sub = document.getElementById(id);
+            setOpen(btn, sub, true);
+          });
+        }catch(_){}
+      })();
+
+    // Page-level scripts
     block scripts

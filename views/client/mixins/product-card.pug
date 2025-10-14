@@ -9,11 +9,27 @@
     - const hoverThumb = allImages[1] || thumb;
     - const sizeList = (Array.isArray(p?.sizes) && p.sizes.length) ? p.sizes : ((Array.isArray(p?.size) && p.size.length) ? p.size : null);
     - const sizes = sizeList || ['S','M','L','XL','2XL','3XL'];
-    - const colorsField = Array.isArray(p?.colors) ? p.colors : [];
-    - const colorsLegacy = legacyVariants.map(v => v?.color).filter(Boolean);
-    - const colorsPrisma = prismaVariants.map(v => v?.color).filter(Boolean);
-    - const colors = [...new Set([...colorsField, ...colorsLegacy, ...colorsPrisma].filter(Boolean))].slice(0, 5);
-    - const activeColor = colors[0];
+        // ===== SWATCHES: Ưu tiên bảng colors, fallback legacy =====
+    - const swatchMap = new Map();
+    - for (const pv of prismaVariants) {
+    -   const label = (pv?.colors?.name || pv?.color || '').trim();
+    -   if (!label) continue;
+    -   const hex = (pv?.colors?.hex || pv?.colorHexLegacy || '').trim();
+    -   const img = (pv?.colors?.swatchUrl || pv?.swatchUrlLegacy || '').trim();
+    -   const colorId = pv?.colorId || null;
+    -   if (!swatchMap.has(label)) swatchMap.set(label, { label, hex, img, colorId });
+    - }
+    - // fallback từ legacy variants nếu chưa có
+    - for (const lv of legacyVariants) {
+    -   const label = (lv?.color || '').trim();
+    -   if (!label || swatchMap.has(label)) continue;
+    -   const hex = (lv?.colorHexLegacy || '').trim();
+    -   const img = (lv?.swatchUrlLegacy || '').trim();
+    -   swatchMap.set(label, { label, hex, img, colorId: null });
+    - }
+    - const swatches = Array.from(swatchMap.values()).slice(0, 5);
+    - const activeColor = swatches[0]?.label;
+
     - const rawPrice = typeof p?.price === 'number' ? p.price : null;
     - const discountValue = typeof p?.discount === 'number' && p.discount > 0 ? p.discount : 0;
     - const computedFinal = rawPrice !== null ? Math.round(rawPrice * (100 - discountValue) / 100) : null;
@@ -38,12 +54,16 @@
                         each s in sizes
                             button.quick-add__btn(type="button" data-size=s)= s
 
-        if colors && colors.length
+        if swatches && swatches.length
             .swatches
-                each c in colors
-                    - const act = (c === activeColor) ? ' is-active' : '';
-                    button.swatch(class=act type="button" style=`--swatch:${c || '#1f2937'}`)
-                        span.visually-hidden= c || 'Màu khác'
+                each sw in swatches
+                    - const isActive = (sw.label === activeColor) ? ' is-active' : '';
+                    - const styleHex = sw.hex ? `background-color:${sw.hex}` : '';
+                    - const styleImg = (!sw.hex && sw.img) ? `background-image:url('${sw.img.replace(/'/g,"&#39;")}')` : '';
+                    - const styleAttr = [styleHex, styleImg].filter(Boolean).join(';');
+                    button.swatch(class=isActive type="button" style=styleAttr data-color-id=sw.colorId title=sw.label)
+                        span.visually-hidden= sw.label
+
 
         .info
             a.title(href=`/product/detail/${p.slug}`)= p.title

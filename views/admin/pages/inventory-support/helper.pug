@@ -1,41 +1,44 @@
+//- views/admin/pages/inventory-support/helper.pug
 extends ../../layouts/default
 include ../../mixins/icons
 
 block head
   style.
+    :root{
+      --b:#e5e7eb;--bg:#fff;--txt:#111827;--muted:#98A2B3;--brand:#f97316;--brand-ink:#fff;
+      --shadow:0 8px 24px rgba(16,24,40,.06)
+    }
     .tabs{display:flex;gap:8px;margin:0 0 16px}
-    .tabs .tab{padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
-    .tabs .tab[aria-selected="true"]{background:#f97316;color:#fff;border-color:#f97316}
+    .tabs .tab{padding:8px 12px;border:1px solid var(--b);border-radius:10px;background:var(--bg);cursor:pointer}
+    .tabs .tab[aria-selected="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
     .panel{display:none}
     .panel.active{display:block}
-    .card{background:#fff;border-radius:18px;box-shadow:0 8px 24px rgba(16,24,40,.06)}
+    .card{background:var(--bg);border-radius:18px;box-shadow:var(--shadow)}
     .hstack{display:flex;gap:8px;align-items:center}
-    .btn{padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer}
-    .btn.primary{background:#f97316;border-color:#f97316;color:#fff}
+    .btn{padding:8px 12px;border:1px solid var(--b);border-radius:10px;background:var(--bg);cursor:pointer}
+    .btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
     .btn.danger{border-color:#fecaca;background:#fff5f5}
     .num{text-align:right;font-variant-numeric:tabular-nums}
     table{width:100%;border-collapse:separate;border-spacing:0}
     thead th{padding:12px 14px;border-bottom:1px solid #eef0f5;text-align:left}
     tbody td{padding:12px 14px;border-top:1px solid #f2f3f7}
-    .muted{color:#98A2B3}
+    .muted{color:var(--muted)}
     .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #e5e7eb;background:#fff}
-    .toolbar{display:flex;gap:8px;flex-wrap:wrap}
-    .modal-backdrop{position:fixed;inset:0;background:rgba(0,0,0,.45);display:none;align-items:center;justify-content:center;z-index:60}
-    .modal{width:min(960px,94vw);background:#fff;border-radius:18px;box-shadow:0 24px 80px rgba(0,0,0,.25);overflow:hidden}
-    .modal-hd{padding:18px 22px;font-weight:700;font-size:18px;border-bottom:1px solid #f1f3f5}
-    .modal-bd{padding:18px 22px}
-    .modal-ft{padding:14px 22px;border-top:1px solid #f1f3f5;display:flex;justify-content:flex-end;gap:8px}
-    .empty{padding:18px;text-align:center;color:#98A2B3}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--b);background:var(--bg)}
+    .empty{padding:18px;text-align:center;color:var(--muted)}
+    /* Tooltip (dùng chung) */
+    .btn.hint{display:inline-flex;align-items:center;justify-content:center;padding:0 8px;min-width:26px;height:26px;line-height:24px;border-radius:999px;font-weight:700;color:#ff7878}
+    .btn.hint:hover{background:#f5f5f5;color:#ff4d4f}
+    .tooltip-pop{position:fixed;z-index:70;max-width:340px;background:#111827;color:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.2);font-size:13px}
+    .tooltip-pop .tt-hd{font-weight:700;margin-bottom:6px}
+    .tooltip-pop .tt-ft{margin-top:8px;color:#cbd5e1}
+    .tooltip-arrow{position:absolute;width:10px;height:10px;background:#111827;transform:rotate(45deg)}
+    /* icon trong nút */
+    .btn .ico{display:inline-flex;vertical-align:middle;margin-right:8px}
+    .btn .ico svg{display:block}
 
 block content
   h2(style="margin:0 0 16px") INVENTORY SUPPORT
-
-  // Toolbar chung
-  .toolbar(style="margin-bottom:12px")
-    button.btn(onclick="location.href='/admin/inventory-support/export'") ⬇️ Export CSV
-    button.btn(onclick="location.href='/admin/inventory-support/rebuild-onhand'") ♻️ Rebuild OnHand
-    button.btn.primary(onclick="document.getElementById('upModal').style.display='flex'") ⬆️ Upload CSV
 
   // Tabs
   .tabs(role="tablist")
@@ -52,19 +55,31 @@ block content
         .hstack
           .lbl(style="font-weight:700") Low-Stock (Top N)
           span.badge #{(lowStock && lowStock.length) || 0} items
+          button.btn.hint(type="button" data-tt-title="Low-Stock" data-tt-body="On hand = tổng stock các biến thể. RP mặc định 10. Suggest = max(0, RP - On hand).")
+            +icon-hint(16)
         .hstack
-          form.hstack(method="get" action="/admin/inventory-support/low-stock")
-            input(type="number" name="limit" min="1" max="200" placeholder="Limit" style="width:100px;padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px")
-            button.btn(type="submit") Refresh
-          button.btn.primary(onclick="createDraftPO()") Create Draft PO
+          input#lowLimit(type="number" min="1" max="200" placeholder="Limit" value="10" style="width:100px;padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px")
+          button.btn#btnLowRefresh(type="button") Refresh
+          button.btn.primary#btnDraftPO(type="button")
+            span.ico
+              +icon-download(18)
+            | Create Draft PO
+          button.btn.hint(type="button" data-tt-title="Create Draft PO" data-tt-body="Xuất CSV gợi ý đặt hàng: productId,title,onHand,reorderPoint,suggestQty.")
+            +icon-hint(16)
+
       if lowStock && lowStock.length
-        table
+        table#lowTable
+          colgroup
+            col(style="width:50%")
+            col(style="width:16%")
+            col(style="width:17%")
+            col(style="width:17%")
           thead
             tr
               th Product
-              th.classic Reorder Point
-              th On hand
-              th Suggest
+              th(style="text-align:right") Reorder Point
+              th(style="text-align:right") On hand
+              th(style="text-align:right") Suggest
           tbody
             each r in lowStock
               - const rp = r.reorderPoint || 10
@@ -75,11 +90,22 @@ block content
                 td.num= r.stock
                 td.num= need
       else
-        .empty No low-stock items.
+        .empty#lowEmpty No low-stock items.
 
   // Panel: Stocktake
   .panel#p-stock
     .grid2
+      .card(style="padding:16px")
+        h3(style="margin:0 0 10px") Quick Count (1 sản phẩm)
+        form(method="post" action="/admin/inventory-support/quick-count")
+          .hstack(style="gap:12px;flex-wrap:wrap")
+            input(type="text" name="productId" placeholder="productId" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
+            input(type="text" name="variantId" placeholder="variantId (optional)" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
+            input(type="number" name="counted" placeholder="counted (số đếm thực tế)" required min="0" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;width:200px")
+            button.btn.primary(type="submit") Post
+        p.muted(style="margin:8px 0 0") Không cần CSV. Hệ thống tạo movement & đặt tồn của variant = counted.
+
+      // Create session
       .card(style="padding:16px")
         h3(style="margin:0 0 10px") Create Stocktake Session
         form(method="post" action="/admin/inventory-support/stocktake")
@@ -90,41 +116,67 @@ block content
               option(value="active") Active only
               option(value="low") Low-stock only
             button.btn.primary(type="submit") Create
-        p.muted(style="margin:8px 0 0") Sau khi tạo, tải CSV mẫu, nhập số đếm thực tế rồi upload để post chênh lệch.
+        p.muted(style="margin:8px 0 0") Tạo session → tải CSV mẫu → nhập cột counted → upload → Post.
 
-      .card(style="padding:16px")
-        h3(style="margin:0 0 10px") Recent Sessions
-        if sessions && sessions.length
-          table
-            thead
+    // Recent Sessions
+    .card(style="padding:16px; margin-top:16px")
+      h3(style="margin:0 0 10px") Recent Sessions
+      if sessions && sessions.length
+        table
+          thead
+            tr
+              th Name
+              th Status
+              th Created
+              th Action
+          tbody
+            each s in sessions
               tr
-                th Name
-                th Status
-                th Created
-                th Action
-            tbody
-              each s in sessions
-                tr
-                  td= s.name
-                  td
-                    span.badge= s.status
-                  td= s.createdAt
-                  td
-                    .hstack
-                      a.btn(href=`/admin/inventory-support/stocktake/${s.id}`) View
-                      if s.status === 'draft' || s.status === 'reviewing'
-                        a.btn.primary(href=`/admin/inventory-support/stocktake/${s.id}/download`) ⬇️ CSV
-                        form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/post`)
-                          button.btn(type="submit") Post
-        else
-          .empty No sessions.
+                td= s.name
+                td
+                  span.badge= s.status
+                td= s.createdAt
+                td
+                  .hstack(style="gap:8px;align-items:center;flex-wrap:wrap")
+                    a.btn(href=`/admin/inventory-support/stocktake/${s.id}`) View
+                    if s.status === 'draft' || s.status === 'reviewing'
+                      a.btn.primary(href=`/admin/inventory-support/stocktake/${s.id}/download`)
+                        span.ico
+                          +icon-download(18)
+                        | CSV
+                      // Upload CSV ngay tại dòng session
+                      form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/upload` enctype="multipart/form-data")
+                        input(type="file" name="file" accept=".csv" required)
+                        button.btn(type="submit")
+                          span.ico
+                            +icon-upload(18)
+                          | Upload
+                      form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/post`)
+                        button.btn(type="submit") Post
+                    if s.status !== 'posted'
+                      form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/delete` onsubmit="return confirm('Xóa session này?');")
+                        button.btn.danger(type="submit") Delete
+
+      else
+        .empty No sessions.
 
   // Panel: Bulk Adjust
   .panel#p-bulk
     .card(style="padding:16px")
       .hstack(style="justify-content:space-between;margin-bottom:8px")
-        h3(style="margin:0") Bulk Adjust from CSV
-        a.btn(href="/admin/inventory-support/template.csv") ⬇️ Download template
+        h3(style="margin:0")
+          | Bulk Adjust from CSV
+          button.btn.hint(type="button" data-tt-title="Bulk Adjust" data-tt-body="Điều chỉnh kho hàng loạt từ CSV (productId, variantId?, delta, reason, note). Có preview trước khi commit.")
+            +icon-hint(16)
+        .hstack
+          a.btn(href="/admin/inventory-support/template.csv")
+            span.ico
+              +icon-download(18)
+            | Template
+          button.btn.primary#btnOpenUpload(type="button")
+            span.ico
+              +icon-upload(18)
+            | Upload CSV
       p.muted CSV columns: productId, variantId(optional), delta, reason(manualImport|manualAdjust|returnIn|returnOut), note(optional)
       if bulkPreview && bulkPreview.length
         table
@@ -148,10 +200,25 @@ block content
       else
         .empty No preview yet. Use “Upload CSV” to preview.
 
+    // Upload CSV Modal (chỉ mở từ tab Bulk)
+    .modal-backdrop#upModal(style="display:none")
+      .modal(role="dialog" aria-modal="true" aria-labelledby="upTitle")
+        .modal-hd#upTitle Upload CSV
+        form(method="post" action="/admin/inventory-support/bulk-adjust/upload" enctype="multipart/form-data")
+          .modal-bd
+            input(type="file" name="file" accept=".csv" required)
+            p.muted(style="margin:8px 0 0") File CSV sẽ được parse để preview trước khi commit.
+          .modal-ft
+            button.btn(type="button" onclick="document.getElementById('upModal').style.display='none'") Cancel
+            button.btn.primary(type="submit") Upload
+
   // Panel: Barcode / QR
   .panel#p-code
     .card(style="padding:16px")
-      h3(style="margin:0 0 10px") Generate Barcode / QR
+      h3(style="margin:0 0 10px")
+        | Generate Barcode / QR
+        button.btn.hint(type="button" data-tt-title="Barcode / QR" data-tt-body="Sinh SVG barcode/QR để in nhãn. Có thể thay bằng thư viện chuẩn sau.")
+          +icon-hint(16)
       form.hstack(method="get" action="/admin/inventory-support/barcode")
         input(type="text" name="productId" placeholder="productId" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:240px")
         input(type="text" name="variantId" placeholder="variantId (optional)" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:240px")
@@ -161,14 +228,29 @@ block content
         button.btn.primary(type="submit") Generate
       if barcodeUrl
         .hstack(style="margin-top:12px")
-          img(src=barcodeUrl alt="code" style="max-height:160px")
+          img#codePreview(src=barcodeUrl alt="code" style="max-height:160px")
           a.btn(href=barcodeUrl target="_blank") Open
 
   // Panel: Diagnostics
   .panel#p-diag
+    .card(style="padding:16px")
+      .hstack(style="justify-content:space-between;margin-bottom:8px")
+        h3(style="margin:0 0 10px") Diagnostics
+        .hstack
+          a.btn(href="/admin/inventory-support/export")
+            span.ico
+              +icon-download(18)
+            | Export CSV
+          a.btn(href="/admin/inventory-support/rebuild-onhand")
+            span.ico
+              +icon-rebuild(18)
+            | Rebuild OnHand
     .grid2
       .card(style="padding:16px")
-        h3(style="margin:0 0 10px") Negative Stock
+        h3(style="margin:0 0 10px")
+          | Negative Stock
+          button.btn.hint(type="button" data-tt-title="Negative Stock" data-tt-body="Biến thể có tồn âm. Kiểm tra luồng trừ kho & điều chỉnh.")
+            +icon-hint(16)
         if diagnostics && diagnostics.negative && diagnostics.negative.length
           table
             thead
@@ -185,7 +267,10 @@ block content
         else
           .empty No negative stock.
       .card(style="padding:16px")
-        h3(style="margin:0 0 10px") Orphan Variants
+        h3(style="margin:0 0 10px")
+          | Orphan Variants
+          button.btn.hint(type="button" data-tt-title="Orphan Variants" data-tt-body="Biến thể không có product liên kết (hiếm).")
+            +icon-hint(16)
         if diagnostics && diagnostics.orphan && diagnostics.orphan.length
           table
             thead
@@ -198,39 +283,196 @@ block content
         else
           .empty No orphan variants.
 
-  // Upload CSV Modal
-  .modal-backdrop#upModal
-    .modal(role="dialog" aria-modal="true" aria-labelledby="upTitle")
-      .modal-hd#upTitle Upload CSV
-      form(method="post" action="/admin/inventory-support/bulk-adjust/upload" enctype="multipart/form-data")
-        .modal-bd
-          input(type="file" name="file" accept=".csv" required)
-          p.muted(style="margin:8px 0 0") File CSV sẽ được parse để preview trước khi commit.
-        .modal-ft
-          button.btn(type="button" onclick="document.getElementById('upModal').style.display='none'") Cancel
-          button.btn.primary(type="submit") Upload
-
 block scripts
   script.
-    // Tabs
+    // ===== Tabs (shared) + lazy init theo tab =====
     (function(){
-      const tabs=[...document.querySelectorAll('.tabs .tab')];
-      const panels=[...document.querySelectorAll('.panel')];
+      var tabs=[].slice.call(document.querySelectorAll('.tabs .tab'));
+      var panels=[].slice.call(document.querySelectorAll('.panel'));
+      var TAB_KEY='inv_tab_active';
+      var inited = {};
+
       function show(id){
-        tabs.forEach(t=>t.setAttribute('aria-selected', String(t.getAttribute('aria-controls')===id)));
-        panels.forEach(p=>p.classList.toggle('active', p.id===id));
+        if(!id) return;
+        tabs.forEach(function(t){
+          var on = t.getAttribute('aria-controls')===id;
+          t.setAttribute('aria-selected', String(on));
+        });
+        panels.forEach(function(p){ p.classList.toggle('active', p.id===id); });
+
+        if(location.hash!==('#'+id)) history.replaceState(null,'','#'+id);
+        try{ localStorage.setItem(TAB_KEY,id); }catch(e){}
+
+        if(!inited[id]){
+          inited[id] = true;
+          document.dispatchEvent(new CustomEvent('tab:show', { detail:{ id:id } }));
+        }
       }
-      tabs.forEach(t=>t.addEventListener('click',()=>show(t.getAttribute('aria-controls'))));
-      // Deep-link by hash (#p-low ...)
-      if(location.hash && document.querySelector(location.hash)) show(location.hash.slice(1));
-      window.createDraftPO = function(){
-        fetch('/admin/inventory-support/reorder-draft', {method:'POST'})
-          .then(r=>r.ok?r.blob():Promise.reject(r))
-          .then(b=>{
-            const url=URL.createObjectURL(b);
-            const a=document.createElement('a'); a.href=url; a.download='reorder-draft.csv'; a.click();
-            setTimeout(()=>URL.revokeObjectURL(url), 2000);
-          })
-          .catch(()=>alert('Cannot create draft PO.'));
-      }
+
+      tabs.forEach(function(t){
+        t.addEventListener('click', function(){
+          var id=t.getAttribute('aria-controls'); if(id) show(id);
+        });
+      });
+
+      var defaultId='p-low';
+      var initId=(function(){
+        if(document.getElementById('codePreview')) return 'p-code';
+        if(location.hash && document.getElementById(location.hash.slice(1))) return location.hash.slice(1);
+        try{ var saved=localStorage.getItem(TAB_KEY); if(saved && document.getElementById(saved)) return saved; }catch(_){}
+        return defaultId;
+      })();
+      show(initId);
     })();
+
+    // ===== Tooltips (shared) =====
+    (function () {
+      var tipEl=null, arrowEl=null, activeBtn=null, rafId=0;
+
+      function removeTip(){
+        if(rafId) cancelAnimationFrame(rafId), (rafId=0);
+        if(tipEl){ tipEl.remove(); tipEl=null; }
+        arrowEl=null;
+        if(activeBtn){
+          activeBtn.removeAttribute('aria-expanded');
+          activeBtn.removeAttribute('aria-describedby');
+          activeBtn=null;
+        }
+      }
+      function placeTip(btn){
+        if(!tipEl) return;
+        var r=btn.getBoundingClientRect(), gap=8, vw=innerWidth, vh=innerHeight;
+        tipEl.style.top='0px'; tipEl.style.left='-9999px';
+        var tw=tipEl.offsetWidth, th=tipEl.offsetHeight;
+        var left=scrollX+r.right+gap, showRight=true;
+        if(left+tw+12>scrollX+vw){ left=scrollX+r.left-tw-gap; showRight=false; }
+        var top=scrollY+r.top+(r.height/2)-(th/2);
+        top=Math.max(scrollY+8, Math.min(top, scrollY+vh-th-8));
+        tipEl.style.top=top+'px'; tipEl.style.left=left+'px';
+        var ar=7; arrowEl.style.width=(ar*2)+'px'; arrowEl.style.height=(ar*2)+'px'; arrowEl.style.top=(th/2-ar)+'px';
+        arrowEl.style.left=''; arrowEl.style.right=''; arrowEl.style.transform='rotate(45deg)';
+        if(showRight) arrowEl.style.left=(-ar)+'px'; else arrowEl.style.right=(-ar)+'px';
+      }
+      function openTip(btn){
+        removeTip();
+        var title=btn.getAttribute('data-tt-title')||'Help';
+        var body=btn.getAttribute('data-tt-body')||'';
+        tipEl=document.createElement('div'); tipEl.className='tooltip-pop';
+        tipEl.setAttribute('role','dialog'); tipEl.setAttribute('aria-modal','false');
+        var tipId='tt-'+Math.random().toString(36).slice(2); tipEl.id=tipId;
+        tipEl.innerHTML='<div class="tt-hd">'+title+'</div><div class="tt-bd">'+body+'</div><div class="tt-ft">Nhấp ra ngoài để đóng</div>';
+        arrowEl=document.createElement('div'); arrowEl.className='tooltip-arrow'; arrowEl.style.position='absolute'; tipEl.appendChild(arrowEl);
+        document.body.appendChild(tipEl);
+        activeBtn=btn; activeBtn.setAttribute('aria-expanded','true'); activeBtn.setAttribute('aria-describedby', tipId);
+        placeTip(activeBtn);
+        var lx=scrollX, ly=scrollY, lw=innerWidth, lh=innerHeight;
+        function watch(){
+          if(!tipEl||!activeBtn) return;
+          if(lx!==scrollX||ly!==scrollY||lw!==innerWidth||lh!==innerHeight){ lx=scrollX; ly=scrollY; lw=innerWidth; lh=innerHeight; placeTip(activeBtn); }
+          rafId=requestAnimationFrame(watch);
+        }
+        rafId=requestAnimationFrame(watch);
+      }
+      document.addEventListener('click', function(e){
+        var btn=e.target && e.target.closest && e.target.closest('.btn.hint');
+        if(btn){ if(btn===activeBtn) removeTip(); else openTip(btn); e.preventDefault(); e.stopPropagation(); return; }
+        if(tipEl && !tipEl.contains(e.target)) removeTip();
+      }, { passive:false });
+      addEventListener('keydown', function(e){ if(e.key==='Escape') removeTip(); }, { passive:true });
+      addEventListener('resize', removeTip, { passive:true });
+      addEventListener('scroll', function(){ if(tipEl) removeTip(); }, true);
+    })();
+
+    // ===== Per-tab lazy init =====
+
+    // Low Stock: AJAX refresh + Draft PO
+    (function(){
+      function initLow(){
+        var btnRefresh=document.getElementById('btnLowRefresh');
+        var btnDraft=document.getElementById('btnDraftPO');
+        if(btnRefresh && !btnRefresh._bound){
+          btnRefresh._bound=true;
+          btnRefresh.addEventListener('click', refreshLowStock);
+        }
+        if(btnDraft && !btnDraft._bound){
+          btnDraft._bound=true;
+          btnDraft.addEventListener('click', createDraftPO);
+        }
+      }
+      document.addEventListener('tab:show', function(e){
+        if(e.detail.id==='p-low') initLow();
+      });
+      if(document.querySelector('#p-low.active')) initLow();
+
+      function htmlEscape(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      window.refreshLowStock = function(){
+        var limit = parseInt((document.getElementById('lowLimit')||{}).value||'10',10);
+        fetch('/admin/inventory-support/low-stock?limit='+encodeURIComponent(limit||10))
+          .then(function(r){ return r.ok ? r.json() : Promise.reject(r); })
+          .then(function(json){
+            var table = document.getElementById('lowTable');
+            var empty = document.getElementById('lowEmpty');
+            if(!json || !json.ok){ throw new Error('bad'); }
+            var rows = json.rows || [];
+            if(!rows.length){
+              if(table) table.remove();
+              if(empty) empty.textContent='No low-stock items.';
+              else {
+                var div=document.createElement('div'); div.className='empty'; div.id='lowEmpty'; div.textContent='No low-stock items.';
+                var panel=document.getElementById('p-low'); panel && panel.querySelector('.card').appendChild(div);
+              }
+              return;
+            }
+            if(!table){
+              var wrap = document.createElement('table'); wrap.id='lowTable';
+              wrap.innerHTML='<colgroup><col style="width:50%"><col style="width:16%"><col style="width:17%"><col style="width:17%"></colgroup><thead><tr><th>Product</th><th style="text-align:right">Reorder Point</th><th style="text-align:right">On hand</th><th style="text-align:right">Suggest</th></tr></thead><tbody></tbody>';
+              var panel=document.getElementById('p-low'); panel && panel.querySelector('.card').appendChild(wrap);
+              table = wrap;
+              var e = document.getElementById('lowEmpty'); if(e) e.remove();
+            }
+            var tbody = table.querySelector('tbody'); if(!tbody){ tbody=document.createElement('tbody'); table.appendChild(tbody); }
+            tbody.innerHTML = rows.map(function(r){
+              var rp = r.reorderPoint || 10;
+              var on = r.stock || 0;
+              var need = Math.max(0, rp - on);
+              return '<tr>'
+                + '<td>'+htmlEscape(r.title)+'</td>'
+                + '<td class="num">'+rp+'</td>'
+                + '<td class="num">'+on+'</td>'
+                + '<td class="num">'+need+'</td>'
+                + '</tr>';
+            }).join('');
+          })
+          .catch(function(){ alert('Refresh failed'); });
+      };
+
+      function createDraftPO(){
+        fetch('/admin/inventory-support/reorder-draft', {method:'POST'})
+          .then(function(r){ return r.ok ? r.blob() : Promise.reject(r); })
+          .then(function(b){
+            var url=URL.createObjectURL(b);
+            var a=document.createElement('a'); a.href=url; a.download='reorder-draft.csv'; a.click();
+            setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+          })
+          .catch(function(){ alert('Cannot create draft PO.'); });
+      }
+      window.createDraftPO = createDraftPO;
+    })();
+
+    // Bulk: mở modal upload
+    (function(){
+      function initBulk(){
+        var btn=document.getElementById('btnOpenUpload');
+        var modal=document.getElementById('upModal');
+        if(btn && !btn._bound){
+          btn._bound=true;
+          btn.addEventListener('click', function(){ if(modal) modal.style.display='flex'; });
+        }
+      }
+      document.addEventListener('tab:show', function(e){
+        if(e.detail.id==='p-bulk') initBulk();
+      });
+      if(document.querySelector('#p-bulk.active')) initBulk();
+    })();
+
+    // Barcode tab: auto handled by chọn tab nếu có #codePreview

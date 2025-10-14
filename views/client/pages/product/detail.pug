@@ -62,17 +62,20 @@ block content
               ul.product-detail__voucher-list
                 each voucher in product.vouchers
                   li.product-detail__voucher-badge= voucher
-          if product.colors && product.colors.length
+          if product.swatches && product.swatches.length
             .product-detail__section
               .product-detail__section-head
                 span.product-detail__section-label Màu sắc:
                 if product.selectedColor
                   span.product-detail__section-value= product.selectedColor
-              .product-detail__swatches.swatches
-                each color in product.colors
-                  - const colorActive = color === (product.selectedColor || product.colors[0]) ? 'is-active' : ''
-                  button(type="button" class=colorActive data-color=color style=`--swatch:${color || '#1f2937'}`)
-                    span.visually-hidden= color || 'Màu khác'
+            .product-detail__swatches.swatches
+              each sw in product.swatches
+                - const isActive = (sw.label === (product.selectedColor || product.swatches[0].label)) ? 'is-active' : ''
+                - const styleHex = sw.hex ? `background-color:${sw.hex}` : ''
+                - const styleImg = (!sw.hex && sw.img) ? `background-image:url('${String(sw.img).replace(/'/g,"&#39;")}')` : ''
+                - const styleAttr = [styleHex, styleImg].filter(Boolean).join(';')
+                button(type="button" class=isActive style=styleAttr title=sw.label data-color=sw.label data-color-id=sw.colorId)
+                  span.visually-hidden= sw.label
           if product.sizes && product.sizes.length
             .product-detail__section
               .product-detail__section-head

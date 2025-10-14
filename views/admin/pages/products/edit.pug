@@ -1,0 +1,658 @@
+//- views/admin/pages/products/edit.pug
+extends ../../layouts/default
+include ../../mixins/icons
+
+//- Hint mixin dùng kèm icon-hint (xuất hiện 1 lần, cạnh tiêu đề Variants)
+mixin hint(title='Help', items=[])
+  .hint-wrap
+    button.hint(type="button" data-hint title=title aria-expanded="false")
+      +icon-hint(18)
+    .hint-pop(role="note" aria-live="polite")
+      p.title= title
+      if items && items.length
+        each it in items
+          p
+            if it.boldBefore
+              strong= it.boldBefore
+              | #{' '}
+            | #{it.text || ''}
+
+block head
+  style.
+    :root{
+      --ink:#0f172a;--muted:#64748b;--line:#e5e7eb;--bg:#f6f7fb;--surface:#ffffff;
+      --accent:#f97316;--accent-600:#ea580c;--accent-50:#fff7ed;
+      --r:14px;--r-lg:18px;--sh-1:0 6px 18px rgba(16,24,40,.06);--sh-2:0 12px 34px rgba(2,6,23,.10);
+      --ring-weak:rgba(249,115,22,.18);--s2:8px;--s3:12px;--s4:16px;--s5:20px;
+    }
+    body{background:var(--bg)}
+    .edit{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--ink);line-height:1.6;max-width:1310px;margin:0 auto;padding:24px 16px}
+    .edit .grid{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:var(--s4)}
+    @media (max-width:980px){.edit .grid{grid-template-columns:1fr}}
+    .card.sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:var(--s4)}
+    .ttl{margin:0 0 var(--s3);font-weight:800;letter-spacing:.2px}
+    .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s3);margin-bottom:var(--s3)}
+    .field{display:grid;gap:var(--s2);min-width:0}
+    .label{font-weight:700}
+    .help{color:var(--muted);font-size:12px}
+    .input,.select,.textarea{width:100%;min-width:0;font-size:14px;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:border-color .15s,box-shadow .15s,background .15s}
+    .input:focus,.select:focus,.textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px var(--ring-weak)}
+    .textarea{min-height:120px;resize:vertical}
+    .select{appearance:none;background:linear-gradient(#fff,#fff) padding-box}
+    .select-wrap{position:relative}
+    .select-wrap:after{content:"▾";position:absolute;right:12px;top:50%;transform:translateY(-50%);color:#94a3b8;font-weight:700;pointer-events:none}
+    .thumb-uploader{display:grid;gap:var(--s3);justify-items:center}
+    .thumb-preview{width:100%;max-width:340px;aspect-ratio:1/1;object-fit:cover;border-radius:12px;border:1px solid var(--line);background:#f3f4f6;box-shadow:var(--sh-1)}
+    .filebox{position:relative;display:inline-flex;align-items:center;gap:8px}
+    .filebox input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+    .filebox .fake{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed var(--line);border-radius:12px;background:#fff;font-weight:600;color:#374151}
+    .panel{border:1px solid var(--line);border-radius:14px;background:#fff}
+    .panel+.panel{margin-top:12px}
+    .panel>summary{list-style:none;cursor:pointer;user-select:none;display:flex;align-items:center;justify-content:space-between;padding:14px 16px;font-weight:800}
+    .panel>summary::-webkit-details-marker{display:none}
+    .chev{width:18px;height:18px;display:inline-block;transform:rotate(0);transition:transform .2s}
+    details[open] .chev{transform:rotate(180deg)}
+    .panel-body{padding:16px}
+    .chips{display:flex;flex-wrap:wrap;gap:8px}
+    .chip{display:inline-flex;align-items:center;justify-content:center;min-width:44px;height:36px;padding:0 12px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:700;cursor:pointer;transition:.15s}
+    .chip:hover{box-shadow:0 2px 10px rgba(2,6,23,.06)}
+    .chip[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring-weak) inset}
+    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:42px;padding:0 16px;min-width:128px;border-radius:12px;border:1px solid var(--line);background:#fff;color:#111;font-weight:800;cursor:pointer;transition:box-shadow .15s,transform .06s,background .15s,border-color .15s;text-decoration:none}
+    .btn:hover{box-shadow:0 8px 22px rgba(2,6,23,.08)}
+    .btn:active{transform:translateY(1px)}
+    .btn.primary{color:#fff;border-color:transparent;background:linear-gradient(180deg,var(--accent),var(--accent-600));box-shadow:0 10px 28px rgba(249,115,22,.28)}
+    .btn.primary:hover{filter:saturate(1.05) brightness(.98)}
+    .btn.ghost{background:#fff;border-color:#e5e7eb}
+    .btn.xs{height:30px;min-width:auto;padding:0 10px;font-weight:700;border-radius:10px}
+    .btn.xs.ghost{border-color:#e5e7eb;background:#fff}
+    .btn.xs.ghost:hover{box-shadow:0 4px 14px rgba(2,6,23,.06)}
+    .toolbar{display:flex;justify-content:flex-end;gap:10px}
+    .table-wrap{overflow-x:auto;-webkit-overflow-scrolling:touch}
+    table.vt{width:100%;min-width:720px;border-collapse:separate;border-spacing:0 8px}
+    table.vt thead th{padding:10px 12px;text-align:left;background:#fafafa;border-bottom:1px solid #eef0f5;font-weight:800;font-size:12px;letter-spacing:.04em;color:#475569}
+    table.vt td{padding:12px;vertical-align:top}
+    table.vt tbody tr{background:#fff;border:1px solid #eef0f5;border-radius:12px;box-shadow:0 4px 14px rgba(2,6,23,.05)}
+    table.vt tbody tr>td:first-child{border-top-left-radius:12px;border-bottom-left-radius:12px}
+    table.vt tbody tr>td:last-child{border-top-right-radius:12px;border-bottom-right-radius:12px}
+    .info-bar{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+    .info-left{display:flex;align-items:center;gap:10px}
+    .tag{display:inline-flex;align-items:center;height:26px;padding:0 10px;border-radius:999px;background:#f3f4f6;color:#111;font-weight:700;font-size:12px}
+    .vlist{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:10px}
+    .vitem{display:flex;align-items:center;gap:10px;border:1px solid var(--line);background:#fff;border-radius:12px;padding:8px 10px}
+    .v-swatch{width:16px;height:16px;border:1px solid var(--line);border-radius:5px;background:#fff center/cover no-repeat}
+    .v-meta{display:flex;flex-direction:column;font-size:13px}
+    .v-meta .name{font-weight:800}
+    .v-meta .sub{color:#64748b}
+    .modal{position:fixed;inset:0;display:none;align-items:center;justify-content:center;padding:18px;background:rgba(2,6,23,.50);z-index:50;-webkit-backdrop-filter:saturate(120%) blur(3px);backdrop-filter:saturate(120%) blur(3px)}
+    .modal[open]{display:flex}
+    .modal .sheet{width:min(760px,96vw);max-height:88vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh-2);padding:20px;transform:translateY(6px) scale(.985);opacity:0;transition:transform .16s ease-out,opacity .16s ease-out,box-shadow .2s}
+    .modal[open] .sheet{transform:translateY(0) scale(1);opacity:1}
+    .modal .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px}
+    .modal .hdr h3{font-weight:900;font-size:18px;margin:0}
+    .modal .input,.modal .select,.modal .textarea{width:100%;min-width:0;font-size:14px;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;transition:border-color .15s,box-shadow .15s}
+    .modal .input:focus,.modal .select:focus,.modal .textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--ring-weak)}
+    .modal .textarea{min-height:110px;resize:vertical}
+    .modal .select{appearance:none;background:linear-gradient(#fff,#fff) padding-box}
+    .modal .select-wrap{position:relative}
+    .modal .select-wrap:after{content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-weight:700;pointer-events:none}
+    .swatch-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+    .swatch{width:24px;height:24px;border-radius:8px;border:1px solid var(--line);background:#fff center/cover no-repeat}
+    .mode-chip{border:1px solid var(--line);border-radius:12px;padding:6px 10px;background:#fff;font-weight:800;cursor:pointer;transition:box-shadow .15s,border-color .15s,transform .06s}
+    .mode-chip:hover{transform:translateY(-1px)}
+    .mode-chip[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring-weak) inset}
+    .picker{width:38px;height:38px;padding:0;border:1px solid var(--line);border-radius:10px}
+    .modal .btn{height:40px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:800;cursor:pointer;transition:box-shadow .15s,transform .06s ease,background .15s,border-color .15s}
+    .modal .btn.primary{background:linear-gradient(180deg,var(--accent),var(--accent-600));border-color:transparent;color:#fff;box-shadow:0 10px 24px rgba(249,115,22,.25)}
+    .modal .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px}
+    .modal .field{display:grid;gap:8px}
+    /* ===== Variants hint ===== */
+    .summary-wrap{position:relative; display:flex; align-items:center; gap:8px}
+    .hint{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer}
+    .hint:hover{box-shadow:0 4px 12px rgba(2,6,23,.08)}
+    .hint-pop{position:absolute; top:100%; left:0; margin-top:8px; z-index:20; min-width:280px; max-width:420px; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 12px 28px rgba(2,6,23,.10); padding:12px 14px; display:none}
+    .hint-pop.show{display:block}
+    .hint-pop p{margin:0 0 6px; font-size:13px; color:#374151}
+    .hint-pop p:last-child{margin-bottom:0}
+    .hint-pop .title{font-weight:800; margin-bottom:6px}
+
+block content
+  - const p = product || {}
+  - const cats = Array.isArray(categories) ? categories : []
+  - const defaultSizes = ['XS','S','M','L','XL','XXL','3XL','4XL']
+  - const sizeArr = Array.isArray(p.size) ? p.size : []
+  - const pv = Array.isArray(p.productVariants) ? p.productVariants : []
+
+  .edit
+    .info-bar
+      .info-left
+        a.btn.ghost(href="/admin/products") Back to list
+        if p.slug
+          span.tag #{p.slug}
+      h2.tl Edit Product
+
+    form#editForm(method="post" action=`/admin/products/${p.id}` enctype="multipart/form-data")
+      .grid
+        // LEFT
+        .card.sec
+          details.panel(open)
+            summary
+              span Thumbnail
+              svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
+                path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+            .panel-body
+              .thumb-uploader
+                .field(style="width:100%")
+                  label.label(for="thumbnailUrl") Thumbnail URL (tùy chọn)
+                  input.input#thumbnailUrl(type="url" name="thumbnailUrl" placeholder="https://...jpg" value=p.thumbnail)
+                  span.help Nếu nhập URL thì dùng URL này (bỏ qua file).
+                img#thumbPrev.thumb-preview(src=(p.thumbnail || 'https://placehold.co/360x360?text=Thumbnail') alt="preview")
+                .filebox(style="margin-top:8px")
+                  input(type="file" name="thumbnail" accept="image/*" onchange="handleThumb(this)")
+                  span.fake Chọn ảnh từ máy…
+                span.help PNG/JPG/GIF; khuyến nghị 1200×1200
+
+          details.panel(open)
+            summary
+              span Sizes
+              svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
+                path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+            .panel-body
+              .chips#sizeChips
+                each s in defaultSizes
+                  - const on = sizeArr.includes(s)
+                  button.chip(type="button" aria-pressed=on data-val=s)= s
+              if sizeArr && sizeArr.length
+                each s in sizeArr
+                  input(type="hidden" name="size[]" value=s data-from=`chip-${s}`)
+
+          details.panel
+            summary
+              span Current Variants (readonly)
+              svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
+                path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+            .panel-body
+              if pv.length
+                .vlist
+                  each v in pv
+                    - const hex = (v.colors && v.colors.hex) || v.colorHexLegacy || ''
+                    - const swImg = (v.colors && v.colors.swatchUrl) || v.swatchUrlLegacy || ''
+                    - const imgCount = Array.isArray(v.images) ? v.images.length : 0
+                    .vitem
+                      - const swStyle = hex ? `background:${hex}` : (swImg ? `background-image:url('${swImg.replace(/'/g,"&#39;")}')` : '')
+                      span.v-swatch(style=swStyle)
+                      .v-meta
+                        .name #{(v.colors && v.colors.name) || v.color}
+                        .sub Stock: #{v.stock} · Images: #{imgCount}
+              else
+                p.help Chưa có biến thể hoặc không thể tải danh sách.
+
+        // RIGHT
+        .card.sec
+          details.panel(open)
+            summary
+              span Product Information
+              svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
+                path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+            .panel-body
+              .row
+                .field
+                  label.label(for="title") Product Name *
+                  input.input#title(type="text" name="title" required placeholder="Items Name" value=p.title)
+                .field
+                  label.label(for="categoryId") Product Categories *
+                  .select-wrap
+                    select.select#categoryId(name="categoryId" required)
+                      option(value="") Choose a category
+                      each c in cats
+                        option(value=c.id selected=(String(c.id)===String(p.categoryId)))= c.title
+                .field
+                  label.label(for="status") Status
+                  .select-wrap
+                    select.select#status(name="status")
+                      option(value="active" selected=(p.status!=='inactive')) active
+                      option(value="inactive" selected=(p.status==='inactive')) inactive
+              .row
+                .field
+                  label.label(for="price") Price (USD) *
+                  input.input#price(type="number" name="price" required min="0" step="1" placeholder="0" value=p.price)
+                .field
+                  label.label(for="discount") Discount (%)
+                  input.input#discount(type="number" name="discount" min="0" max="99" step="1" placeholder="0" value=(typeof p.discount==='number'?p.discount:0))
+              .row
+                .field(style="grid-column:1/-1")
+                  label.label(for="description") Description
+                  textarea.textarea#description(name="description" rows="4" placeholder="Short description about the product")= p.description
+
+          // ===== VARIANTS (edit inline + add new) =====
+          details.panel(open)
+            summary
+              .summary-wrap
+                span Variants (edit & add)
+                +hint(
+                  'Images mode',
+                  [
+                    { boldBefore: 'Append:', text: 'Ảnh mới sẽ được cộng thêm vào ảnh cũ.' },
+                    { boldBefore: 'Replace:', text: 'Ảnh mới sẽ thay thế toàn bộ ảnh cũ.' }
+                  ]
+                )
+              svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
+                path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+            .panel-body
+              .table-wrap
+                table.vt#vtbl
+                  thead
+                    tr
+                      th(style="width:280px") Color
+                      th(style="width:110px") Stock
+                      th Images (URLs / Upload)
+                      th(style="width:140px") Actions
+                  tbody
+                    if pv && pv.length
+                      each v, i in pv
+                        - const urls = Array.isArray(v.images) ? v.images.join('\n') : ''
+                        - const hasHex = !!(v.colorHexLegacy || (v.colors && v.colors.hex))
+                        - const hasSw  = !!(v.swatchUrlLegacy || (v.colors && v.colors.swatchUrl))
+                        - const optOpen = hasHex || hasSw
+                        tr(data-row=i)
+                          td
+                            input(type="hidden" name=`variants[${i}][id]` value=v.id)
+                            input.input(type="text" name=`variants[${i}][color]` placeholder="Color name" value=((v.colors && v.colors.name) || v.color) required)
+                            .row(style="margin-top:8px;grid-template-columns:1fr")
+                              button.btn.xs.ghost(type="button" data-toggle="swatch" data-row=i)= optOpen ? 'Hide swatch options' : 'Swatch options'
+                            .opt-swatch(style=optOpen ? '' : 'display:none')
+                              if (v.colorHexLegacy || (v.colors && v.colors.hex))
+                                input.input(style="margin-top:8px" type="text" name=`variants[${i}][colorHexLegacy]` placeholder="#HEX (optional)" value=(v.colorHexLegacy || (v.colors && v.colors.hex) || ''))
+                              else
+                                input.input(style="margin-top:8px" type="text" name=`variants[${i}][colorHexLegacy]` placeholder="#HEX (optional)")
+                              if (v.swatchUrlLegacy || (v.colors && v.colors.swatchUrl))
+                                input.input(style="margin-top:8px" type="url" name=`variants[${i}][swatchUrlLegacy]` placeholder="Swatch URL (optional)" value=(v.swatchUrlLegacy || (v.colors && v.colors.swatchUrl) || ''))
+                              else
+                                input.input(style="margin-top:8px" type="url" name=`variants[${i}][swatchUrlLegacy]` placeholder="Swatch URL (optional)")
+                          td
+                            input.input(type="number" name=`variants[${i}][stock]` min="0" step="1" value=v.stock)
+                          td
+                            textarea.textarea(name=`variants[${i}][imageUrls]` rows="3" placeholder="https://...jpg\nhttps://...png")= urls
+                            .filebox(style="margin-top:8px")
+                              input(type="file" name=`variants[${i}][images][]` accept="image/*" multiple)
+                              span.fake Upload images…
+                            .select-wrap(style="margin-top:8px")
+                              select.select(name=`variants[${i}][imagesMode]`)
+                                option(value="append" selected) Append images (khuyên dùng)
+                                option(value="replace") Replace images
+                          td
+                            input(type="hidden" name=`variants[${i}][_delete]` value="0")
+                            button.btn.ghost.type-toggle(data-row=i type="button" onclick=`this.previousElementSibling.value='1';this.closest('tr').remove();`) Remove
+                  tfoot
+                    tr
+                      td(colspan="4")
+                        button.btn(type="button" id="btnAddVariant") + Add variant
+
+      .card.sec(style="margin-top:16px")
+        .toolbar
+          a.btn.ghost(href="/admin/products") Cancel
+          button.btn.primary(type="submit") Save changes
+
+  // ===== Modal Add Variant =====
+  .modal#variantModal
+    .sheet
+      .hdr
+        h3.ttl(style="margin:0") Add Variant
+        button.btn(type="button" id="closeVariantModal") Close
+      .row
+        .field
+          label.label(for="vm_colorName") Color Name *
+          input.input#vm_colorName(type="text" placeholder="VD: Xanh Forest Night" required)
+        .field
+          label.label(for="vm_stock") Stock *
+          input.input#vm_stock(type="number" min="0" step="1" value="0")
+      .card.sec
+        details.panel
+          summary
+            span Swatch (optional)
+            svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
+              path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
+          .panel-body
+            .row
+              .field
+                label.label Chế độ
+                .swatch-row
+                  button.mode-chip#vm_mode_hex(type="button" data-mode="hex" aria-pressed="true") HEX
+                  button.mode-chip#vm_mode_img(type="button" data-mode="img" aria-pressed="false") Image
+                  span.swatch#vm_swatch(title="Preview")
+                span.help Nếu không chọn màu bảng chuẩn, hex/img sẽ lưu *Legacy*.
+            .row#vm_hex_box
+              .field
+                label.label(for="vm_hex") HEX (ví dụ: #060504)
+                input.input#vm_hex(type="text" placeholder="#060504" maxlength="7" pattern="#?[0-9a-fA-F]{3,6}")
+              .field
+                label.label(for="vm_picker") Color picker
+                input.picker#vm_picker(type="color" value="#333333")
+            .row#vm_img_box(style="display:none")
+              .field
+                label.label(for="vm_swatchUrl") Swatch URL
+                input.input#vm_swatchUrl(type="url" placeholder="https://...png")
+      .row
+        .field
+          label.label(for="vm_urls") Image URLs (mỗi dòng 1 URL)
+          textarea.textarea#vm_urls(rows="4" placeholder="https://...jpg\nhttps://...png")
+          span.help Ảnh hiển thị của variant (khác ảnh swatch).
+        .field
+          label.label Upload Images
+          .filebox
+            input#vm_files(type="file" accept="image/*" multiple)
+            span.fake Chọn ảnh…
+          span.help Bạn có thể dùng URL, upload, hoặc cả hai.
+      .toolbar
+        button.btn(type="button" id="vm_reset") Reset
+        button.btn.primary(type="button" id="vm_save") Save variant
+
+block scripts
+  script.
+    ;(function(){
+      // ===== Thumbnail preview =====
+      window.handleThumb = function(inp){
+        if(!inp || !inp.files || !inp.files[0]) return;
+        var url = URL.createObjectURL(inp.files[0]);
+        var img = document.getElementById('thumbPrev');
+        if(img) img.src = url;
+      };
+      (function(){
+        var thumbUrlInput = document.getElementById('thumbnailUrl');
+        if(thumbUrlInput){
+          thumbUrlInput.addEventListener('input', function(){
+            var v = (this.value||'').trim();
+            if(/^https?:\/\//i.test(v)){
+              var img = document.getElementById('thumbPrev');
+              if(img) img.src = v;
+            }
+          });
+        }
+      })();
+
+      // ===== Size chips =====
+      function ensureHiddenSize(val, on){
+        var holder = document.getElementById('sizeChips');
+        if(!holder) return;
+        var sel = 'input[name="size[]"][data-from="chip-'+val+'"]';
+        var exist = holder.parentNode.querySelector(sel);
+        if(on && !exist){
+          var i=document.createElement('input');
+          i.type='hidden'; i.name='size[]'; i.value=val; i.setAttribute('data-from','chip-'+val);
+          holder.after(i);
+        }
+        if(!on && exist) exist.remove();
+      }
+      document.addEventListener('click', function(ev){
+        var t = ev.target;
+        if(t.classList && t.classList.contains('chip')){
+          ev.preventDefault();
+          var on = t.getAttribute('aria-pressed') === 'true';
+          var next = !on;
+          t.setAttribute('aria-pressed', String(next));
+          var val = t.getAttribute('data-val');
+          if(val) ensureHiddenSize(val, next);
+          return;
+        }
+      }, false);
+
+      // ===== Modal helpers =====
+      if(typeof CSS === 'undefined' || typeof CSS.escape !== 'function'){
+        window.CSS = window.CSS || {};
+        CSS.escape = function(s){ return String(s).replace(/["'\\]/g,'\\$&'); };
+      }
+      var modal     = document.getElementById('variantModal');
+      var btnOpen   = document.getElementById('btnAddVariant');
+      var btnClose  = document.getElementById('closeVariantModal');
+      var btnSave   = document.getElementById('vm_save');
+      var btnReset  = document.getElementById('vm_reset');
+      var vtbl      = document.getElementById('vtbl');
+      var vtblBody  = vtbl ? vtbl.querySelector('tbody') : null;
+      var form      = document.getElementById('editForm');
+      var vIdx      = 0;
+
+      // Modal fields
+      var vm_colorName  = document.getElementById('vm_colorName');
+      var vm_stock      = document.getElementById('vm_stock');
+      var vm_urls       = document.getElementById('vm_urls');
+      var vm_files      = document.getElementById('vm_files');
+      var modeHexBtn    = document.getElementById('vm_mode_hex');
+      var modeImgBtn    = document.getElementById('vm_mode_img');
+      var vm_swatch     = document.getElementById('vm_swatch');
+      var vm_hexBox     = document.getElementById('vm_hex_box');
+      var vm_imgBox     = document.getElementById('vm_img_box');
+      var vm_hex        = document.getElementById('vm_hex');
+      var vm_picker     = document.getElementById('vm_picker');
+      var vm_swatchUrl  = document.getElementById('vm_swatchUrl');
+
+      function openModal(){ if(modal) modal.setAttribute('open',''); }
+      function closeModal(){ if(modal) modal.removeAttribute('open'); }
+      function getShadow(i){
+        var id = 'variant-shadow-' + i;
+        var box = document.getElementById(id);
+        if(!box){
+          box = document.createElement('div');
+          box.id = id;
+          box.style.display = 'none';
+          form.appendChild(box);
+        }
+        box.innerHTML = '';
+        return box;
+      }
+      function hid(shadow, name, value){
+        var el = document.createElement('input');
+        el.type = 'hidden'; el.name = name; el.value = value;
+        shadow.appendChild(el);
+      }
+
+      // ===== HEX vs URL helpers =====
+      function normHex(h){
+        if(!h) return '';
+        h = String(h).trim();
+        if(/^#?[0-9a-fA-F]{6}$/.test(h)) return ('#'+h.replace(/^#/,'')).toLowerCase();
+        if(/^#?[0-9a-fA-F]{3}$/.test(h)){
+          var s=h.replace(/^#/,'').toLowerCase();
+          return '#'+s.split('').map(function(c){return c+c;}).join('');
+        }
+        return '';
+      }
+      function isHttpUrl(s){ return /^https?:\/\//i.test(String(s||'').trim()); }
+
+      function previewHex(h){
+        var hex = normHex(h);
+        if(vm_swatch){
+          if(hex){ vm_swatch.style.backgroundImage='none'; vm_swatch.style.backgroundColor=hex; vm_swatch.title=hex; }
+          else{ vm_swatch.style.backgroundColor='#fff'; vm_swatch.title='HEX không hợp lệ'; }
+        }
+        return hex;
+      }
+      function previewImgUrl(u){
+        var url=(u||'').trim();
+        if(vm_swatch){
+          if(isHttpUrl(url)){
+            vm_swatch.style.backgroundColor='#fff';
+            vm_swatch.style.backgroundImage='url("'+url.replace(/"/g,'&quot;')+'")';
+            vm_swatch.title=url;
+          }else{
+            vm_swatch.style.backgroundImage='none';
+            vm_swatch.title='Nhập URL ảnh hợp lệ';
+          }
+        }
+        return url;
+      }
+      function setMode(which){
+        var isHex = which==='hex';
+        modeHexBtn && modeHexBtn.setAttribute('aria-pressed', String(isHex));
+        modeImgBtn && modeImgBtn.setAttribute('aria-pressed', String(!isHex));
+        if(vm_hexBox) vm_hexBox.style.display = isHex ? '' : 'none';
+        if(vm_imgBox) vm_imgBox.style.display = isHex ? 'none' : '';
+        if(isHex){ vm_hex && previewHex(vm_hex.value); }
+        else{ vm_swatchUrl && previewImgUrl(vm_swatchUrl.value); }
+      }
+      modeHexBtn && modeHexBtn.addEventListener('click', function(e){ e.preventDefault(); setMode('hex'); });
+      modeImgBtn && modeImgBtn.addEventListener('click', function(e){ e.preventDefault(); setMode('img'); });
+      vm_hex     && vm_hex.addEventListener('input', function(){ var hx=previewHex(vm_hex.value); if(hx && vm_picker) vm_picker.value=hx; });
+      vm_picker  && vm_picker.addEventListener('input', function(){ if(vm_hex){ vm_hex.value = vm_picker.value; previewHex(vm_hex.value); } });
+      vm_swatchUrl && vm_swatchUrl.addEventListener('input', function(){ previewImgUrl(vm_swatchUrl.value); });
+
+      function resetModal(){
+        if(vm_colorName) vm_colorName.value='';
+        if(vm_stock) vm_stock.value='0';
+        if(vm_urls) vm_urls.value='';
+        if(vm_hex) vm_hex.value='';
+        if(vm_picker) vm_picker.value='#333333';
+        if(vm_swatchUrl) vm_swatchUrl.value='';
+        if(vm_files){ var nf1 = vm_files.cloneNode(); vm_files.replaceWith(nf1); vm_files = nf1; }
+        setMode('hex');
+      }
+
+      // ===== Add new variant (modal -> shadow row) =====
+      function saveVariant(){
+        if(!vtblBody){ closeModal(); return; }
+        var colorName = vm_colorName ? vm_colorName.value.trim() : '';
+        var stock     = parseInt((vm_stock && vm_stock.value) ? vm_stock.value : '0', 10);
+        if(!colorName){ vm_colorName && vm_colorName.focus(); alert('Tên màu là bắt buộc.'); return; }
+        if(!(stock>=0)){ vm_stock && vm_stock.focus(); alert('Stock không hợp lệ.'); return; }
+
+        var colorHexLegacy = '';
+        var swatchUrlLegacy = '';
+        if(modeHexBtn && modeHexBtn.getAttribute('aria-pressed')==='true'){
+          colorHexLegacy = vm_hex ? normHex(vm_hex.value) : '';
+        }else{
+          var u = vm_swatchUrl ? (vm_swatchUrl.value||'').trim() : '';
+          if(isHttpUrl(u)) swatchUrlLegacy = u;
+        }
+        var urlArr = vm_urls ? (vm_urls.value||'').split('\n').map(function(s){return s.trim();}).filter(Boolean) : [];
+        var filesInput = vm_files;
+        var imagesCount = (filesInput && filesInput.files ? filesInput.files.length : 0) + urlArr.length;
+
+        var i = vIdx++;
+        var tr = document.createElement('tr');
+        tr.setAttribute('data-row', String(i));
+        tr.innerHTML =
+          '<td><strong>'+colorName+'</strong></td>'+
+          '<td><div>'+stock+'</div></td>'+
+          '<td><div>'+imagesCount+' file(s)/url(s)</div></td>'+
+          '<td><button type="button" class="btn ghost del" data-row="'+i+'">Remove</button></td>';
+        vtblBody.appendChild(tr);
+
+        var shadow = getShadow(i);
+        hid(shadow, 'variants['+i+'][color]', colorName);
+        hid(shadow, 'variants['+i+'][stock]', String(stock));
+        if(colorHexLegacy) hid(shadow, 'variants['+i+'][colorHexLegacy]', colorHexLegacy);
+        if(swatchUrlLegacy) hid(shadow, 'variants['+i+'][swatchUrlLegacy]', swatchUrlLegacy);
+        urlArr.forEach(function(u){ hid(shadow, 'variants['+i+'][imageUrls][]', u); });
+        if(filesInput && filesInput.files && filesInput.files.length){
+          filesInput.name = 'variants['+i+'][images][]';
+          shadow.appendChild(filesInput);
+          var fresh = filesInput.cloneNode();
+          var old = document.getElementById('vm_files'); if(old) old.replaceWith(fresh);
+          vm_files = fresh;
+        }
+        resetModal();
+        closeModal();
+      }
+
+      // Open/close modal
+      btnOpen  && btnOpen.addEventListener('click', function(e){ e.preventDefault(); openModal(); });
+      btnClose && btnClose.addEventListener('click', function(e){ e.preventDefault(); closeModal(); });
+      btnSave  && btnSave.addEventListener('click', function(e){ e.preventDefault(); saveVariant(); });
+      btnReset && btnReset.addEventListener('click', function(e){ e.preventDefault(); resetModal(); });
+      document.addEventListener('keydown', function(e){ if(e.key==='Escape' && modal && modal.hasAttribute('open')) closeModal(); });
+
+      // ===== Toggle "Swatch options" per row =====
+      vtbl && vtbl.addEventListener('click', function(e){
+        var t = e.target;
+        if(!(t && t.matches('button[data-toggle="swatch"]'))) return;
+        e.preventDefault();
+        var tr = t.closest('tr'); if(!tr) return;
+        var box = tr.querySelector('.opt-swatch');
+        if(!box) return;
+        var visible = box.style.display !== 'none';
+        box.style.display = visible ? 'none' : '';
+        t.textContent = visible ? 'Swatch options' : 'Hide swatch options';
+      });
+
+      // ===== Mutual-exclusive: HEX vs Swatch URL (inline rows) =====
+      vtbl && vtbl.addEventListener('input', function(e){
+        var t = e.target;
+        if(!(t && t.name)) return;
+        // Nhập HEX -> clear URL
+        if(/\[colorHexLegacy\]$/.test(t.name)){
+          var tr = t.closest('tr'); if(!tr) return;
+          var hex = (t.value||'').trim();
+          var sw = tr.querySelector('input[name$="[swatchUrlLegacy]"]');
+          if(/^#?[0-9a-fA-F]{3}$/.test(hex) || /^#?[0-9a-fA-F]{6}$/.test(hex)){
+            if(sw && sw.value) sw.value = '';
+          }
+        }
+        // Nhập URL hợp lệ -> clear HEX
+        if(/\[swatchUrlLegacy\]$/.test(t.name)){
+          var tr2 = t.closest('tr'); if(!tr2) return;
+          var url = (t.value||'').trim();
+          var hexInput = tr2.querySelector('input[name$="[colorHexLegacy]"]');
+          if(isHttpUrl(url) && hexInput && hexInput.value) hexInput.value = '';
+        }
+      });
+
+      // ===== Remove newly added row =====
+      document.addEventListener('click', function(e){
+        var t = e.target;
+        if(t && t.classList && t.classList.contains('del') && t.closest('#vtbl')){
+          e.preventDefault();
+          var i = t.getAttribute('data-row');
+          var tr = t.closest('tr'); if(tr) tr.remove();
+          var shadow = document.getElementById('variant-shadow-'+i); if(shadow) shadow.remove();
+        }
+      });
+
+      // ===== Before submit: ensure not sending both HEX & URL =====
+      form && form.addEventListener('submit', function(){
+        document.querySelectorAll('#vtbl tbody tr').forEach(function(tr){
+          var hexInput = tr.querySelector('input[name$="[colorHexLegacy]"]');
+          var swInput  = tr.querySelector('input[name$="[swatchUrlLegacy]"]');
+          if(!hexInput || !swInput) return;
+          var hex = (hexInput.value||'').trim();
+          var sw  = (swInput.value||'').trim();
+          if(isHttpUrl(sw)){ hexInput.value = ''; }
+          else if(/^#?[0-9a-fA-F]{3}$/.test(hex) || /^#?[0-9a-fA-F]{6}$/.test(hex)){ swInput.value = ''; }
+          else { hexInput.value=''; swInput.value=''; }
+        });
+      });
+
+      // ===== Hint toggle (tooltip) =====
+      (function(){
+        function closeAll(){
+          document.querySelectorAll('.hint-pop.show').forEach(function(p){
+            p.classList.remove('show');
+            var btn = p.parentElement && p.parentElement.querySelector('[data-hint]');
+            if(btn) btn.setAttribute('aria-expanded','false');
+          });
+        }
+        document.addEventListener('click', function(e){
+          var btn = e.target.closest('[data-hint]');
+          if(btn){
+            var wrap = btn.closest('.hint-wrap');
+            var pop  = wrap && wrap.querySelector('.hint-pop');
+            if(!pop) return;
+            var willOpen = !pop.classList.contains('show');
+            closeAll();
+            if(willOpen){
+              pop.classList.add('show');
+              btn.setAttribute('aria-expanded','true');
+            }
+            e.preventDefault();
+            return;
+          }
+          if(!e.target.closest('.hint-wrap')) closeAll();
+        });
+        document.addEventListener('keydown', function(e){
+          if(e.key === 'Escape') {
+            document.querySelectorAll('[data-hint][aria-expanded="true"]').forEach(function(b){ b.setAttribute('aria-expanded','false'); });
+            document.querySelectorAll('.hint-pop.show').forEach(function(p){ p.classList.remove('show'); });
+          }
+        });
+      })();
+
+      // Default for modal controls
+      (function init(){ setMode('hex'); })();
+    })();
