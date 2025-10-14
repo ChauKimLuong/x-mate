@@ -281,6 +281,264 @@ export const updateInfo = async (req: Request, res: Response) => {
         res.status(500).send("Internal Server Error");
     }
 };
+
+// [GET] /user/reviews
+export const review = async (req: Request, res: Response) => {
+    const token = req.cookies?.token_user;
+    if (!token) {
+        req.flash("error", "Vui lòng đăng nhập để xem sản phẩm đã mua.");
+        return res.redirect("/auth/login");
+    }
+
+    const toNumber = (value: unknown): number => {
+        if (value === null || value === undefined) return 0;
+        if (typeof value === "number") return value;
+        if (typeof value === "bigint") return Number(value);
+        if (typeof value === "string") {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+        if (value && typeof value === "object" && "toString" in value) {
+            const parsed = Number((value as any).toString());
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+        return 0;
+    };
+
+    const formatCurrency = (amount: number) =>
+        new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND",
+            maximumFractionDigits: 0,
+        }).format(Math.max(0, Math.round(amount)));
+
+    const formatDateTime = (value: Date | string | null | undefined) => {
+        if (!value) return "";
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return new Intl.DateTimeFormat("vi-VN", {
+            dateStyle: "medium",
+            timeStyle: "short",
+        }).format(date);
+    };
+
+    const statusMap: Record<
+        string,
+        { label: string; className: string }
+    > = {
+        pending: { label: "Chờ xác nhận", className: "is-pending" },
+        paid: { label: "Đã thanh toán", className: "is-paid" },
+        shipped: { label: "Đang giao", className: "is-shipped" },
+        completed: { label: "Hoàn tất", className: "is-completed" },
+        cancelled: { label: "Đã hủy", className: "is-cancelled" },
+    };
+
+    try {
+        const orderItems = await prisma.order_items.findMany({
+            where: {
+                orders: {
+                    token_user: token,
+                },
+            },
+            orderBy: { created_at: "desc" },
+            include: {
+                orders: {
+                    select: {
+                        id: true,
+                        status: true,
+                        created_at: true,
+                    },
+                },
+                products: {
+                    select: {
+                        title: true,
+                        slug: true,
+                        thumbnail: true,
+                    },
+                },
+                product_review: {
+                    select: {
+                        id: true,
+                        rating: true,
+                        content: true,
+                        created_at: true,
+                        updated_at: true,
+                    },
+                },
+            },
+        });
+
+        const reviewItems = orderItems.map((item) => {
+            const order = item.orders;
+            const statusInfo =
+                (order && statusMap[order.status]) ??
+                statusMap.pending ??
+                { label: order?.status ?? "pending", className: "is-pending" };
+
+            const productTitle = item.products?.title ?? "Sản phẩm";
+            const productSlug = item.products?.slug ?? item.product_slug;
+            const thumb =
+                item.thumbnail_snapshot ??
+                item.products?.thumbnail ??
+                "/images/placeholder.png";
+
+            const quantity = item.quantity ?? 0;
+            const priceText = formatCurrency(toNumber(item.price) || 0);
+            const lineTotalText = formatCurrency(
+                toNumber(item.line_total) || 0
+            );
+
+            const orderDate = order ? formatDateTime(order.created_at) : "";
+
+            const reviewAllowedStatuses = new Set([
+                "completed",
+                "paid",
+                "shipped",
+            ]);
+
+            const existingReview = item.product_review
+                ? {
+                      id: item.product_review.id,
+                      rating: item.product_review.rating,
+                      content: item.product_review.content,
+                      createdAt: formatDateTime(item.product_review.created_at),
+                      updatedAt: formatDateTime(item.product_review.updated_at),
+                      ratingText: `${item.product_review.rating}/5`,
+                      ratingStars: Array.from({ length: 5 }, (_, idx) =>
+                          idx < item.product_review.rating ? "★" : "☆"
+                      ).join(""),
+                  }
+                : null;
+
+            const canReview =
+                !existingReview &&
+                !!order &&
+                reviewAllowedStatuses.has(order.status || "");
+
+            const orderShort = order
+                ? `#${order.id.slice(0, 8).toUpperCase()}`
+                : "";
+
+            return {
+                id: item.id,
+                orderId: order?.id ?? "",
+                orderShort,
+                statusLabel: statusInfo.label,
+                statusClass: statusInfo.className,
+                orderDate,
+                productTitle,
+                productSlug,
+                thumbnail: thumb,
+                quantity,
+                size: item.size ?? null,
+                color: item.color ?? null,
+                priceText,
+                lineTotalText,
+                canReview,
+                review: existingReview,
+            };
+        });
+
+        return res.render("client/pages/user/review", {
+            reviews: reviewItems,
+        });
+    } catch (error) {
+        console.error("USER REVIEW LIST ERROR:", error);
+        req.flash("error", "Không thể tải danh sách sản phẩm đã mua.");
+        return res.redirect(req.get("Referer") || "/user/info");
+    }
+};
+
+// [POST] /user/review
+export const reviewPost = async (req: Request, res: Response) => {
+    const token = req.cookies?.token_user;
+    if (!token) {
+        req.flash("error", "Vui lòng đăng nhập để đánh giá sản phẩm.");
+        return res.redirect("/auth/login");
+    }
+
+    const orderItemIdRaw = req.body?.orderItemId;
+    const ratingRaw = req.body?.rating;
+    const contentRaw = req.body?.content;
+
+    const orderItemId =
+        typeof orderItemIdRaw === "string" ? orderItemIdRaw.trim() : "";
+    const rating = Number.parseInt(ratingRaw, 10);
+    const content =
+        typeof contentRaw === "string" ? contentRaw.trim() : "";
+
+    if (!orderItemId) {
+        req.flash("error", "Thiếu thông tin sản phẩm cần đánh giá.");
+        return res.redirect(req.get("Referer") || "/user/review");
+    }
+
+    if (!Number.isFinite(rating) || rating < 1 || rating > 5) {
+        req.flash("error", "Điểm đánh giá không hợp lệ.");
+        return res.redirect(req.get("Referer") || "/user/review");
+    }
+
+    if (!content || content.length < 10) {
+        req.flash(
+            "error",
+            "Nội dung đánh giá cần ít nhất 10 ký tự để mô tả trải nghiệm của bạn."
+        );
+        return res.redirect(req.get("Referer") || "/user/review");
+    }
+
+    try {
+        const orderItem = await prisma.order_items.findFirst({
+            where: {
+                id: orderItemId,
+                orders: {
+                    token_user: token,
+                },
+            },
+            include: {
+                orders: {
+                    select: { status: true },
+                },
+            },
+        });
+
+        if (!orderItem) {
+            req.flash("error", "Không tìm thấy sản phẩm hợp lệ để đánh giá.");
+            return res.redirect(req.get("Referer") || "/user/review");
+        }
+
+        const allowedStatuses = new Set(["completed", "paid", "shipped"]);
+        const orderStatus = orderItem.orders?.status ?? "";
+
+        if (!allowedStatuses.has(orderStatus)) {
+            req.flash(
+                "error",
+                "Đơn hàng chưa hoàn tất nên chưa thể đánh giá sản phẩm."
+            );
+            return res.redirect(req.get("Referer") || "/user/review");
+        }
+
+        await prisma.product_reviews.upsert({
+            where: { order_item_id: orderItemId },
+            update: {
+                rating,
+                content,
+                updated_at: new Date(),
+            },
+            create: {
+                order_item_id: orderItemId,
+                token_user: token,
+                rating,
+                content,
+            },
+        });
+
+        req.flash("success", "Cảm ơn bạn đã gửi đánh giá!");
+        return res.redirect(req.get("Referer") || "/user/review");
+    } catch (error) {
+        console.error("USER REVIEW SUBMIT ERROR:", error);
+        req.flash("error", "Không thể gửi đánh giá. Vui lòng thử lại sau.");
+        return res.redirect(req.get("Referer") || "/user/review");
+    }
+};
 // [POST] /user/changePassword
 export const changePassword = async (req: Request, res: Response) => {
     try {

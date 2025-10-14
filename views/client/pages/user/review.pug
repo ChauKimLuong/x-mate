@@ -1,0 +1,74 @@
+extends ../../layouts/default.pug
+include ../../mixins/user-sidebar.pug
+
+block title
+  title X-Mate • Đánh giá sản phẩm
+
+block extra_css
+  link(rel="stylesheet" href="/css/components/user.css")
+
+block content
+  -
+    const viewReviews = Array.isArray(reviews) ? reviews : [];
+  .account-page
+    +accountSidebar('reviews')
+
+    main.account-main
+      .white-surface
+        .surface-header
+          h1.surface-title Sản phẩm đã mua
+
+        if !viewReviews.length
+          .empty-state Chưa có sản phẩm nào để đánh giá.
+        else
+          .review-list
+            each item in viewReviews
+              article.review-card
+                .review-card__left
+                  img.review-card__thumb(src=item.thumbnail, alt=item.productTitle)
+                .review-card__body
+                  .review-card__top
+                    if item.productSlug
+                      a.review-card__title(href=`/product/detail/${item.productSlug}`)= item.productTitle
+                    else
+                      span.review-card__title= item.productTitle
+                    span.status-chip(class=item.statusClass)= item.statusLabel
+                  .review-card__meta
+                    span.review-card__meta-item Đơn hàng: #{item.orderShort || 'Không xác định'}
+                    if item.orderDate
+                      span.review-card__meta-item Ngày mua: #{item.orderDate}
+                    span.review-card__meta-item Số lượng: #{item.quantity}
+                    if item.color
+                      span.review-card__meta-item Màu: #{item.color}
+                    if item.size
+                      span.review-card__meta-item Size: #{item.size}
+                  .review-card__pricing
+                    span.review-card__price= item.priceText
+                    //- span.review-card__total Thành tiền: #{item.lineTotalText}
+
+                .review-card__actions
+                  if item.review
+                    .review-card__rating
+                      span.review-card__stars= item.review.ratingStars
+                      span.review-card__score= item.review.ratingText
+                      if item.review.createdAt
+                        span.review-card__time(aria-label="Ngày đánh giá")= `• ${item.review.createdAt}`
+                    p.review-card__content= item.review.content
+                    a.review-card__button.btn-pill(href=item.productSlug ? `/product/detail/${item.productSlug}#reviews` : '#') Xem lại sản phẩm
+                  else if item.canReview
+                    form.review-card__form(method="post", action="/user/review")
+                      input(type="hidden", name="orderItemId", value=item.id)
+                      fieldset.review-card__fieldset
+                        legend.review-card__legend Chọn mức đánh giá
+                        .rating-group
+                          each score in [5,4,3,2,1]
+                            - const inputId = `rating-${item.id}-${score}`;
+                            - const isDefault = score === 5;
+                            label.rating-option(for=inputId)
+                              input(type="radio", id=inputId, name="rating", value=score, checked=isDefault, required=isDefault)
+                              span.rating-option__label= `${score}★`
+                      .review-card__textarea
+                        textarea(name="content", rows="3", placeholder="Chia sẻ cảm nhận của bạn về sản phẩm...", minlength="10", maxlength="800", required)
+                      button.review-card__button.btn-pill(type="submit") Gửi đánh giá
+                  else
+                    span.review-card__hint Đơn hàng chưa hoàn tất — vui lòng đợi hoàn tất để đánh giá.
