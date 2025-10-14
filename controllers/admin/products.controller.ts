@@ -707,7 +707,7 @@ export const updateProduct = async (req: Request, res: Response) => {
     });
 
     // đổi theo route view của bạn: /admin/products/:id hoặc /admin/products/:id/view
-    res.redirect(`/admin/products/${id}/view`);
+    res.redirect(`/admin/products/${id}`);
   } catch (err) {
     console.error("Update product (upsert variants) failed.", err);
     if (!res.headersSent) res.status(500).send("Update product failed.");

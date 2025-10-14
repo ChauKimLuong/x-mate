@@ -3,7 +3,7 @@ extends ../../layouts/default
 block head
   style.
     /* ===== Layout khung chính ===== */
-    .pv-wrap{max-width:1180px;margin:20px auto;padding:0 16px}
+    .pv-wrap{max-width:1280px;margin:20px auto;padding:0 16px}
     .pv-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
     :root { --btn-h:42px; --btn-minw:130px; }
 
@@ -28,7 +28,7 @@ block head
     @media (max-width: 900px){.pv-card{grid-template-columns:1fr}}
 
     /* ===== Gallery ===== */
-    .pv-gal{ display:grid;gap:10px; grid-template-columns:110px 1fr; }
+    .pv-gal{ display:grid;gap:10px; grid-template-columns:75px 1fr; }
     @media (max-width: 900px){.pv-gal{grid-template-columns:1fr}}
     .pv-thumbs{ list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:550px;overflow:auto }
     .pv-thumbs li{ border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;cursor:pointer;opacity:.9;transition:.15s }
