@@ -16,13 +16,35 @@ mixin productCard(p)
     - const colorsPrisma = prismaVariants.map(v => v?.color).filter(Boolean)
     - const colors = [...new Set([...colorsField, ...colorsLegacy, ...colorsPrisma].filter(Boolean))].slice(0, 5)
     - const activeColor = colors[0]
-    - const rawPrice = typeof p?.price === 'number' ? p.price : null
-    - const discountValue = typeof p?.discount === 'number' && p.discount > 0 ? p.discount : 0
-    - const computedFinal = rawPrice !== null ? Math.round(rawPrice * (100 - discountValue) / 100) : null
-    - const formatVnd = (value) => typeof value === 'number' ? value.toLocaleString('vi-VN') + 'd' : null
-    - const finalPriceText = p?.finalPriceText || (typeof p?.finalPrice === 'number' ? formatVnd(p.finalPrice) : (computedFinal !== null ? formatVnd(computedFinal) : null))
+    - const toNumber = (value) => {
+    -     if (value === null || value === undefined) return null;
+    -     if (typeof value === 'number') return Number.isFinite(value) ? value : null;
+    -     if (typeof value === 'string') {
+    -         const parsed = Number(value);
+    -         return Number.isFinite(parsed) ? parsed : null;
+    -     }
+    -     if (typeof value === 'bigint') return Number(value);
+    -     if (value && typeof value === 'object' && typeof value.toString === 'function') {
+    -         const parsed = Number(value.toString());
+    -         return Number.isFinite(parsed) ? parsed : null;
+    -     }
+    -     return null;
+    - }
+    - const rawPrice = toNumber(p?.price)
+    - const discountValueRaw = toNumber(p?.discount)
+    - const discountValue = discountValueRaw && discountValueRaw > 0 ? discountValueRaw : 0
+    - const computedFinal = rawPrice !== null ? Math.max(0, Math.round(rawPrice * (100 - discountValue) / 100)) : null
+    - const formatVnd = (value) => {
+    -     if (typeof value !== 'number' || !Number.isFinite(value)) return null;
+    -     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
+    - }
+    - const finalPriceText = p?.finalPriceText || (() => {
+    -     const finalPrice = toNumber(p?.finalPrice);
+    -     if (typeof finalPrice === 'number') return formatVnd(finalPrice);
+    -     return computedFinal !== null ? formatVnd(computedFinal) : null;
+    - })()
     - const originalPriceText = p?.priceText || formatVnd(rawPrice)
-    - const hasDiscount = discountValue > 0
+    - const hasDiscount = discountValue > 0 && rawPrice !== null
     - const priceForCart = typeof computedFinal === 'number' ? computedFinal : (rawPrice ?? 0)
 
     .product-card(

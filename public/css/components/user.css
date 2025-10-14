@@ -1631,6 +1631,7 @@ button.btn-pill {
   font-weight:600;
 }
 .review-card__textarea textarea{
+  font-family: var(--font);
   width:100%;
   border:1px solid var(--border);
   border-radius:12px;
@@ -1644,21 +1645,4 @@ button.btn-pill {
   border-color:#111;
   box-shadow:0 0 0 2px rgba(17,17,17,0.08);
   outline:none;
-}
-
-@media (max-width: 960px){
-  .review-card{
-    grid-template-columns: 80px minmax(0,1fr);
-  }
-  .review-card__actions{
-    grid-column: span 2;
-    align-items:flex-start;
-  }
-}
-
-/* Responsive */
-@media (max-width: 768px) {
-  .voucher-wallet .voucher-wallet__grid {
-    grid-template-columns: 1fr;
-  }
 }

@@ -396,16 +396,17 @@ export const review = async (req: Request, res: Response) => {
                 "shipped",
             ]);
 
-            const existingReview = item.product_review
+            const reviewRow = item.product_review;
+            const existingReview = reviewRow
                 ? {
-                      id: item.product_review.id,
-                      rating: item.product_review.rating,
-                      content: item.product_review.content,
-                      createdAt: formatDateTime(item.product_review.created_at),
-                      updatedAt: formatDateTime(item.product_review.updated_at),
-                      ratingText: `${item.product_review.rating}/5`,
+                      id: reviewRow.id,
+                      rating: reviewRow.rating,
+                      content: reviewRow.content,
+                      createdAt: formatDateTime(reviewRow.created_at),
+                      updatedAt: formatDateTime(reviewRow.updated_at),
+                      ratingText: `${reviewRow.rating}/5`,
                       ratingStars: Array.from({ length: 5 }, (_, idx) =>
-                          idx < item.product_review.rating ? "★" : "☆"
+                          idx < reviewRow.rating ? "★" : "☆"
                       ).join(""),
                   }
                 : null;
