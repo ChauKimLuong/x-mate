@@ -551,6 +551,7 @@ export const index = async (req: Request, res: Response) => {
         cartId: readCookieCartId(req),
         tokenUser: readTokenUser(req),
     };
+    const canUseVoucher = Boolean(identifiers.tokenUser);
 
     try {
         const cart = await findExistingCart(identifiers);
@@ -571,7 +572,12 @@ export const index = async (req: Request, res: Response) => {
         keepCartInSession(req, summary.sessionItems);
         res.locals.cartQuantity = summary.totals.quantity;
 
-        const vouchers = await fetchVouchers();
+        if (!canUseVoucher && req.session) {
+            (req.session as any).cartCoupon = null;
+            (req.session as any).checkoutCoupon = null;
+        }
+
+        const vouchers = canUseVoucher ? await fetchVouchers() : [];
 
         let appliedCoupon:
             | {
@@ -581,7 +587,7 @@ export const index = async (req: Request, res: Response) => {
               }
             | null = null;
 
-        if (cart?.coupon_id) {
+        if (canUseVoucher && cart?.coupon_id) {
             const couponRow = await prisma.coupons.findUnique({
                 where: { couponid: cart.coupon_id },
             });
@@ -599,7 +605,11 @@ export const index = async (req: Request, res: Response) => {
                     };
                 }
             }
-        } else if (req.session && (req.session as any).cartCoupon) {
+        } else if (
+            canUseVoucher &&
+            req.session &&
+            (req.session as any).cartCoupon
+        ) {
             const sessionCoupon = (req.session as any).cartCoupon;
             if (sessionCoupon && sessionCoupon.code) {
                 const couponRow = await prisma.coupons.findFirst({
@@ -636,6 +646,7 @@ export const index = async (req: Request, res: Response) => {
             },
             freeShip: summary.freeShip,
             vouchers,
+            canUseVoucher,
         });
     } catch (error) {
         console.error("CART INDEX ERROR:", error);
@@ -654,6 +665,7 @@ export const index = async (req: Request, res: Response) => {
                     "Hệ thống đang gặp sự cố. Vui lòng thử lại sau.",
             },
             vouchers: [],
+            canUseVoucher,
         });
     }
 };
@@ -1407,6 +1419,7 @@ export const prepareCheckout = async (req: Request, res: Response) => {
             cartId: readCookieCartId(req),
             tokenUser: readTokenUser(req),
         };
+        const canUseVoucher = Boolean(identifiers.tokenUser);
 
         const cart = await findExistingCart(identifiers);
         if (!cart) {
@@ -1426,25 +1439,28 @@ export const prepareCheckout = async (req: Request, res: Response) => {
 
         let summary = buildCartData(items);
 
-        const couponCode =
+        const requestedCouponCode =
             typeof req.body?.couponCode === "string"
                 ? req.body.couponCode.trim()
                 : "";
+        const couponCode = canUseVoucher ? requestedCouponCode : "";
 
         let couponRow: CouponRow | null = null;
-        if (couponCode) {
-            couponRow = await prisma.coupons.findFirst({
-                where: {
-                    code: {
-                        equals: couponCode,
-                        mode: "insensitive",
+        if (canUseVoucher) {
+            if (couponCode) {
+                couponRow = await prisma.coupons.findFirst({
+                    where: {
+                        code: {
+                            equals: couponCode,
+                            mode: "insensitive",
+                        },
                     },
-                },
-            });
-        } else if (cart.coupon_id) {
-            couponRow = (await prisma.coupons.findUnique({
-                where: { couponid: cart.coupon_id },
-            })) as CouponRow | null;
+                });
+            } else if (cart.coupon_id) {
+                couponRow = (await prisma.coupons.findUnique({
+                    where: { couponid: cart.coupon_id },
+                })) as CouponRow | null;
+            }
         }
 
         let appliedCouponInfo: {
@@ -1460,6 +1476,9 @@ export const prepareCheckout = async (req: Request, res: Response) => {
             if (result.couponInfo) {
                 appliedCouponInfo = result.couponInfo;
             }
+        } else if (!canUseVoucher && req.session) {
+            (req.session as any).checkoutCoupon = null;
+            (req.session as any).cartCoupon = null;
         }
 
         const shippingFee = Math.max(
@@ -1520,6 +1539,18 @@ export const applyCoupon = async (req: Request, res: Response) => {
             cartId: readCookieCartId(req),
             tokenUser: readTokenUser(req),
         };
+        const canUseVoucher = Boolean(identifiers.tokenUser);
+
+        if (!canUseVoucher) {
+            if (req.session) {
+                (req.session as any).cartCoupon = null;
+                (req.session as any).checkoutCoupon = null;
+            }
+            return res.status(403).json({
+                success: false,
+                message: "Vui lòng đăng nhập để sử dụng mã giảm giá.",
+            });
+        }
 
         const cart = await findExistingCart(identifiers);
         if (!cart) {

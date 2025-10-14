@@ -189,7 +189,8 @@
 .checkout-page .cart-line-summary {
   display: flex;
   justify-content: space-between;
-  font-size: 14px;
+  font-size: 16px;
+  font-weight: 600;
   margin-bottom: 4px;
   color: #1f2937;
 }
@@ -770,4 +771,7 @@ label.payitem {
 
 input, textarea, select, button {
   font-family: var(--font)
+}
+.sum-list li {
+  font-size: 15.6px;
 }

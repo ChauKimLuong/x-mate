@@ -23,8 +23,25 @@
     freeShipStatusNode && typeof freeShipStatusNode.textContent === 'string'
       ? freeShipStatusNode.textContent
       : ''
+  var canUseVoucher =
+    typeof window.__CART_CAN_USE_VOUCHER === 'boolean'
+      ? window.__CART_CAN_USE_VOUCHER
+      : true
 
   var activeVoucher = window.__CART_ACTIVE_VOUCHER || null
+
+  if (!canUseVoucher) {
+    if (couponInput) {
+      couponInput.disabled = true
+      couponInput.value = ''
+    }
+    if (btnCoupon) {
+      btnCoupon.disabled = true
+    }
+    if (couponList) {
+      couponList.classList.add('is-disabled')
+    }
+  }
 
   function updateDeleteState() {
     if (!cartBody || !deleteSelected) return
@@ -124,9 +141,10 @@
     if (shippingNode) shippingNode.textContent = baseTotals.shippingText
     if (totalNode) totalNode.textContent = baseTotals.totalText
 
-    if (couponInput)
+    if (canUseVoucher && couponInput) {
       couponInput.value = activeVoucher ? activeVoucher.code : ''
-    markSelectedTicket(activeVoucher ? activeVoucher.code : null)
+    }
+    markSelectedTicket(canUseVoucher && activeVoucher ? activeVoucher.code : null)
   }
 
   function resetSummary() {
@@ -153,6 +171,7 @@
   }
 
   function setCouponLoading(isLoading) {
+    if (!canUseVoucher) return
     if (btnCoupon) btnCoupon.disabled = isLoading
     if (couponList) {
       if (isLoading) {
@@ -184,6 +203,7 @@
   }
 
   function handleTicketClick(event) {
+    if (!canUseVoucher) return
     var ticket = event.target.closest('.ticket')
     if (!ticket || ticket.classList.contains('is-disabled')) return
     var code = ticket.dataset.code || ''
@@ -198,8 +218,10 @@
       .catch(function (error) {
         console.error('APPLY COUPON ERROR:', error)
         alert(error && error.message ? error.message : 'Không thể áp dụng mã giảm giá.')
-        markSelectedTicket(activeVoucher ? activeVoucher.code : null)
-        if (couponInput)
+        markSelectedTicket(
+          canUseVoucher && activeVoucher ? activeVoucher.code : null
+        )
+        if (canUseVoucher && couponInput)
           couponInput.value = activeVoucher ? activeVoucher.code : ''
       })
       .finally(function () {
@@ -208,7 +230,7 @@
   }
 
   function handleApplyButton() {
-    if (!couponInput) return
+    if (!canUseVoucher || !couponInput) return
     var value = couponInput.value ? couponInput.value.trim() : ''
     setCouponLoading(true)
     applyCouponRequest(value)
@@ -218,9 +240,11 @@
       .catch(function (error) {
         console.error('APPLY COUPON ERROR:', error)
         alert(error && error.message ? error.message : 'Không thể áp dụng mã giảm giá.')
-        if (couponInput)
+        if (canUseVoucher && couponInput)
           couponInput.value = activeVoucher ? activeVoucher.code || '' : ''
-        markSelectedTicket(activeVoucher ? activeVoucher.code : null)
+        markSelectedTicket(
+          canUseVoucher && activeVoucher ? activeVoucher.code : null
+        )
       })
       .finally(function () {
         setCouponLoading(false)
@@ -259,17 +283,21 @@
     })
   }
 
-  if (couponList) {
+  if (canUseVoucher && couponList) {
     couponList.addEventListener('click', handleTicketClick)
   }
 
-  if (btnCoupon) {
+  if (canUseVoucher && btnCoupon) {
     btnCoupon.addEventListener('click', handleApplyButton)
   }
 
   function prepareCheckout() {
     var payload = {}
-    if (window.__CART_ACTIVE_VOUCHER && window.__CART_ACTIVE_VOUCHER.code) {
+    if (
+      canUseVoucher &&
+      window.__CART_ACTIVE_VOUCHER &&
+      window.__CART_ACTIVE_VOUCHER.code
+    ) {
       payload.couponCode = window.__CART_ACTIVE_VOUCHER.code
     }
 

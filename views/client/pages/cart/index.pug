@@ -25,6 +25,12 @@ block extra_js
   else
     script.
       window.__CART_ACTIVE_VOUCHER = null;
+  if typeof canUseVoucher !== 'undefined'
+    script.
+      window.__CART_CAN_USE_VOUCHER = !{JSON.stringify(!!canUseVoucher)};
+  else
+    script.
+      window.__CART_CAN_USE_VOUCHER = true;
   script(src="/js/cart.js", defer)
 
 block content
@@ -104,10 +110,11 @@ block content
             #empty.empty(style="display:block;") Giỏ hàng trống.
 
         aside.card.summary
+          - const voucherAllowed = typeof canUseVoucher === 'boolean' ? canUseVoucher : true;
           .voucher-strip
             button.nav.prev(type="button", aria-label="Prev") ‹
-            #coupon-list.tickets
-              if vouchers && vouchers.length
+            #coupon-list.tickets(class=!voucherAllowed ? 'is-disabled' : '')
+              if voucherAllowed && vouchers && vouchers.length
                 each voucher in vouchers
                   .ticket(
                     class=voucher.disabled ? 'is-disabled' : ''
@@ -121,15 +128,21 @@ block content
                     div.desc= voucher.title
                     div.meta= voucher.meta
                     div.meta= voucher.expiry
-              else
+              else if voucherAllowed
                 .ticket
                   div.code Ưu đãi
                   div.desc Hiện chưa có mã ưu đãi khả dụng.
+              else
+                .ticket
+                  div.code Voucher
+                  div.desc Voucher chỉ áp dụng cho thành viên đã đăng nhập.
             button.nav.next(type="button", aria-label="Next") ›
 
           .coupon
-            input#coupon(type="text", placeholder="Nhập mã giảm giá")
-            button#btnCoupon.btn.btn-primary(type="button") Áp dụng
+            input#coupon(type="text", placeholder=voucherAllowed ? "Nhập mã giảm giá" : "Đăng nhập để sử dụng voucher", disabled=!voucherAllowed)
+            button#btnCoupon.btn.btn-primary(type="button", disabled=!voucherAllowed)= voucherAllowed ? "Áp dụng" : "Không khả dụng"
+          if !voucherAllowed
+            p.voucher-note.muted(style="margin:8px 0 0") Vui lòng đăng nhập để xem và sử dụng voucher.
 
           .rowline
             .muted Tạm tính

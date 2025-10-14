@@ -53,6 +53,37 @@ interface SessionCartItem {
     variantId?: string | null;
 }
 
+const findExistingCart = async (identifiers: { cartId?: number; tokenUser?: string }) => {
+    const { cartId, tokenUser } = identifiers;
+
+    if (tokenUser) {
+        const cart = await prisma.carts.findFirst({
+            where: { token_user: tokenUser },
+            include: CART_INCLUDE,
+        });
+        if (cart) {
+            return cart as CartWithRelations;
+        }
+    }
+
+    if (cartId) {
+        const cart = await prisma.carts.findUnique({
+            where: { id: cartId },
+            include: CART_INCLUDE,
+        });
+        if (cart && tokenUser && cart.token_user !== tokenUser) {
+            await prisma.carts.update({
+                where: { id: cart.id },
+                data: { token_user: tokenUser },
+            });
+            cart.token_user = tokenUser;
+        }
+        return cart ? (cart as CartWithRelations) : null;
+    }
+
+    return null;
+};
+
 const CART_INCLUDE = {
     cart_items: {
         include: {
@@ -551,5 +582,170 @@ export const index = async (req: Request, res: Response) => {
             addresses: [],
             error: "Không thể tải dữ liệu thanh toán.",
         });
+    }
+};
+
+export const checkoutPost = async (req: Request, res: Response) => {
+    const identifiers = {
+        cartId: readCookieCartId(req),
+        tokenUser: readTokenUser(req),
+    };
+    const redirectTo = req.get("referer") || "/checkout";
+
+    const {
+        fullName,
+        phone,
+        line1,
+        city,
+        district,
+        ward,
+        note,
+        paymentMethod,
+    } = req.body || {};
+
+    if (
+        typeof fullName !== "string" ||
+        fullName.trim() === "" ||
+        typeof phone !== "string" ||
+        phone.trim() === "" ||
+        typeof line1 !== "string" ||
+        line1.trim() === "" ||
+        typeof city !== "string" ||
+        city.trim() === "" ||
+        typeof district !== "string" ||
+        district.trim() === "" ||
+        typeof ward !== "string" ||
+        ward.trim() === "" ||
+        typeof paymentMethod !== "string" ||
+        paymentMethod.trim() === ""
+    ) {
+        req.flash(
+            "error",
+            "Vui lòng nhập đầy đủ thông tin người nhận và chọn phương thức thanh toán."
+        );
+        return res.redirect(redirectTo);
+    }
+
+    const cart = await findExistingCart(identifiers);
+    if (!cart) {
+        req.flash("error", "Giỏ hàng trống.");
+        return res.redirect(redirectTo);
+    }
+
+    const items = (cart.cart_items ?? []) as CartItemWithRelations[];
+    if (!items.length) {
+        req.flash("error", "Giỏ hàng trống.");
+        return res.redirect(redirectTo);
+    }
+
+    let summary = buildCartData(items);
+
+    let couponRow: CouponRow | null = null;
+    if (cart.coupon_id) {
+        couponRow = (await prisma.coupons.findUnique({
+            where: { couponid: cart.coupon_id },
+        })) as CouponRow | null;
+    }
+
+    let appliedCouponInfo: {
+        id: number;
+        code: string;
+        title: string;
+        type: string;
+    } | null = null;
+
+    if (couponRow) {
+        const result = applyCouponToSummary(summary, couponRow);
+        summary = result.summary;
+        if (result.couponInfo) {
+            appliedCouponInfo = result.couponInfo;
+        }
+    }
+
+    const orderItemsData = items.map((item) => {
+        const unitPrice = asNumber(item.price_unit);
+        const quantity = item.quantity ?? 0;
+        const lineTotal =
+            item.line_total !== null && item.line_total !== undefined
+                ? asNumber(item.line_total)
+                : unitPrice * quantity;
+
+        return {
+            product_id: item.product_id,
+            variant_id: item.variant_id,
+            product_slug: item.products?.slug || item.product_id,
+            thumbnail_snapshot:
+                item.image_url ||
+                item.productVariants?.images?.[0] ||
+                item.products?.thumbnail ||
+                null,
+            price: new Prisma.Decimal(unitPrice),
+            quantity,
+            size: item.size ?? null,
+            color: item.color ?? null,
+            line_total: new Prisma.Decimal(lineTotal),
+        };
+    });
+
+    try {
+        const order = await prisma.$transaction(async (tx) => {
+            const createdOrder = await tx.orders.create({
+                data: {
+                    token_user: identifiers.tokenUser ?? null,
+                    status: "pending",
+                    payment_method: paymentMethod,
+                    coupon_id: appliedCouponInfo ? appliedCouponInfo.id : null,
+                    subtotal: new Prisma.Decimal(summary.totals.subtotal),
+                    discount_total: new Prisma.Decimal(summary.totals.discount),
+                    shipping_fee: new Prisma.Decimal(summary.totals.shipping),
+                    grand_total: new Prisma.Decimal(summary.totals.total),
+                    shipping_full_name: fullName.trim(),
+                    shipping_phone: phone.trim(),
+                    shipping_line1: line1.trim(),
+                    shipping_city: city.trim(),
+                    shipping_district: district.trim(),
+                    shipping_ward: ward.trim(),
+                    note:
+                        typeof note === "string" && note.trim() !== ""
+                            ? note.trim()
+                            : null,
+                    order_items: {
+                        create: orderItemsData,
+                    },
+                },
+            });
+
+            await tx.cart_items.deleteMany({
+                where: { cart_id: cart.id },
+            });
+
+            await tx.carts.update({
+                where: { id: cart.id },
+                data: {
+                    grand_total: new Prisma.Decimal(0),
+                    shipping_fee: new Prisma.Decimal(0),
+                    coupon_id: null,
+                    updated_at: new Date(),
+                },
+            });
+
+            return createdOrder;
+        });
+
+        if (req.session) {
+            (req.session as any).cart = [];
+            (req.session as any).cartCoupon = null;
+            (req.session as any).checkoutCoupon = null;
+        }
+
+        req.flash(
+            "success",
+            `Đặt hàng thành công! Mã đơn hàng của bạn là #${order.id}.`
+        );
+        return res.redirect("/");
+    } catch (error) {
+        console.error("CHECKOUT SUBMIT ERROR:", error);
+        req.flash("error", "Không thể tạo đơn hàng.");
+        return res.redirect(redirectTo);
     }
 };

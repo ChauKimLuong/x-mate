@@ -3,7 +3,7 @@
   var state = window.__CHECKOUT_STATE || { totals: {} }
   var addresses = window.__CHECKOUT_ADDRESSES || []
 
-  var payRadios = document.querySelectorAll('input[name="pay"]')
+  var payRadios = document.querySelectorAll('input[name="paymentMethod"]')
   var dockPayChip = document.getElementById('dockPayChip')
   var dockCoupon = document.getElementById('dockCoupon')
   var dockTotal = document.getElementById('dockTotal')

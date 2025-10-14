@@ -8,9 +8,8 @@ export const info = async (req: Request, res: Response) => {
         const token = req.cookies?.token_user;
         console.log("Token from cookies:", token);
         if (!token) {
-            return res
-                .status(401)
-                .render("client/pages/user/info", { user: null });
+            req.flash("error", "Vui lòng đăng nhập để xem thông tin.");
+            return res.redirect(req.get("Referer") || "/auth/login");
         }
 
         const user = await prisma.users.findFirst({
@@ -30,16 +29,15 @@ export const info = async (req: Request, res: Response) => {
             },
         });
 
-        if (!user) {
-            return res
-                .status(404)
-                .render("client/pages/user/info", { user: null });
-        }
+        req.flash("error", "Tài khoản không tồn tại.");
+        res.redirect(req.get("Referer") || "/auth/login");
 
         return res.render("client/pages/user/info", { user });
     } catch (error) {
+        req.flash("error", "Vui lòng đăng nhập để xem thông tin.");
+        res.redirect(req.get("Referer") || "/auth/login");
         console.error("ERROR:", error);
-        return res.status(500).send("Internal Server Error");
+        res.status(500).send("Internal Server Error");
     }
 };
 
@@ -67,6 +65,8 @@ export const address = async (req: Request, res: Response) => {
             addresses,
         });
     } catch (error) {
+        req.flash("error", "Vui lòng đăng nhập để xem thông tin.");
+        res.redirect(req.get("Referer") || "/auth/login");
         console.error("ERROR:", error);
         res.status(500).send("Internal Server Error");
     }
@@ -479,11 +479,12 @@ export const voucher = async (req: Request, res: Response) => {
                 termsUrl: "#",
             };
         });
-
         res.render("client/pages/user/voucher", {
             vouchers,
         });
     } catch (error) {
+        req.flash("error", "Vui lòng đăng nhập để xem thông tin.");
+        res.redirect(req.get("Referer") || "/auth/login");
         console.error("ERROR:", error);
         res.status(500).send("Internal Server Error");
     }

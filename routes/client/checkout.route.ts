@@ -4,6 +4,6 @@ import * as checkoutController from "../../controllers/client/checkout.controlle
 const router = express.Router();
 
 router.get("/", checkoutController.index);
+router.post("/", checkoutController.checkoutPost);
 
 export default router;
-
