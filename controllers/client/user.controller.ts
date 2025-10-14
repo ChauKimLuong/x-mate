@@ -9,7 +9,7 @@ export const info = async (req: Request, res: Response) => {
         console.log("Token from cookies:", token);
         if (!token) {
             req.flash("error", "Vui lòng đăng nhập để xem thông tin.");
-            return res.redirect(req.get("Referer") || "/auth/login");
+            return res.redirect("/auth/login");
         }
 
         const user = await prisma.users.findFirst({
@@ -28,14 +28,15 @@ export const info = async (req: Request, res: Response) => {
                 email: true,
             },
         });
-
-        req.flash("error", "Tài khoản không tồn tại.");
-        res.redirect(req.get("Referer") || "/auth/login");
+        if (!user) {
+            req.flash("error", "Tài khoản không tồn tại.");
+            return res.redirect("/auth/login");
+        }
 
         return res.render("client/pages/user/info", { user });
     } catch (error) {
         req.flash("error", "Vui lòng đăng nhập để xem thông tin.");
-        res.redirect(req.get("Referer") || "/auth/login");
+        res.redirect("/auth/login");
         console.error("ERROR:", error);
         res.status(500).send("Internal Server Error");
     }
@@ -60,15 +61,182 @@ export const address = async (req: Request, res: Response) => {
             line2: (item as any).line2 ?? undefined,
             isDefault: item.is_default,
         }));
-
         res.render("client/pages/user/address", {
             addresses,
         });
     } catch (error) {
         req.flash("error", "Vui lòng đăng nhập để xem thông tin.");
-        res.redirect(req.get("Referer") || "/auth/login");
+        res.redirect("/auth/login");
         console.error("ERROR:", error);
         res.status(500).send("Internal Server Error");
+    }
+};
+
+// [GET] /user/order
+export const order = async (req: Request, res: Response) => {
+    const token = req.cookies?.token_user;
+    if (!token) {
+        req.flash("error", "Vui lòng đăng nhập để xem đơn hàng.");
+        return res.redirect("/auth/login");
+    }
+
+    const toNumber = (value: unknown): number => {
+        if (value === null || value === undefined) return 0;
+        if (typeof value === "number") return value;
+        if (typeof value === "bigint") return Number(value);
+        if (typeof value === "string") {
+            const parsed = Number(value);
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+        if (value && typeof value === "object" && "toString" in value) {
+            const parsed = Number((value as any).toString());
+            return Number.isFinite(parsed) ? parsed : 0;
+        }
+        return 0;
+    };
+
+    const formatCurrency = (amount: number) =>
+        new Intl.NumberFormat("vi-VN", {
+            style: "currency",
+            currency: "VND",
+            maximumFractionDigits: 0,
+        }).format(Math.max(0, Math.round(amount)));
+
+    const formatDateTime = (value: Date | string | null | undefined) => {
+        if (!value) return "";
+        const date = value instanceof Date ? value : new Date(value);
+        if (Number.isNaN(date.getTime())) return "";
+        return new Intl.DateTimeFormat("vi-VN", {
+            dateStyle: "medium",
+            timeStyle: "short",
+        }).format(date);
+    };
+
+    const statusMap: Record<
+        string,
+        { label: string; className: string }
+    > = {
+        pending: { label: "Chờ xác nhận", className: "is-pending" },
+        paid: { label: "Đã thanh toán", className: "is-paid" },
+        shipped: { label: "Đang giao", className: "is-shipped" },
+        completed: { label: "Hoàn tất", className: "is-completed" },
+        cancelled: { label: "Đã hủy", className: "is-cancelled" },
+    };
+
+    const paymentMap: Record<string, string> = {
+        COD: "Thanh toán khi nhận hàng",
+        VIETQR: "Chuyển khoản VietQR",
+    };
+
+    try {
+        const orders = await prisma.orders.findMany({
+            where: { token_user: token },
+            orderBy: { created_at: "desc" },
+            include: {
+                order_items: {
+                    include: {
+                        products: {
+                            select: {
+                                title: true,
+                                slug: true,
+                                thumbnail: true,
+                            },
+                        },
+                    },
+                    orderBy: { created_at: "asc" },
+                },
+            },
+        });
+
+        const ordersForView = orders.map((order) => {
+            const statusInfo =
+                statusMap[order.status] ?? {
+                    label: order.status,
+                    className: "is-pending",
+                };
+            const paymentLabel =
+                paymentMap[order.payment_method] ?? order.payment_method;
+
+            const items = (order.order_items || []).map((item) => {
+                const price = formatCurrency(toNumber(item.price));
+                const lineTotal = formatCurrency(toNumber(item.line_total));
+                const title = item.products?.title ?? "Sản phẩm";
+                const slug = item.products?.slug ?? item.product_slug;
+                const thumb =
+                    item.thumbnail_snapshot ??
+                    item.products?.thumbnail ??
+                    "/images/placeholder.png";
+
+                return {
+                    id: item.id,
+                    title,
+                    slug,
+                    quantity: item.quantity ?? 0,
+                    size: item.size ?? null,
+                    color: item.color ?? null,
+                    priceText: price,
+                    lineTotalText: lineTotal,
+                    thumbnail: thumb,
+                };
+            });
+
+            const totals = {
+                subtotalText: formatCurrency(toNumber(order.subtotal)),
+                discount: toNumber(order.discount_total),
+                discountText: formatCurrency(toNumber(order.discount_total)),
+                shippingText: formatCurrency(toNumber(order.shipping_fee)),
+                totalText: formatCurrency(toNumber(order.grand_total)),
+            };
+
+            const shippingAddress = [
+                order.shipping_line1,
+                order.shipping_ward,
+                order.shipping_district,
+                order.shipping_city,
+            ]
+                .filter(Boolean)
+                .join(", ");
+
+            const shippingRecipient = [
+                order.shipping_full_name,
+                order.shipping_phone,
+            ]
+                .filter((part) => part && String(part).trim() !== "")
+                .join(" • ");
+
+            const quantityTotal = items.reduce(
+                (sum, item) => sum + item.quantity,
+                0
+            );
+
+            return {
+                id: order.id,
+                shortCode: `#${order.id.slice(0, 8).toUpperCase()}`,
+                statusLabel: statusInfo.label,
+                statusClass: statusInfo.className,
+                createdAtText: formatDateTime(order.created_at),
+                paymentLabel,
+                totals,
+                hasDiscount: totals.discount > 0,
+                shipping: {
+                    name: order.shipping_full_name,
+                    phone: order.shipping_phone,
+                    address: shippingAddress,
+                    recipient: shippingRecipient,
+                },
+                note: order.note ?? null,
+                items,
+                quantityTotal,
+            };
+        });
+
+        return res.render("client/pages/user/order", {
+            orders: ordersForView,
+        });
+    } catch (error) {
+        console.error("USER ORDER LIST ERROR:", error);
+        req.flash("error", "Không thể tải danh sách đơn hàng.");
+        return res.redirect(req.get("Referer") || "/user/info");
     }
 };
 
@@ -484,7 +652,7 @@ export const voucher = async (req: Request, res: Response) => {
         });
     } catch (error) {
         req.flash("error", "Vui lòng đăng nhập để xem thông tin.");
-        res.redirect(req.get("Referer") || "/auth/login");
+        res.redirect("/auth/login");
         console.error("ERROR:", error);
         res.status(500).send("Internal Server Error");
     }

@@ -1,4 +1,4 @@
-import express, { Request, Response, NextFunction } from "express";
+import express from "express";
 import session from "express-session";
 import flash from "express-flash";
 import dotenv from "dotenv";
@@ -10,6 +10,7 @@ import { connect as connectDB } from "./config/database";
 connectDB();
 
 import clientRoutes from "./routes/client/index.route";
+import cartQuantityMiddleware from "./middlewares/client/cartQuantity.middleware";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -32,19 +33,7 @@ app.use(
 );
 app.use(flash());
 
-app.use((req: Request, res: Response, next: NextFunction) => {
-    const sessionCart = (req.session as any)?.cart;
-    const cartQuantity = Array.isArray(sessionCart)
-        ? sessionCart.reduce(
-              (total: number, item: { quantity?: number }) =>
-                  total + (typeof item?.quantity === "number" ? item.quantity : 0),
-              0
-          )
-        : 0;
-
-    res.locals.cartQuantity = cartQuantity;
-    next();
-});
+app.use(cartQuantityMiddleware);
 
 clientRoutes(app);
 

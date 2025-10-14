@@ -12,5 +12,6 @@ router.post("/address/update", userController.addressUpdate)
 router.post("/address/default/:addressId", userController.addressDefault)
 router.post("/address/delete/:addressId", userController.addressDelete)
 router.get("/voucher", userController.voucher);
+router.get("/order", userController.order);
 
 export default router;
