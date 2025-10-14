@@ -33,11 +33,7 @@ export const loginPost = async (req: Request, res: Response) => {
             req.flash("error", "Mật khẩu không chính xác!");
             return res.redirect("/auth/login");
         }
-        const tokenUser = prisma.users.findFirst({
-            where: {
-                OR: [{ email: identifier }, { phone: identifier }],
-            },
-        });
+        const tokenUser = user.token_user;
         res.cookie("token_user", tokenUser);
 
         req.flash("success", "Đăng nhập thành công!");

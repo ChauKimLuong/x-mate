@@ -3,9 +3,27 @@ import { Request, Response } from "express";
 import prisma from "../../config/database";
 
 const CART_COOKIE_NAME = "cart_id";
-const CART_COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 days
+const CART_COOKIE_MAX_AGE = 1000 * 60 * 60 * 24 * 30; // 30 ngày
 const FREE_SHIP_THRESHOLD = 500_000;
 const SHIPPING_FEE = 30_000;
+
+type CartItemWithRelations = cart_items & {
+    products: {
+        id: string;
+        title: string;
+        slug: string | null;
+        price: Prisma.Decimal | number;
+        discount: Prisma.Decimal | number;
+        thumbnail: string | null;
+        size: string[] | null;
+    } | null;
+    productVariants: {
+        id: string;
+        color: string | null;
+        images: string[];
+        stock: number | null;
+    } | null;
+};
 
 interface SessionCartItem {
     productId: string;
@@ -16,66 +34,31 @@ interface SessionCartItem {
     color?: string | null;
     quantity: number;
     image?: string | null;
-    variantId?: string;
+    variantId?: string | null;
 }
 
-type CartItemWithRelations = cart_items & {
-    products: {
-        id: string;
-        title: string;
-        slug: string | null;
-        price: number;
-        discount: number;
-        thumbnail: string | null;
-        size: string[];
-    } | null;
-    productVariants: {
-        id: string;
-        color: string | null;
-        images: string[];
-        stock: number;
-    } | null;
-};
+interface CartIdentifiers {
+    cartId?: number;
+    tokenUser?: string;
+}
 
-class CartOperationError extends Error {
-    constructor(
-        public code: "OUT_OF_STOCK" | "INVALID_SIZE" | "NOT_FOUND",
-        message: string,
-        public details?: Record<string, unknown>
-    ) {
-        super(message);
-        this.name = "CartOperationError";
-    }
+interface CartMutationResult {
+    cartId: number;
+    cartQuantity: number;
+    items: CartItemWithRelations[];
 }
 
 const CART_INCLUDE = {
     cart_items: {
         include: {
-            products: {
-                select: {
-                    id: true,
-                    title: true,
-                    slug: true,
-                    price: true,
-                    discount: true,
-                    thumbnail: true,
-                    size: true,
-                },
-            },
-            productVariants: {
-                select: {
-                    id: true,
-                    color: true,
-                    images: true,
-                    stock: true,
-                },
-            },
+            products: true,
+            productVariants: true,
         },
         orderBy: { id: "asc" as const },
     },
 };
 
-const decimalToNumber = (
+const asNumber = (
     value: Prisma.Decimal | number | string | null | undefined
 ): number => {
     if (value === null || value === undefined) return 0;
@@ -90,7 +73,7 @@ const decimalToNumber = (
     return 0;
 };
 
-const toCurrency = (value: number): string => {
+const formatCurrency = (value: number): string => {
     return new Intl.NumberFormat("vi-VN", {
         style: "currency",
         currency: "VND",
@@ -98,39 +81,7 @@ const toCurrency = (value: number): string => {
     }).format(Math.max(0, Math.round(value)));
 };
 
-const makeEmptyTotals = () => ({
-    quantity: 0,
-    subtotal: 0,
-    subtotalText: toCurrency(0),
-    discount: 0,
-    discountText: toCurrency(0),
-    shipping: 0,
-    shippingText: toCurrency(0),
-    totalBeforeShipping: 0,
-    totalBeforeShippingText: toCurrency(0),
-    total: 0,
-    totalText: toCurrency(0),
-    freeShipRemaining: FREE_SHIP_THRESHOLD,
-    freeShipProgress: 0,
-    freeShipReached: false,
-});
-
-const makeEmptyFreeShip = () => ({
-    headerText: `Miễn phí vận chuyển cho đơn từ ${toCurrency(FREE_SHIP_THRESHOLD)}`,
-    thresholdText: toCurrency(FREE_SHIP_THRESHOLD),
-    progressPercent: 0,
-    remainingText: toCurrency(FREE_SHIP_THRESHOLD),
-    reached: false,
-    statusText: "Bắt đầu thêm sản phẩm vào giỏ để nhận ưu đãi miễn phí vận chuyển.",
-});
-
-const normalizeColor = (input: unknown): string | null => {
-    if (typeof input !== "string") return null;
-    const trimmed = input.trim();
-    return trimmed ? trimmed : null;
-};
-
-const getCartCookieId = (req: Request): number | undefined => {
+const readCookieCartId = (req: Request): number | undefined => {
     const raw =
         (req.cookies?.[CART_COOKIE_NAME] as string | undefined) ??
         (req.cookies?.cartId as string | undefined);
@@ -139,138 +90,36 @@ const getCartCookieId = (req: Request): number | undefined => {
     return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 };
 
-const getTokenUser = (req: Request): string | undefined => {
-    const token = req.cookies?.token_user;
-    return typeof token === "string" && token.trim() !== "" ? token : undefined;
+const readTokenUser = (req: Request): string | undefined => {
+    const raw = req.cookies?.token_user;
+    if (typeof raw !== "string") return undefined;
+    const trimmed = raw.trim();
+    return trimmed ? trimmed : undefined;
 };
 
-const syncSessionCart = (req: Request, items: SessionCartItem[]) => {
+const keepCartInSession = (req: Request, items: SessionCartItem[]) => {
     if (!req.session) return;
     (req.session as any).cart = items;
 };
 
-const buildSessionItems = (items: CartItemWithRelations[]): SessionCartItem[] => {
-    return items.map((item) => ({
-        productId: item.product_id,
-        slug: item.products?.slug ?? undefined,
-        title: item.products?.title ?? "Sản phẩm",
-        price: decimalToNumber(item.price_unit),
-        size: item.size ?? undefined,
-        color: item.color ?? undefined,
-        quantity: item.quantity ?? 0,
-        image:
-            item.image_url ||
-            item.productVariants?.images?.[0] ||
-            item.products?.thumbnail ||
-            undefined,
-        variantId: item.variant_id,
-    }));
+const getRedirectTarget = (req: Request): string | undefined => {
+    const raw = req.body?.redirect;
+    if (typeof raw !== "string") return undefined;
+    const trimmed = raw.trim();
+    if (!trimmed || !trimmed.startsWith("/")) return undefined;
+    return trimmed;
 };
 
-const buildCartView = (items: CartItemWithRelations[]) => {
-    const sessionItems = buildSessionItems(items);
-
-    let subtotal = 0;
-    let discount = 0;
-
-    const viewItems = items.map((item) => {
-        const unitPrice = decimalToNumber(item.price_unit);
-        const lineSubtotalRaw =
-            item.line_subtotal !== null && item.line_subtotal !== undefined
-                ? decimalToNumber(item.line_subtotal)
-                : unitPrice * (item.quantity ?? 0);
-        const lineDiscountRaw =
-            item.line_discount !== null && item.line_discount !== undefined
-                ? decimalToNumber(item.line_discount)
-                : 0;
-        const lineTotalRaw =
-            item.line_total !== null && item.line_total !== undefined
-                ? decimalToNumber(item.line_total)
-                : lineSubtotalRaw - lineDiscountRaw;
-
-        subtotal += lineSubtotalRaw;
-        discount += lineDiscountRaw;
-
-        return {
-            id: item.id,
-            productId: item.product_id,
-            variantId: item.variant_id,
-            title: item.products?.title ?? "Sản phẩm",
-            slug: item.products?.slug ?? "",
-            image:
-                item.image_url ||
-                item.productVariants?.images?.[0] ||
-                item.products?.thumbnail ||
-                "",
-            color: item.color ?? item.productVariants?.color ?? null,
-            size: item.size ?? null,
-            quantity: item.quantity ?? 0,
-            unitPrice,
-            unitPriceText: toCurrency(unitPrice),
-            lineSubtotal: lineSubtotalRaw,
-            lineSubtotalText: toCurrency(lineSubtotalRaw),
-            lineDiscount: lineDiscountRaw,
-            lineDiscountText:
-                lineDiscountRaw > 0 ? `- ${toCurrency(lineDiscountRaw)}` : toCurrency(0),
-            lineTotal: lineTotalRaw,
-            lineTotalText: toCurrency(lineTotalRaw),
-        };
-    });
-
-    const quantity = items.reduce(
-        (sum, item) => sum + (item.quantity ?? 0),
-        0
-    );
-    const totalBeforeShipping = Math.max(0, subtotal - discount);
-    const shipping =
-        quantity === 0
-            ? 0
-            : totalBeforeShipping >= FREE_SHIP_THRESHOLD
-            ? 0
-            : SHIPPING_FEE;
-    const total = totalBeforeShipping + shipping;
-    const freeShipRemaining = Math.max(FREE_SHIP_THRESHOLD - totalBeforeShipping, 0);
-    const freeShipProgress =
-        FREE_SHIP_THRESHOLD > 0
-            ? Math.min(
-                  100,
-                  Math.round((totalBeforeShipping / FREE_SHIP_THRESHOLD) * 100)
-              )
-            : 0;
-    const freeShipReached = freeShipRemaining <= 0 && quantity > 0;
-
-    const totals = {
-        quantity,
-        subtotal,
-        subtotalText: toCurrency(subtotal),
-        discount,
-        discountText: discount > 0 ? `- ${toCurrency(discount)}` : toCurrency(0),
-        shipping,
-        shippingText: toCurrency(shipping),
-        totalBeforeShipping,
-        totalBeforeShippingText: toCurrency(totalBeforeShipping),
-        total,
-        totalText: toCurrency(total),
-        freeShipRemaining,
-        freeShipProgress,
-        freeShipReached,
-    };
-
-    const freeShip = {
-        headerText: `Miễn phí vận chuyển cho đơn từ ${toCurrency(FREE_SHIP_THRESHOLD)}`,
-        thresholdText: toCurrency(FREE_SHIP_THRESHOLD),
-        progressPercent: freeShipProgress,
-        remainingText: toCurrency(freeShipRemaining),
-        reached: freeShipReached,
-        statusText:
-            quantity === 0
-                ? "Bắt đầu thêm sản phẩm vào giỏ để nhận ưu đãi miễn phí vận chuyển."
-                : freeShipReached
-                ? "Bạn đã đủ điều kiện miễn phí vận chuyển!"
-                : `Thêm ${toCurrency(freeShipRemaining)} để được miễn phí vận chuyển.`,
-    };
-
-    return { viewItems, totals, sessionItems, freeShip };
+const redirectWithMessage = (
+    req: Request,
+    res: Response,
+    target: string,
+    message?: { type: "success" | "error"; text: string }
+) => {
+    if (message && typeof (req as any).flash === "function") {
+        (req as any).flash(message.type, message.text);
+    }
+    return res.redirect(target);
 };
 
 const formatDate = (value: Date | null | undefined): string => {
@@ -278,69 +127,231 @@ const formatDate = (value: Date | null | undefined): string => {
     return new Intl.DateTimeFormat("vi-VN").format(value);
 };
 
-const mapVoucherView = (rows: { code: string; title: string; enddate: Date | null; usagelimit: number | null; usedcount: number; type: string; discountvalue: Prisma.Decimal; minordervalue: Prisma.Decimal | null; maxdiscount: Prisma.Decimal | null; }[]) => {
+const fetchVouchers = async () => {
+    const rows = await prisma.coupons.findMany({
+        where: { status: "ACTIVE" },
+        orderBy: { startdate: "desc" },
+        take: 6,
+    });
     const now = new Date();
+
     return rows.map((coupon) => {
+        const discountValueNumber = asNumber(coupon.discountvalue);
+        const maxDiscountNumber = asNumber(coupon.maxdiscount);
+        const minOrderNumber = asNumber(coupon.minordervalue);
+
         const remaining =
             typeof coupon.usagelimit === "number"
                 ? Math.max(coupon.usagelimit - coupon.usedcount, 0)
                 : null;
-        const isExpired = coupon.enddate ? coupon.enddate < now : false;
+        const expired = coupon.enddate ? coupon.enddate < now : false;
         const disabled =
-            (remaining !== null && remaining <= 0) || isExpired;
+            (remaining !== null && remaining <= 0) || expired;
 
-        const discountValue = toCurrency(decimalToNumber(coupon.discountvalue));
         const minOrder =
             coupon.minordervalue !== null && coupon.minordervalue !== undefined
-                ? toCurrency(decimalToNumber(coupon.minordervalue))
+                ? formatCurrency(minOrderNumber)
                 : null;
 
         const benefit =
             coupon.type === "PERCENT"
-                ? `Giảm ${decimalToNumber(coupon.discountvalue)}%`
+                ? `Giảm ${discountValueNumber}%`
                 : coupon.type === "FREESHIP"
                 ? "Miễn phí vận chuyển"
-                : `Giảm ${discountValue}`;
+                : `Giảm ${formatCurrency(discountValueNumber)}`;
 
-        const metaParts = [benefit];
-        if (minOrder) {
-            metaParts.push(`Đơn từ ${minOrder}`);
-        }
+        const meta = minOrder
+            ? `${benefit} • Đơn từ ${minOrder}`
+            : benefit;
 
         return {
             code: coupon.code,
             title: coupon.title,
-            meta: metaParts.join(" • "),
+            meta,
             expiry: formatDate(coupon.enddate),
             disabled,
+            type: coupon.type,
+            discountValue: discountValueNumber,
+            maxDiscount: maxDiscountNumber > 0 ? maxDiscountNumber : null,
+            minOrderValue: minOrderNumber > 0 ? minOrderNumber : null,
         };
     });
 };
 
-const ensureCartRecord = async (
-    tx: Prisma.TransactionClient,
-    identifiers: { cartId?: number; tokenUser?: string }
-) => {
+const buildCartData = (items: CartItemWithRelations[]) => {
+    const viewItems = items.map((item) => {
+        const quantity = item.quantity ?? 0;
+        const unitPrice = asNumber(item.price_unit);
+        const lineSubtotal =
+            item.line_subtotal !== null && item.line_subtotal !== undefined
+                ? asNumber(item.line_subtotal)
+                : unitPrice * quantity;
+        const lineDiscount =
+            item.line_discount !== null && item.line_discount !== undefined
+                ? asNumber(item.line_discount)
+                : 0;
+        const lineTotal =
+            item.line_total !== null && item.line_total !== undefined
+                ? asNumber(item.line_total)
+                : Math.max(0, lineSubtotal - lineDiscount);
+
+        const image =
+            item.image_url ||
+            item.productVariants?.images?.[0] ||
+            item.products?.thumbnail ||
+            "";
+
+        return {
+            id: item.id,
+            productId: item.product_id,
+            variantId: item.variant_id,
+            title: item.products?.title ?? "Sản phẩm",
+            slug: item.products?.slug ?? null,
+            image,
+            color: item.color ?? item.productVariants?.color ?? null,
+            size: item.size ?? null,
+            quantity,
+            unitPrice,
+            unitPriceText: formatCurrency(unitPrice),
+            lineSubtotal,
+            lineSubtotalText: formatCurrency(lineSubtotal),
+            lineDiscount,
+            lineDiscountText:
+                lineDiscount > 0
+                    ? `- ${formatCurrency(lineDiscount)}`
+                    : formatCurrency(0),
+            lineTotal,
+            lineTotalText: formatCurrency(lineTotal),
+        };
+    });
+
+    const subtotal = viewItems.reduce(
+        (sum, item) => sum + item.lineSubtotal,
+        0
+    );
+    const discount = viewItems.reduce(
+        (sum, item) => sum + item.lineDiscount,
+        0
+    );
+    const quantity = viewItems.reduce((sum, item) => sum + item.quantity, 0);
+    const totalBeforeShipping = Math.max(0, subtotal - discount);
+    const shipping =
+        quantity === 0 || totalBeforeShipping >= FREE_SHIP_THRESHOLD
+            ? 0
+            : SHIPPING_FEE;
+    const total = totalBeforeShipping + shipping;
+    const freeShipRemaining = Math.max(
+        FREE_SHIP_THRESHOLD - totalBeforeShipping,
+        0
+    );
+    const freeShipProgress =
+        FREE_SHIP_THRESHOLD > 0
+            ? Math.min(
+                  100,
+                  Math.round(
+                      (totalBeforeShipping / FREE_SHIP_THRESHOLD) * 100
+                  )
+              )
+            : 0;
+    const freeShipReached = quantity > 0 && freeShipRemaining === 0;
+
+    const totals = {
+        quantity,
+        subtotal,
+        subtotalText: formatCurrency(subtotal),
+        discount,
+        discountText:
+            discount > 0
+                ? `- ${formatCurrency(discount)}`
+                : formatCurrency(0),
+        shipping,
+        shippingText: formatCurrency(shipping),
+        totalBeforeShipping,
+        totalBeforeShippingText: formatCurrency(totalBeforeShipping),
+        total,
+        totalText: formatCurrency(total),
+        freeShipRemaining,
+        freeShipProgress,
+        freeShipReached,
+    };
+
+    const freeShip = {
+        headerText: `Miễn phí vận chuyển cho đơn từ ${formatCurrency(
+            FREE_SHIP_THRESHOLD
+        )}`,
+        thresholdText: formatCurrency(FREE_SHIP_THRESHOLD),
+        progressPercent: freeShipProgress,
+        remainingText: formatCurrency(freeShipRemaining),
+        reached: freeShipReached,
+        statusText:
+            quantity === 0
+                ? "Bắt đầu thêm sản phẩm vào giỏ để nhận ưu đãi miễn phí vận chuyển."
+                : freeShipReached
+                ? "Bạn đã đủ điều kiện miễn phí vận chuyển!"
+                : `Thêm ${formatCurrency(
+                      freeShipRemaining
+                  )} để được miễn phí vận chuyển.`,
+    };
+
+    const sessionItems: SessionCartItem[] = viewItems.map((item) => ({
+        productId: item.productId,
+        slug: item.slug,
+        title: item.title,
+        price: item.unitPrice,
+        size: item.size,
+        color: item.color,
+        quantity: item.quantity,
+        image: item.image,
+        variantId: item.variantId,
+    }));
+
+    return { viewItems, totals, freeShip, sessionItems };
+};
+
+const findExistingCart = async (identifiers: CartIdentifiers) => {
     const { cartId, tokenUser } = identifiers;
-    let created = false;
-    let reassigned = false;
-    let cart: carts | null = null;
 
     if (tokenUser) {
-        cart = await tx.carts.findFirst({
+        const cart = await prisma.carts.findFirst({
             where: { token_user: tokenUser },
+            include: CART_INCLUDE,
         });
+        if (cart) {
+            return cart;
+        }
     }
 
-    if (!cart && cartId) {
-        cart = await tx.carts.findUnique({ where: { id: cartId } });
+    if (cartId) {
+        const cart = await prisma.carts.findUnique({
+            where: { id: cartId },
+            include: CART_INCLUDE,
+        });
         if (cart && tokenUser && cart.token_user !== tokenUser) {
-            cart = await tx.carts.update({
+            await prisma.carts.update({
                 where: { id: cart.id },
                 data: { token_user: tokenUser },
             });
-            reassigned = true;
+            cart.token_user = tokenUser;
         }
+        return cart;
+    }
+
+    return null;
+};
+
+const ensureCart = async (
+    tx: Prisma.TransactionClient,
+    identifiers: CartIdentifiers
+) => {
+    const { cartId, tokenUser } = identifiers;
+    let created = false;
+
+    let cart: carts | null = tokenUser
+        ? await tx.carts.findFirst({ where: { token_user: tokenUser } })
+        : null;
+
+    if (!cart && cartId) {
+        cart = await tx.carts.findUnique({ where: { id: cartId } });
     }
 
     if (!cart) {
@@ -350,338 +361,966 @@ const ensureCartRecord = async (
             },
         });
         created = true;
+    } else if (tokenUser && cart.token_user !== tokenUser) {
+        cart = await tx.carts.update({
+            where: { id: cart.id },
+            data: { token_user: tokenUser },
+        });
     }
 
-    return { cart, created, reassigned };
+    return { cart, created };
+};
+
+const recalculateCart = async (
+    tx: Prisma.TransactionClient,
+    cartId: number,
+    tokenUser?: string
+): Promise<CartMutationResult> => {
+    const aggregates = await tx.cart_items.aggregate({
+        where: { cart_id: cartId },
+        _sum: {
+            quantity: true,
+            line_total: true,
+        },
+    });
+
+    const items = (await tx.cart_items.findMany({
+        where: { cart_id: cartId },
+        include: CART_INCLUDE.cart_items.include,
+        orderBy: { id: "asc" },
+    })) as CartItemWithRelations[];
+
+    await tx.carts.update({
+        where: { id: cartId },
+        data: {
+            grand_total: new Prisma.Decimal(
+                asNumber(aggregates._sum.line_total)
+            ),
+            updated_at: new Date(),
+            ...(tokenUser ? { token_user: tokenUser } : {}),
+        },
+    });
+
+    return {
+        cartId,
+        cartQuantity: aggregates._sum.quantity ?? 0,
+        items,
+    };
+};
+
+const finalizeCartMutation = (
+    req: Request,
+    res: Response,
+    identifiers: CartIdentifiers,
+    result: CartMutationResult
+) => {
+    const summary = buildCartData(result.items);
+    keepCartInSession(req, summary.sessionItems);
+    res.locals.cartQuantity = summary.totals.quantity;
+
+    if (!identifiers.cartId || identifiers.cartId !== result.cartId) {
+        res.cookie(CART_COOKIE_NAME, result.cartId, {
+            httpOnly: true,
+            sameSite: "lax",
+            maxAge: CART_COOKIE_MAX_AGE,
+        });
+    }
+
+    identifiers.cartId = result.cartId;
+
+    return summary;
 };
 
 export const index = async (req: Request, res: Response) => {
+    const identifiers = {
+        cartId: readCookieCartId(req),
+        tokenUser: readTokenUser(req),
+    };
+
     try {
-        const tokenUser = getTokenUser(req);
-        const cookieCartId = getCartCookieId(req);
+        const cart = await findExistingCart(identifiers);
 
-        let cart = null;
-
-        if (tokenUser) {
-            cart = await prisma.carts.findFirst({
-                where: { token_user: tokenUser },
-                include: CART_INCLUDE,
+        if (cart && identifiers.cartId !== cart.id) {
+            res.cookie(CART_COOKIE_NAME, cart.id, {
+                httpOnly: true,
+                sameSite: "lax",
+                maxAge: CART_COOKIE_MAX_AGE,
             });
-        }
-
-        if (!cart && cookieCartId) {
-            cart = await prisma.carts.findUnique({
-                where: { id: cookieCartId },
-                include: CART_INCLUDE,
-            });
-            if (cart && tokenUser && cart.token_user !== tokenUser) {
-                await prisma.carts.update({
-                    where: { id: cart.id },
-                    data: { token_user: tokenUser },
-                });
-                cart.token_user = tokenUser;
-            }
-        }
-
-        if (cart) {
-            if (!cookieCartId || cookieCartId !== cart.id) {
-                res.cookie(CART_COOKIE_NAME, cart.id, {
-                    httpOnly: true,
-                    sameSite: "lax",
-                    maxAge: CART_COOKIE_MAX_AGE,
-                });
-            }
-        } else if (cookieCartId) {
+        } else if (!cart && identifiers.cartId) {
             res.clearCookie(CART_COOKIE_NAME);
         }
 
-        const items = (cart?.cart_items ?? []) as CartItemWithRelations[];
-        const { viewItems, totals, sessionItems, freeShip } = buildCartView(items);
-        syncSessionCart(req, sessionItems);
-        res.locals.cartQuantity = totals.quantity;
+        const summary = buildCartData(
+            (cart?.cart_items ?? []) as CartItemWithRelations[]
+        );
+        keepCartInSession(req, summary.sessionItems);
+        res.locals.cartQuantity = summary.totals.quantity;
 
-        const voucherRows = await prisma.coupons.findMany({
-            where: { status: "ACTIVE" },
-            orderBy: { startdate: "desc" },
-            take: 6,
-        });
-        const vouchers = mapVoucherView(voucherRows);
+        const vouchers = await fetchVouchers();
 
         res.render("client/pages/cart/index", {
             cart: {
-                items: viewItems,
-                totals,
-                isEmpty: viewItems.length === 0,
+                items: summary.viewItems,
+                totals: summary.totals,
+                isEmpty: summary.viewItems.length === 0,
             },
-            freeShip,
+            freeShip: summary.freeShip,
             vouchers,
         });
     } catch (error) {
         console.error("CART INDEX ERROR:", error);
+        const emptySummary = buildCartData([] as CartItemWithRelations[]);
+
         res.status(500).render("client/pages/cart/index", {
-            cart: { items: [], totals: makeEmptyTotals(), isEmpty: true },
-            freeShip: { ...makeEmptyFreeShip(), statusText: "Hệ thống đang gặp sự cố. Vui lòng thử lại sau." },
+            cart: {
+                items: [],
+                totals: emptySummary.totals,
+                isEmpty: true,
+            },
+            freeShip: {
+                ...emptySummary.freeShip,
+                statusText:
+                    "Hệ thống đang gặp sự cố. Vui lòng thử lại sau.",
+            },
             vouchers: [],
         });
     }
 };
 
 export const addItem = async (req: Request, res: Response) => {
-    try {
-        if (!req.session) {
-            return res.status(400).json({
-                success: false,
-                message: "Session không khả dụng.",
+    const redirectTarget = getRedirectTarget(req);
+    if (!req.session) {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Session không khả dụng.",
             });
         }
+        return res.status(400).json({
+            success: false,
+            message: "Session không khả dụng.",
+        });
+    }
 
-        const {
-            productId,
-            slug,
-            title,
-            size,
-            color,
-            quantity = 1,
-            image,
-        } = req.body ?? {};
+    const identifiers = {
+        cartId: readCookieCartId(req),
+        tokenUser: readTokenUser(req),
+    };
 
-        if (!productId || typeof productId !== "string") {
-            return res.status(400).json({
-                success: false,
-                message: "Thiếu mã sản phẩm.",
+    const {
+        productId,
+        slug,
+        title,
+        size,
+        color,
+        quantity = 1,
+        image,
+    } = req.body ?? {};
+
+    if (!productId || typeof productId !== "string") {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Thiếu mã sản phẩm.",
             });
         }
+        return res.status(400).json({
+            success: false,
+            message: "Thiếu mã sản phẩm.",
+        });
+    }
 
-        const normalizedColor = normalizeColor(color);
-        const parsedQuantity = Number.isFinite(Number(quantity))
-            ? Math.max(1, Math.floor(Number(quantity)))
-            : 1;
+    const normalizedColor =
+        typeof color === "string" && color.trim() !== ""
+            ? color.trim()
+            : undefined;
+    const parsedQuantity = Number.isFinite(Number(quantity))
+        ? Math.max(1, Math.floor(Number(quantity)))
+        : 1;
 
-        const variantWithProduct =
-            await prisma.productVariants.findFirst({
-                where: {
-                    productId,
-                    ...(normalizedColor
-                        ? {
-                              color: {
-                                  equals: normalizedColor,
-                                  mode: "insensitive",
-                              },
-                          }
-                        : {}),
-                },
-                include: {
-                    products: {
-                        select: {
-                            id: true,
-                            title: true,
-                            slug: true,
-                            price: true,
-                            discount: true,
-                            thumbnail: true,
-                            size: true,
-                        },
-                    },
-                },
-            }) ||
-            (await prisma.productVariants.findFirst({
-                where: { productId },
-                include: {
-                    products: {
-                        select: {
-                            id: true,
-                            title: true,
-                            slug: true,
-                            price: true,
-                            discount: true,
-                            thumbnail: true,
-                            size: true,
-                        },
-                    },
-                },
-            }));
+    const variant =
+        (await prisma.productVariants.findFirst({
+            where: {
+                productId,
+                ...(normalizedColor
+                    ? {
+                          color: {
+                              equals: normalizedColor,
+                              mode: "insensitive",
+                          },
+                      }
+                    : {}),
+            },
+            include: {
+                products: true,
+            },
+        })) ||
+        (await prisma.productVariants.findFirst({
+            where: { productId },
+            include: {
+                products: true,
+            },
+        }));
 
-        if (!variantWithProduct || !variantWithProduct.products) {
-            return res.status(404).json({
-                success: false,
-                message: "Không tìm thấy phiên bản sản phẩm phù hợp.",
+    if (!variant || !variant.products) {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Không tìm thấy phiên bản sản phẩm phù hợp.",
             });
         }
+        return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy phiên bản sản phẩm phù hợp.",
+        });
+    }
 
-        const allowedSizes = Array.isArray(variantWithProduct.products.size)
-            ? variantWithProduct.products.size
-            : [];
-        if (
-            typeof size === "string" &&
-            allowedSizes.length > 0 &&
-            !allowedSizes.includes(size)
-        ) {
-            throw new CartOperationError(
-                "INVALID_SIZE",
-                "Kích thước không hợp lệ cho sản phẩm này."
-            );
+    const allowedSizes = Array.isArray(variant.products.size)
+        ? variant.products.size
+        : [];
+
+    if (
+        typeof size === "string" &&
+        allowedSizes.length > 0 &&
+        !allowedSizes.includes(size)
+    ) {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Kích thước không hợp lệ cho sản phẩm này.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Kích thước không hợp lệ cho sản phẩm này.",
+        });
+    }
+
+    const basePrice = asNumber(variant.products.price);
+    const discountPercent = asNumber(variant.products.discount);
+    const discountedPrice =
+        discountPercent > 0
+            ? Math.round((basePrice * (100 - discountPercent)) / 100)
+            : basePrice;
+    const unitPrice = Math.max(0, discountedPrice);
+    const unitPriceDecimal = new Prisma.Decimal(unitPrice);
+
+    const txResult = await prisma.$transaction(async (tx) => {
+        const { cart } = await ensureCart(tx, identifiers);
+
+        const existing = await tx.cart_items.findUnique({
+            where: {
+                cart_id_variant_id: {
+                    cart_id: cart.id,
+                    variant_id: variant.id,
+                },
+            },
+        });
+
+        const nextQuantity = (existing?.quantity ?? 0) + parsedQuantity;
+        const stock = variant.stock ?? 0;
+        if (stock > 0 && nextQuantity > stock) {
+            return {
+                status: "OUT_OF_STOCK" as const,
+                stock,
+            };
         }
 
-        const basePrice = Number(variantWithProduct.products.price) || 0;
-        const discountPercent = Number(variantWithProduct.products.discount) || 0;
-        const discountedPrice = Math.round(
-            (basePrice * (100 - discountPercent)) / 100
+        const resolvedImage =
+            typeof image === "string" && image.trim() !== ""
+                ? image.trim()
+                : existing?.image_url ||
+                  variant.images?.[0] ||
+                  variant.products.thumbnail ||
+                  null;
+
+        const discountDecimal = new Prisma.Decimal(
+            asNumber(existing?.line_discount)
         );
-        const unitPriceNumber =
-            discountedPrice > 0 ? discountedPrice : Math.max(0, basePrice);
-        const unitPriceDecimal = new Prisma.Decimal(unitPriceNumber);
+        const lineSubtotal = unitPriceDecimal.mul(
+            new Prisma.Decimal(nextQuantity)
+        );
+        const lineTotalCandidate = lineSubtotal.sub(discountDecimal);
+        const lineTotal = lineTotalCandidate.lessThan(0)
+            ? new Prisma.Decimal(0)
+            : lineTotalCandidate;
 
-        const identifiers = {
-            cartId: getCartCookieId(req),
-            tokenUser: getTokenUser(req),
-        };
-
-        const result = await prisma.$transaction(async (tx) => {
-            const { cart, created } = await ensureCartRecord(tx, identifiers);
-
-            const existing = await tx.cart_items.findUnique({
+        if (existing) {
+            await tx.cart_items.update({
                 where: {
                     cart_id_variant_id: {
                         cart_id: cart.id,
-                        variant_id: variantWithProduct.id,
+                        variant_id: variant.id,
                     },
                 },
-            });
-
-            const newQuantity = (existing?.quantity ?? 0) + parsedQuantity;
-            const variantStock = variantWithProduct.stock ?? 0;
-            if (variantStock > 0 && newQuantity > variantStock) {
-                throw new CartOperationError("OUT_OF_STOCK", "Số lượng vượt quá tồn kho.", {
-                    stock: variantStock,
-                });
-            }
-
-            const lineSubtotal = unitPriceDecimal.mul(
-                new Prisma.Decimal(newQuantity)
-            );
-            const discountDecimal = new Prisma.Decimal(
-                decimalToNumber(existing?.line_discount)
-            );
-            const lineTotal = lineSubtotal.sub(discountDecimal);
-            const resolvedImage =
-                typeof image === "string" && image.trim() !== ""
-                    ? image.trim()
-                    : existing?.image_url ||
-                      variantWithProduct.images?.[0] ||
-                      variantWithProduct.products.thumbnail ||
-                      null;
-
-            if (existing) {
-                await tx.cart_items.update({
-                    where: {
-                        cart_id_variant_id: {
-                            cart_id: cart.id,
-                            variant_id: variantWithProduct.id,
-                        },
-                    },
-                    data: {
-                        quantity: newQuantity,
-                        size: typeof size === "string" ? size : existing.size,
-                        color: normalizedColor ?? existing.color,
-                        price_unit: unitPriceDecimal,
-                        line_subtotal: lineSubtotal,
-                        line_discount: discountDecimal,
-                        line_total: lineTotal,
-                        image_url: resolvedImage,
-                    },
-                });
-            } else {
-                await tx.cart_items.create({
-                    data: {
-                        cart_id: cart.id,
-                        product_id: productId,
-                        variant_id: variantWithProduct.id,
-                        image_url: resolvedImage,
-                        size: typeof size === "string" ? size : null,
-                        color:
-                            normalizedColor ?? variantWithProduct.color ?? null,
-                        price_unit: unitPriceDecimal,
-                        quantity: parsedQuantity,
-                        line_subtotal: unitPriceDecimal.mul(
-                            new Prisma.Decimal(parsedQuantity)
-                        ),
-                        line_discount: new Prisma.Decimal(0),
-                        line_total: unitPriceDecimal.mul(
-                            new Prisma.Decimal(parsedQuantity)
-                        ),
-                    },
-                });
-            }
-
-            const aggregates = await tx.cart_items.aggregate({
-                where: { cart_id: cart.id },
-                _sum: {
-                    quantity: true,
-                    line_total: true,
-                },
-            });
-
-            const sessionSource = (await tx.cart_items.findMany({
-                where: { cart_id: cart.id },
-                include: CART_INCLUDE.cart_items.include,
-                orderBy: { id: "asc" },
-            })) as CartItemWithRelations[];
-
-            await tx.carts.update({
-                where: { id: cart.id },
                 data: {
-                    grand_total: new Prisma.Decimal(
-                        decimalToNumber(aggregates._sum.line_total)
-                    ),
-                    updated_at: new Date(),
+                    quantity: nextQuantity,
+                    size:
+                        typeof size === "string"
+                            ? size
+                            : existing.size,
+                    color:
+                        normalizedColor ??
+                        existing.color ??
+                        variant.color ??
+                        null,
+                    price_unit: unitPriceDecimal,
+                    line_subtotal: lineSubtotal,
+                    line_discount: discountDecimal,
+                    line_total: lineTotal,
+                    image_url: resolvedImage,
                 },
             });
+        } else {
+            await tx.cart_items.create({
+                data: {
+                    cart_id: cart.id,
+                    product_id: productId,
+                    variant_id: variant.id,
+                    quantity: nextQuantity,
+                    size: typeof size === "string" ? size : null,
+                    color:
+                        normalizedColor ??
+                        variant.color ??
+                        null,
+                    price_unit: unitPriceDecimal,
+                    line_subtotal: lineSubtotal,
+                    line_discount: discountDecimal,
+                    line_total: lineTotal,
+                    image_url: resolvedImage,
+                },
+            });
+        }
 
-            return {
-                cartId: cart.id,
-                created,
-                cartQuantity: aggregates._sum.quantity ?? 0,
-                sessionItems: sessionSource,
-            };
+        const payload = await recalculateCart(
+            tx,
+            cart.id,
+            identifiers.tokenUser
+        );
+
+        return {
+            status: "OK" as const,
+            payload,
+        };
+    });
+
+    if (txResult.status === "OUT_OF_STOCK") {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Sản phẩm không đủ tồn kho.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Sản phẩm không đủ tồn kho.",
+            details: { stock: txResult.stock },
+        });
+    }
+
+    const summary = finalizeCartMutation(
+        req,
+        res,
+        identifiers,
+        txResult.payload
+    );
+
+    if (redirectTarget) {
+        return redirectWithMessage(req, res, redirectTarget, {
+            type: "success",
+            text: "Đã thêm vào giỏ hàng.",
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Đã thêm vào giỏ hàng.",
+        cartQuantity: summary.totals.quantity,
+        data: {
+            cartId: txResult.payload.cartId,
+            productId,
+            slug:
+                typeof slug === "string"
+                    ? slug
+                    : variant.products.slug ?? null,
+            title:
+                typeof title === "string"
+                    ? title
+                    : variant.products.title,
+        },
+    });
+};
+
+export const updateItemQuantity = async (req: Request, res: Response) => {
+    if (!req.session) {
+        return res.status(400).json({
+            success: false,
+            message: "Session không khả dụng.",
+        });
+    }
+
+    const identifiers = {
+        cartId: readCookieCartId(req),
+        tokenUser: readTokenUser(req),
+    };
+    const redirectTarget = getRedirectTarget(req);
+
+    const rawItemId =
+        req.body?.itemId ?? req.params?.itemId ?? req.params?.id;
+    const itemId = Number.parseInt(String(rawItemId ?? ""), 10);
+
+    if (!Number.isFinite(itemId)) {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Thiếu thông tin sản phẩm trong giỏ.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Thiếu mã sản phẩm trong giỏ.",
+        });
+    }
+
+    const cart = await findExistingCart(identifiers);
+    if (!cart) {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Không tìm thấy giỏ hàng.",
+            });
+        }
+        return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy giỏ hàng.",
+        });
+    }
+
+    const txResult = await prisma.$transaction(async (tx) => {
+        const cartItem = await tx.cart_items.findFirst({
+            where: {
+                id: itemId,
+                cart_id: cart.id,
+            },
+            include: {
+                productVariants: true,
+            },
         });
 
-        const sessionItems = buildSessionItems(result.sessionItems);
-        syncSessionCart(req, sessionItems);
-        res.locals.cartQuantity = result.cartQuantity;
+        if (!cartItem) {
+            return {
+                status: "NOT_FOUND" as const,
+            };
+        }
 
-        if (!identifiers.cartId || identifiers.cartId !== result.cartId) {
-            res.cookie(CART_COOKIE_NAME, result.cartId, {
-                httpOnly: true,
-                sameSite: "lax",
-                maxAge: CART_COOKIE_MAX_AGE,
+        const currentQuantity = cartItem.quantity ?? 0;
+
+        const quantityValue = Number(req.body?.quantity);
+        const deltaValue = Number(req.body?.delta ?? req.body?.change);
+        const actionRaw = typeof req.body?.action === "string"
+            ? (req.body.action as string).toLowerCase()
+            : undefined;
+
+        let nextQuantity: number | undefined;
+        if (actionRaw === "increase") {
+            nextQuantity = currentQuantity + 1;
+        } else if (actionRaw === "decrease") {
+            nextQuantity = currentQuantity - 1;
+        } else if (actionRaw === "set" || actionRaw === "update") {
+            if (Number.isFinite(quantityValue)) {
+                nextQuantity = Math.floor(quantityValue);
+            }
+        } else if (Number.isFinite(deltaValue)) {
+            nextQuantity = currentQuantity + Math.floor(deltaValue);
+        } else if (Number.isFinite(quantityValue)) {
+            nextQuantity = Math.floor(quantityValue);
+        }
+
+        if (nextQuantity === undefined || !Number.isFinite(nextQuantity)) {
+            return {
+                status: "INVALID" as const,
+            };
+        }
+
+        nextQuantity = Math.floor(nextQuantity);
+        if (nextQuantity < 0) {
+            nextQuantity = 0;
+        }
+
+        const stock = cartItem.productVariants?.stock ?? 0;
+        if (stock > 0 && nextQuantity > stock) {
+            return {
+                status: "OUT_OF_STOCK" as const,
+                stock,
+            };
+        }
+
+        if (nextQuantity === 0) {
+            await tx.cart_items.delete({
+                where: { id: cartItem.id },
+            });
+        } else {
+            const unitPriceDecimal = new Prisma.Decimal(
+                asNumber(cartItem.price_unit)
+            );
+            const discountDecimal = new Prisma.Decimal(
+                asNumber(cartItem.line_discount)
+            );
+            const lineSubtotal = unitPriceDecimal.mul(
+                new Prisma.Decimal(nextQuantity)
+            );
+            const lineTotalCandidate = lineSubtotal.sub(discountDecimal);
+            const lineTotal = lineTotalCandidate.lessThan(0)
+                ? new Prisma.Decimal(0)
+                : lineTotalCandidate;
+
+            await tx.cart_items.update({
+                where: { id: cartItem.id },
+                data: {
+                    quantity: nextQuantity,
+                    line_subtotal: lineSubtotal,
+                    line_discount: discountDecimal,
+                    line_total: lineTotal,
+                },
+            });
+        }
+
+        const payload = await recalculateCart(
+            tx,
+            cart.id,
+            identifiers.tokenUser
+        );
+
+        return {
+            status: "OK" as const,
+            payload,
+        };
+    });
+
+    if (txResult.status === "INVALID") {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Thiếu thông tin số lượng.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Thiếu thông tin số lượng.",
+        });
+    }
+
+    if (txResult.status === "NOT_FOUND") {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Không tìm thấy sản phẩm trong giỏ hàng.",
+            });
+        }
+        return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy sản phẩm trong giỏ hàng.",
+        });
+    }
+
+    if (txResult.status === "OUT_OF_STOCK") {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Sản phẩm không đủ tồn kho.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Sản phẩm không đủ tồn kho.",
+            details: { stock: txResult.stock },
+        });
+    }
+
+    const summary = finalizeCartMutation(
+        req,
+        res,
+        identifiers,
+        txResult.payload
+    );
+
+    const updatedItem = summary.viewItems.find(
+        (item) => item.id === itemId
+    );
+
+    if (redirectTarget) {
+        const message = updatedItem
+            ? "Đã cập nhật giỏ hàng."
+            : "Đã xóa sản phẩm khỏi giỏ hàng.";
+        return redirectWithMessage(req, res, redirectTarget, {
+            type: "success",
+            text: message,
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: updatedItem
+            ? "Đã cập nhật số lượng."
+            : "Đã xóa sản phẩm khỏi giỏ hàng.",
+        cartQuantity: summary.totals.quantity,
+        cart: {
+            items: summary.viewItems,
+            totals: summary.totals,
+            freeShip: summary.freeShip,
+        },
+        data: {
+            itemId,
+            quantity: updatedItem?.quantity ?? 0,
+            removed: !updatedItem,
+        },
+    });
+};
+
+export const removeItem = async (req: Request, res: Response) => {
+    if (!req.session) {
+        const redirectTarget = getRedirectTarget(req);
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Session không khả dụng.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Session không khả dụng.",
+        });
+    }
+
+    const identifiers = {
+        cartId: readCookieCartId(req),
+        tokenUser: readTokenUser(req),
+    };
+    const redirectTarget = getRedirectTarget(req);
+
+    const rawItemId =
+        req.body?.itemId ?? req.params?.itemId ?? req.params?.id;
+    const itemId = Number.parseInt(String(rawItemId ?? ""), 10);
+
+    if (!Number.isFinite(itemId)) {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Thiếu thông tin sản phẩm trong giỏ.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Thiếu mã sản phẩm trong giỏ.",
+        });
+    }
+
+    const cart = await findExistingCart(identifiers);
+    if (!cart) {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "success",
+                text: "Giỏ hàng đã trống.",
+            });
+        }
+        return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy giỏ hàng.",
+        });
+    }
+
+    const txResult = await prisma.$transaction(async (tx) => {
+        const cartItem = await tx.cart_items.findFirst({
+            where: {
+                id: itemId,
+                cart_id: cart.id,
+            },
+        });
+
+        if (!cartItem) {
+            return {
+                status: "NOT_FOUND" as const,
+            };
+        }
+
+        await tx.cart_items.delete({
+            where: { id: cartItem.id },
+        });
+
+        const payload = await recalculateCart(
+            tx,
+            cart.id,
+            identifiers.tokenUser
+        );
+
+        return {
+            status: "OK" as const,
+            payload,
+        };
+    });
+
+    if (txResult.status === "NOT_FOUND") {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Không tìm thấy sản phẩm trong giỏ hàng.",
+            });
+        }
+        return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy sản phẩm trong giỏ hàng.",
+        });
+    }
+
+    const summary = finalizeCartMutation(
+        req,
+        res,
+        identifiers,
+        txResult.payload
+    );
+
+    if (redirectTarget) {
+        return redirectWithMessage(req, res, redirectTarget, {
+            type: "success",
+            text: "Đã xóa sản phẩm khỏi giỏ hàng.",
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Đã xóa sản phẩm khỏi giỏ hàng.",
+        cartQuantity: summary.totals.quantity,
+        cart: {
+            items: summary.viewItems,
+            totals: summary.totals,
+            freeShip: summary.freeShip,
+        },
+        data: { itemId },
+    });
+};
+
+export const removeSelectedItems = async (req: Request, res: Response) => {
+    if (!req.session) {
+        const redirectTarget = getRedirectTarget(req);
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Session không khả dụng.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Session không khả dụng.",
+        });
+    }
+
+    const identifiers = {
+        cartId: readCookieCartId(req),
+        tokenUser: readTokenUser(req),
+    };
+    const redirectTarget = getRedirectTarget(req);
+
+    const rawIds = req.body?.itemIds;
+    const idsArray = Array.isArray(rawIds) ? rawIds : rawIds ? [rawIds] : [];
+    const parsedIds = idsArray
+        .map((value) => Number.parseInt(String(value ?? ""), 10))
+        .filter((value) => Number.isFinite(value));
+
+    if (parsedIds.length === 0) {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Bạn chưa chọn sản phẩm nào.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Thiếu danh sách sản phẩm cần xóa.",
+        });
+    }
+
+    const cart = await findExistingCart(identifiers);
+    if (!cart) {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "success",
+                text: "Giỏ hàng đã trống.",
+            });
+        }
+        return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy giỏ hàng.",
+        });
+    }
+
+    const txResult = await prisma.$transaction(async (tx) => {
+        const targets = await tx.cart_items.findMany({
+            where: {
+                cart_id: cart.id,
+                id: { in: parsedIds },
+            },
+            select: { id: true },
+        });
+
+        if (targets.length === 0) {
+            return {
+                status: "NOT_FOUND" as const,
+            };
+        }
+
+        await tx.cart_items.deleteMany({
+            where: {
+                cart_id: cart.id,
+                id: { in: parsedIds },
+            },
+        });
+
+        const payload = await recalculateCart(
+            tx,
+            cart.id,
+            identifiers.tokenUser
+        );
+
+        return {
+            status: "OK" as const,
+            payload,
+            removedIds: targets.map((item) => item.id),
+        };
+    });
+
+    if (txResult.status === "NOT_FOUND") {
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Không tìm thấy sản phẩm đã chọn.",
+            });
+        }
+        return res.status(404).json({
+            success: false,
+            message: "Không tìm thấy sản phẩm đã chọn trong giỏ hàng.",
+        });
+    }
+
+    const summary = finalizeCartMutation(
+        req,
+        res,
+        identifiers,
+        txResult.payload
+    );
+
+    if (redirectTarget) {
+        return redirectWithMessage(req, res, redirectTarget, {
+            type: "success",
+            text: "Đã xóa các sản phẩm đã chọn.",
+        });
+    }
+
+    return res.status(200).json({
+        success: true,
+        message: "Đã xóa sản phẩm đã chọn khỏi giỏ hàng.",
+        cartQuantity: summary.totals.quantity,
+        cart: {
+            items: summary.viewItems,
+            totals: summary.totals,
+            freeShip: summary.freeShip,
+        },
+        data: {
+            removedIds: txResult.removedIds,
+        },
+    });
+};
+
+export const clearCart = async (req: Request, res: Response) => {
+    if (!req.session) {
+        const redirectTarget = getRedirectTarget(req);
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "error",
+                text: "Session không khả dụng.",
+            });
+        }
+        return res.status(400).json({
+            success: false,
+            message: "Session không khả dụng.",
+        });
+    }
+
+    const identifiers = {
+        cartId: readCookieCartId(req),
+        tokenUser: readTokenUser(req),
+    };
+    const redirectTarget = getRedirectTarget(req);
+
+    const cart = await findExistingCart(identifiers);
+    if (!cart) {
+        const emptySummary = buildCartData(
+            [] as CartItemWithRelations[]
+        );
+        keepCartInSession(req, emptySummary.sessionItems);
+        res.locals.cartQuantity = 0;
+        if (identifiers.cartId) {
+            res.clearCookie(CART_COOKIE_NAME);
+            identifiers.cartId = undefined;
+        }
+
+        if (redirectTarget) {
+            return redirectWithMessage(req, res, redirectTarget, {
+                type: "success",
+                text: "Giỏ hàng đã trống.",
             });
         }
 
         return res.status(200).json({
             success: true,
-            message: "Đã thêm vào giỏ hàng.",
-            cartQuantity: result.cartQuantity,
-            data: {
-                cartId: result.cartId,
-                productId,
-                slug: slug ?? variantWithProduct.products.slug ?? null,
-                title: title ?? variantWithProduct.products.title,
+            message: "Giỏ hàng đã trống.",
+            cartQuantity: 0,
+            cart: {
+                items: emptySummary.viewItems,
+                totals: emptySummary.totals,
+                freeShip: emptySummary.freeShip,
             },
         });
-    } catch (error: unknown) {
-        if (error instanceof CartOperationError) {
-            const statusCode = error.code === "NOT_FOUND" ? 404 : 400;
-            return res.status(statusCode).json({
-                success: false,
-                message: error.message,
-                details: error.details,
-            });
-        }
+    }
 
-        console.error("CART ADD ITEM ERROR:", error);
-        return res.status(500).json({
-            success: false,
-            message: "Không thể thêm sản phẩm vào giỏ hàng.",
+    const txResult = await prisma.$transaction(async (tx) => {
+        await tx.cart_items.deleteMany({
+            where: { cart_id: cart.id },
+        });
+
+        const payload = await recalculateCart(
+            tx,
+            cart.id,
+            identifiers.tokenUser
+        );
+
+        return {
+            status: "OK" as const,
+            payload,
+        };
+    });
+
+    const summary = finalizeCartMutation(
+        req,
+        res,
+        identifiers,
+        txResult.payload
+    );
+
+    if (redirectTarget) {
+        return redirectWithMessage(req, res, redirectTarget, {
+            type: "success",
+            text: "Đã xóa toàn bộ giỏ hàng.",
         });
     }
+
+    return res.status(200).json({
+        success: true,
+        message: "Đã xóa toàn bộ giỏ hàng.",
+        cartQuantity: summary.totals.quantity,
+        cart: {
+            items: summary.viewItems,
+            totals: summary.totals,
+            freeShip: summary.freeShip,
+        },
+    });
 };

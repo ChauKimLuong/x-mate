@@ -5,11 +5,18 @@ import bcrypt from "bcrypt";
 // [GET] /user/info
 export const info = async (req: Request, res: Response) => {
     try {
-        // console.log(req.cookies.token_user);
+        const token = req.cookies?.token_user;
+        console.log("Token from cookies:", token);
+        if (!token) {
+            return res
+                .status(401)
+                .render("client/pages/user/info", { user: null });
+        }
+
         const user = await prisma.users.findFirst({
             where: {
                 status: "active",
-                token_user: req.cookies.token_user
+                token_user: token,
             },
             select: {
                 id: true,
@@ -26,15 +33,13 @@ export const info = async (req: Request, res: Response) => {
         if (!user) {
             return res
                 .status(404)
-                .render("client/pages/user/info", { userInfo: null });
+                .render("client/pages/user/info", { user: null });
         }
 
-        res.render("client/pages/user/info", {
-            user: user,
-        });
+        return res.render("client/pages/user/info", { user });
     } catch (error) {
         console.error("ERROR:", error);
-        res.status(500).send("Internal Server Error");
+        return res.status(500).send("Internal Server Error");
     }
 };
 
@@ -66,7 +71,6 @@ export const address = async (req: Request, res: Response) => {
         res.status(500).send("Internal Server Error");
     }
 };
-
 
 // [POST] /user/update-info
 export const updateInfo = async (req: Request, res: Response) => {
@@ -240,7 +244,7 @@ export const addressUpdate = async (req: Request, res: Response) => {
             req.body.isDefault === "true" ||
             req.body.isDefault === true;
 
-        const tokenUser = req.cookies.token_user
+        const tokenUser = req.cookies.token_user;
 
         const existingAddress = await prisma.addresses.findFirst({
             where: { id: addressId, token_user: tokenUser },
@@ -317,7 +321,7 @@ export const addressDelete = async (req: Request, res: Response) => {
         await prisma.addresses.delete({
             where: {
                 id: addressId,
-            }
+            },
         });
 
         req.flash("success", "Xóa địa chỉ thành công!");
@@ -329,20 +333,12 @@ export const addressDelete = async (req: Request, res: Response) => {
     }
 };
 
-
-
-
 // [GET] /user/voucher
 export const voucher = async (req: Request, res: Response) => {
     try {
         const coupons = await prisma.coupons.findMany({
-            where: { status: "ACTIVE",
-                enddate: { gt: new Date }
-             },
-            orderBy: [
-                { enddate: "asc" },
-                { createdat: "desc" },
-            ],
+            where: { status: "ACTIVE", enddate: { gt: new Date() } },
+            orderBy: [{ enddate: "asc" }, { createdat: "desc" }],
             select: {
                 couponid: true,
                 code: true,
@@ -375,7 +371,9 @@ export const voucher = async (req: Request, res: Response) => {
             const numberValue =
                 typeof value === "number" ? value : Number(value as any);
             if (!Number.isFinite(numberValue)) return null;
-            return `${numberValue % 1 === 0 ? numberValue : numberValue.toFixed(1)}%`;
+            return `${
+                numberValue % 1 === 0 ? numberValue : numberValue.toFixed(1)
+            }%`;
         };
 
         const formatDate = (date: Date | null | undefined) => {
@@ -396,7 +394,8 @@ export const voucher = async (req: Request, res: Response) => {
             const rawTitle = coupon.title?.trim() || "";
 
             const discountValue =
-                coupon.discountvalue !== null && coupon.discountvalue !== undefined
+                coupon.discountvalue !== null &&
+                coupon.discountvalue !== undefined
                     ? Number(coupon.discountvalue as any)
                     : null;
             const maxDiscount =
@@ -404,7 +403,8 @@ export const voucher = async (req: Request, res: Response) => {
                     ? Number(coupon.maxdiscount as any)
                     : null;
             const minOrder =
-                coupon.minordervalue !== null && coupon.minordervalue !== undefined
+                coupon.minordervalue !== null &&
+                coupon.minordervalue !== undefined
                     ? Number(coupon.minordervalue as any)
                     : null;
 
@@ -412,7 +412,9 @@ export const voucher = async (req: Request, res: Response) => {
             switch (coupon.type) {
                 case "PERCENT": {
                     const percent = formatPercent(discountValue);
-                    benefit = percent ? `Giảm ${percent}` : "Giảm % trên tổng đơn";
+                    benefit = percent
+                        ? `Giảm ${percent}`
+                        : "Giảm % trên tổng đơn";
                     if (maxDiscount) {
                         benefit += ` (tối đa ${formatCurrency(maxDiscount)})`;
                     }
