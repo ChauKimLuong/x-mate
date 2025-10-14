@@ -314,9 +314,9 @@ tbody tr:last-child td {
   margin: 0;
 }
 
-.inp-qty[type="number"] {
+/* .inp-qty[type="number"] {
   -moz-appearance: textfield;
-}
+} */
 
 .cart-qty-form {
   display: flex;
@@ -545,3 +545,9 @@ tbody tr:last-child td {
 .btn {
   font-family: var(--font);
 }
+
+.tickets.is-disabled {
+  pointer-events: none;
+  opacity: 0.5;
+}
+

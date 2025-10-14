@@ -6,6 +6,7 @@ import authRoutes from './auth.route';
 import productRoutes from './product.route';
 import userRoutes from './user.route';
 import cartRoutes from './cart.route';
+import checkoutRoutes from './checkout.route';
 
 const clientRoutes = (app: Express): void => {
     app.use("/", homeRoutes);
@@ -14,6 +15,7 @@ const clientRoutes = (app: Express): void => {
     app.use("/product", productRoutes);
     app.use("/user", userRoutes);
     app.use("/cart", cartRoutes);
+    app.use("/checkout", checkoutRoutes);
 }
 
 

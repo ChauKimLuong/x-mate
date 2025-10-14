@@ -19,6 +19,12 @@ block extra_js
   else
     script.
       window.__CART_BASE_FREESHIP = {};
+  if cart && cart.coupon
+    script.
+      window.__CART_ACTIVE_VOUCHER = !{JSON.stringify(cart.coupon)};
+  else
+    script.
+      window.__CART_ACTIVE_VOUCHER = null;
   script(src="/js/cart.js", defer)
 
 block content

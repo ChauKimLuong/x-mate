@@ -1,4 +1,4 @@
-//@ts-nocheck
+﻿//@ts-nocheck
 ;(function () {
   var cartBody = document.getElementById('cart-body')
   var checkAll = document.getElementById('chk-all')
@@ -6,6 +6,7 @@
   var couponList = document.getElementById('coupon-list')
   var couponInput = document.getElementById('coupon')
   var btnCoupon = document.getElementById('btnCoupon')
+  var btnCheckout = document.getElementById('btnCheckout')
 
   var discountNode = document.getElementById('discount')
   var shippingNode = document.getElementById('shipping')
@@ -23,7 +24,7 @@
       ? freeShipStatusNode.textContent
       : ''
 
-  var activeVoucher = null
+  var activeVoucher = window.__CART_ACTIVE_VOUCHER || null
 
   function updateDeleteState() {
     if (!cartBody || !deleteSelected) return
@@ -60,8 +61,10 @@
 
   function applySummary(summary) {
     if (!summary || !baseTotals) return
-    if (discountNode) discountNode.textContent = formatDiscount(summary.discount)
-    if (shippingNode) shippingNode.textContent = formatCurrency(summary.shipping)
+    if (discountNode)
+      discountNode.textContent = formatDiscount(summary.discount)
+    if (shippingNode)
+      shippingNode.textContent = formatCurrency(summary.shipping)
     if (totalNode) totalNode.textContent = formatCurrency(summary.total)
 
     if (shipBadge) {
@@ -83,114 +86,145 @@
     }
   }
 
+  function applyServerTotals(response) {
+    if (!response || !response.totals) return
+    var totals = response.totals
+
+    baseTotals = {
+      quantity: totals.quantity || 0,
+      subtotal: totals.subtotal || 0,
+      subtotalText: totals.subtotalText || formatCurrency(totals.subtotal || 0),
+      discount: totals.discount || 0,
+      discountText:
+        totals.discountText || formatDiscount(totals.discount || 0),
+      shipping: totals.shipping || 0,
+      shippingText: totals.shippingText || formatCurrency(totals.shipping || 0),
+      totalBeforeShipping: totals.totalBeforeShipping || 0,
+      totalBeforeShippingText:
+        totals.totalBeforeShippingText ||
+        formatCurrency(totals.totalBeforeShipping || 0),
+      total: totals.total || 0,
+      totalText: totals.totalText || formatCurrency(totals.total || 0)
+    }
+    window.__CART_BASE_TOTALS = baseTotals
+
+    activeVoucher = response.coupon
+      ? { code: response.coupon.code, type: response.coupon.type }
+      : null
+    window.__CART_ACTIVE_VOUCHER = activeVoucher
+
+    applySummary({
+      discount: Number(baseTotals.discount || 0),
+      shipping: Number(baseTotals.shipping || 0),
+      total: Number(baseTotals.total || 0),
+      couponType: activeVoucher ? activeVoucher.type : null
+    })
+
+    if (discountNode) discountNode.textContent = baseTotals.discountText
+    if (shippingNode) shippingNode.textContent = baseTotals.shippingText
+    if (totalNode) totalNode.textContent = baseTotals.totalText
+
+    if (couponInput)
+      couponInput.value = activeVoucher ? activeVoucher.code : ''
+    markSelectedTicket(activeVoucher ? activeVoucher.code : null)
+  }
+
   function resetSummary() {
     if (!baseTotals) return
-    applySummary({
-      discount: baseTotals.discount || 0,
-      shipping: baseTotals.shipping || 0,
-      total: baseTotals.total || 0,
-      couponType: null
+    applyServerTotals({
+      totals: baseTotals,
+      coupon: activeVoucher
+        ? { code: activeVoucher.code, type: activeVoucher.type }
+        : null
     })
-    activeVoucher = null
-    window.__CART_ACTIVE_VOUCHER = null
   }
 
-  function parseNumber(value) {
-    var num = Number(value)
-    return Number.isFinite(num) ? num : 0
-  }
-
-  function calculateTotals(ticket) {
-    if (!baseTotals || !ticket) return null
-
-    var type = (ticket.dataset.type || '').toUpperCase()
-    var discountValue = parseNumber(ticket.dataset.discount)
-    var maxDiscount = parseNumber(ticket.dataset.max)
-    var minOrderValue = parseNumber(ticket.dataset.min)
-    var baseTotalBeforeShipping = baseTotals.totalBeforeShipping || 0
-
-    var couponDiscount = 0
-    var shipping = baseTotals.shipping || 0
-
-    if (type === 'PERCENT') {
-      couponDiscount = (baseTotalBeforeShipping * discountValue) / 100
-      if (maxDiscount > 0) {
-        couponDiscount = Math.min(couponDiscount, maxDiscount)
-      }
-    } else if (
-      type === 'VALUE' ||
-      type === 'FIXED' ||
-      type === 'AMOUNT'
-    ) {
-      couponDiscount = discountValue
-    } else if (type === 'FREESHIP') {
-      shipping = 0
-      if (discountValue > 0) {
-        couponDiscount = discountValue
-      }
-    } else {
-      couponDiscount = discountValue
-    }
-
-    if (minOrderValue > 0 && baseTotalBeforeShipping < minOrderValue) {
-      couponDiscount = 0
-      shipping = baseTotals.shipping || 0
-    }
-
-    couponDiscount = Math.max(
-      0,
-      Math.min(couponDiscount, baseTotalBeforeShipping)
-    )
-
-    var totalDiscount = (baseTotals.discount || 0) + couponDiscount
-    var totalBeforeShipping = Math.max(
-      0,
-      baseTotalBeforeShipping - couponDiscount
-    )
-    var total = totalBeforeShipping + shipping
-
-    return {
-      code: ticket.dataset.code || '',
-      type: type,
-      discountValue: discountValue,
-      couponDiscount: couponDiscount,
-      totalDiscount: totalDiscount,
-      shipping: shipping,
-      totalBeforeShipping: totalBeforeShipping,
-      total: total
-    }
-  }
-
-  function selectTicket(ticket) {
+  function markSelectedTicket(code) {
     if (!couponList) return
-
-    couponList.querySelectorAll('.ticket').forEach(function (node) {
-      node.classList.remove('selected')
+    var targetCode = code ? code.toLowerCase() : ''
+    couponList.querySelectorAll('.ticket').forEach(function (ticket) {
+      var ticketCode = (ticket.dataset.code || '').toLowerCase()
+      if (targetCode && ticketCode === targetCode) {
+        ticket.classList.add('selected')
+      } else {
+        ticket.classList.remove('selected')
+      }
     })
+  }
 
-    if (!ticket) {
-      if (couponInput) couponInput.value = ''
-      resetSummary()
-      return
+  function setCouponLoading(isLoading) {
+    if (btnCoupon) btnCoupon.disabled = isLoading
+    if (couponList) {
+      if (isLoading) {
+        couponList.classList.add('is-disabled')
+      } else {
+        couponList.classList.remove('is-disabled')
+      }
     }
+  }
 
-    ticket.classList.add('selected')
-    if (couponInput && ticket.dataset.code) {
-      couponInput.value = ticket.dataset.code
-    }
-
-    var totals = calculateTotals(ticket)
-    if (!totals) return
-
-    applySummary({
-      discount: totals.totalDiscount,
-      shipping: totals.shipping,
-      total: totals.total,
-      couponType: totals.type
+  function applyCouponRequest(code) {
+    return fetch('/cart/coupon', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({ couponCode: code || '' })
     })
+      .then(function (response) {
+        return response.json().then(function (data) {
+          if (!response.ok || !data.success) {
+            throw new Error(
+              data && data.message ? data.message : 'Không thể áp dụng mã giảm giá.'
+            )
+          }
+          return data
+        })
+      })
+  }
 
-    activeVoucher = totals
-    window.__CART_ACTIVE_VOUCHER = totals
+  function handleTicketClick(event) {
+    var ticket = event.target.closest('.ticket')
+    if (!ticket || ticket.classList.contains('is-disabled')) return
+    var code = ticket.dataset.code || ''
+    var alreadySelected = ticket.classList.contains('selected')
+    var targetCode = alreadySelected ? '' : code
+
+    setCouponLoading(true)
+    applyCouponRequest(targetCode)
+      .then(function (data) {
+        applyServerTotals(data)
+      })
+      .catch(function (error) {
+        console.error('APPLY COUPON ERROR:', error)
+        alert(error && error.message ? error.message : 'Không thể áp dụng mã giảm giá.')
+        markSelectedTicket(activeVoucher ? activeVoucher.code : null)
+        if (couponInput)
+          couponInput.value = activeVoucher ? activeVoucher.code : ''
+      })
+      .finally(function () {
+        setCouponLoading(false)
+      })
+  }
+
+  function handleApplyButton() {
+    if (!couponInput) return
+    var value = couponInput.value ? couponInput.value.trim() : ''
+    setCouponLoading(true)
+    applyCouponRequest(value)
+      .then(function (data) {
+        applyServerTotals(data)
+      })
+      .catch(function (error) {
+        console.error('APPLY COUPON ERROR:', error)
+        alert(error && error.message ? error.message : 'Không thể áp dụng mã giảm giá.')
+        if (couponInput)
+          couponInput.value = activeVoucher ? activeVoucher.code || '' : ''
+        markSelectedTicket(activeVoucher ? activeVoucher.code : null)
+      })
+      .finally(function () {
+        setCouponLoading(false)
+      })
   }
 
   if (checkAll) {
@@ -226,49 +260,61 @@
   }
 
   if (couponList) {
-    couponList.addEventListener('click', function (event) {
-      var target = event.target
-      var ticket =
-        target && target.closest ? target.closest('.ticket') : null
-      if (!ticket || ticket.classList.contains('is-disabled')) return
-
-      var alreadySelected = ticket.classList.contains('selected')
-      if (alreadySelected) {
-        ticket.classList.remove('selected')
-        selectTicket(null)
-        return
-      }
-
-      selectTicket(ticket)
-    })
+    couponList.addEventListener('click', handleTicketClick)
   }
 
   if (btnCoupon) {
-    btnCoupon.addEventListener('click', function () {
-      if (!couponList) return
-      var code = couponInput && couponInput.value ? couponInput.value.trim() : ''
-      if (!code) {
-        selectTicket(null)
-        return
-      }
-      var lowerCode = code.toLowerCase()
-      var match = null
-      couponList.querySelectorAll('.ticket').forEach(function (ticket) {
-        if (
-          !match &&
-          !ticket.classList.contains('is-disabled') &&
-          (ticket.dataset.code || '').toLowerCase() === lowerCode
-        ) {
-          match = ticket
+    btnCoupon.addEventListener('click', handleApplyButton)
+  }
+
+  function prepareCheckout() {
+    var payload = {}
+    if (window.__CART_ACTIVE_VOUCHER && window.__CART_ACTIVE_VOUCHER.code) {
+      payload.couponCode = window.__CART_ACTIVE_VOUCHER.code
+    }
+
+    return fetch('/cart/prepare-checkout', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify(payload)
+    }).then(function (response) {
+      return response.json().then(function (data) {
+        if (!response.ok || !data.success) {
+          throw new Error(
+            data && data.message ? data.message : 'Không thể chuẩn bị thanh toán.'
+          )
         }
+        return data
       })
-      if (match) {
-        selectTicket(match)
-        match.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
-      }
+    })
+  }
+
+  if (btnCheckout) {
+    btnCheckout.addEventListener('click', function (event) {
+      event.preventDefault()
+      prepareCheckout()
+        .then(function (data) {
+          var target = (data && data.redirect) || '/checkout'
+          window.location.href = target
+        })
+        .catch(function (error) {
+          console.error('Prepare checkout error:', error)
+          alert(
+            error && error.message
+              ? error.message
+              : 'Không thể chuyển tới trang thanh toán.'
+          )
+        })
     })
   }
 
   updateDeleteState()
-  resetSummary()
+  applyServerTotals({
+    totals: baseTotals || {},
+    coupon: activeVoucher
+      ? { code: activeVoucher.code, type: activeVoucher.type }
+      : null
+  })
 })()

@@ -32,12 +32,17 @@ model productVariants {
   color              String
   images             String[]
   stock              Int                  @default(0)
+  colorId            String?
+  colorHexLegacy     String?
+  swatchUrlLegacy    String?
   cart_items         cart_items[]
   inventoryMovements inventoryMovements[]
   orderItems         orderItems[]
+  colors             colors?              @relation(fields: [colorId], references: [id], onUpdate: NoAction, map: "ProductVariant_colorId_colors_fk")
   products           products             @relation(fields: [productId], references: [id], onDelete: Cascade, map: "ProductVariant_productId_fkey")
 
   @@index([productId], map: "ProductVariant_productId_idx")
+  @@index([colorId], map: "ProductVariant_colorId_idx")
 }
 
 model products {
@@ -133,6 +138,7 @@ model coupons {
   status         String           @default("INACTIVE") @db.VarChar(20)
   createdat      DateTime         @default(now()) @db.Timestamp(6)
   updatedat      DateTime         @default(now()) @db.Timestamp(6)
+  carts          carts[]
   couponproducts couponproducts[]
   couponusages   couponusages[]
 }
@@ -249,12 +255,27 @@ model cart_items {
 }
 
 model carts {
-  id          Int          @id @default(autoincrement())
-  token_user  String?
-  grand_total Decimal      @default(0) @db.Decimal(12, 0)
-  created_at  DateTime     @default(now()) @db.Timestamptz(6)
-  updated_at  DateTime     @default(now()) @db.Timestamptz(6)
-  cart_items  cart_items[]
+  id           Int          @id @default(autoincrement())
+  token_user   String?
+  grand_total  Decimal      @default(0) @db.Decimal(12, 0)
+  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime     @default(now()) @db.Timestamptz(6)
+  shipping_fee Decimal      @default(0) @db.Decimal(12, 0)
+  coupon_id    Int?
+  cart_items   cart_items[]
+  coupons      coupons?     @relation(fields: [coupon_id], references: [couponid], onUpdate: NoAction)
+}
+
+model colors {
+  id              String            @id
+  name            String
+  slug            String            @unique
+  hex             String?
+  swatchUrl       String?
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime          @default(now()) @db.Timestamptz(6)
+  productVariants productVariants[]
 }
 
 enum Status {

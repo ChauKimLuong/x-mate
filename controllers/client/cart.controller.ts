@@ -25,6 +25,12 @@ type CartItemWithRelations = cart_items & {
     } | null;
 };
 
+type CartWithRelations = carts & {
+    cart_items: CartItemWithRelations[];
+    shipping_fee?: Prisma.Decimal | number | null;
+    coupon_id?: number | null;
+};
+
 interface SessionCartItem {
     productId: string;
     slug?: string | null;
@@ -47,6 +53,19 @@ interface CartMutationResult {
     cartQuantity: number;
     items: CartItemWithRelations[];
 }
+
+type CouponRow = {
+    couponid: number;
+    code: string;
+    title: string;
+    type: string;
+    discountvalue: Prisma.Decimal | number | string;
+    minordervalue: Prisma.Decimal | number | string | null;
+    maxdiscount: Prisma.Decimal | number | string | null;
+    status: string;
+    startdate: Date | null;
+    enddate: Date | null;
+};
 
 const CART_INCLUDE = {
     cart_items: {
@@ -308,7 +327,103 @@ const buildCartData = (items: CartItemWithRelations[]) => {
     return { viewItems, totals, freeShip, sessionItems };
 };
 
-const findExistingCart = async (identifiers: CartIdentifiers) => {
+const applyCouponToSummary = (
+    summary: ReturnType<typeof buildCartData>,
+    coupon: CouponRow | null
+) => {
+    if (!coupon || typeof coupon !== "object") {
+        return {
+            summary,
+            couponInfo: null as null | {
+                id: number;
+                code: string;
+                title: string;
+                type: string;
+            },
+        };
+    }
+
+    if (coupon.status !== "ACTIVE") {
+        return { summary, couponInfo: null };
+    }
+
+    const now = new Date();
+    if (coupon.startdate && coupon.startdate > now) {
+        return { summary, couponInfo: null };
+    }
+    if (coupon.enddate && coupon.enddate < now) {
+        return { summary, couponInfo: null };
+    }
+
+    const updatedSummary = {
+        ...summary,
+        totals: { ...summary.totals },
+    };
+
+    const subtotal = updatedSummary.totals.subtotal;
+    const existingDiscount = updatedSummary.totals.discount;
+    let shipping = updatedSummary.totals.shipping;
+    const baseBeforeShipping = Math.max(0, subtotal - existingDiscount);
+
+    const minOrder = asNumber(coupon.minordervalue);
+    if (minOrder > 0 && baseBeforeShipping < minOrder) {
+        return { summary, couponInfo: null };
+    }
+
+    const type = (coupon.type || "").toUpperCase();
+    const discountValue = asNumber(coupon.discountvalue);
+    let extraDiscount = 0;
+
+    if (type === "PERCENT") {
+        extraDiscount = Math.round((baseBeforeShipping * discountValue) / 100);
+        const maxDiscount = asNumber(coupon.maxdiscount);
+        if (maxDiscount > 0) {
+            extraDiscount = Math.min(extraDiscount, maxDiscount);
+        }
+    } else if (type === "FREESHIP") {
+        shipping = 0;
+        if (discountValue > 0) {
+            extraDiscount = discountValue;
+        }
+    } else {
+        extraDiscount = discountValue;
+    }
+
+    if (extraDiscount < 0) extraDiscount = 0;
+
+    const totalDiscount = existingDiscount + extraDiscount;
+    const totalBeforeShipping = Math.max(0, subtotal - totalDiscount);
+    const total = totalBeforeShipping + shipping;
+
+    updatedSummary.totals = {
+        ...updatedSummary.totals,
+        discount: totalDiscount,
+        discountText:
+            totalDiscount > 0
+                ? `- ${formatCurrency(totalDiscount)}`
+                : formatCurrency(0),
+        shipping,
+        shippingText: formatCurrency(shipping),
+        totalBeforeShipping,
+        totalBeforeShippingText: formatCurrency(totalBeforeShipping),
+        total,
+        totalText: formatCurrency(total),
+    };
+
+    return {
+        summary: updatedSummary,
+        couponInfo: {
+            id: coupon.couponid,
+            code: coupon.code,
+            title: coupon.title,
+            type,
+        },
+    };
+};
+
+const findExistingCart = async (
+    identifiers: CartIdentifiers
+): Promise<CartWithRelations | null> => {
     const { cartId, tokenUser } = identifiers;
 
     if (tokenUser) {
@@ -317,7 +432,7 @@ const findExistingCart = async (identifiers: CartIdentifiers) => {
             include: CART_INCLUDE,
         });
         if (cart) {
-            return cart;
+            return cart as CartWithRelations;
         }
     }
 
@@ -333,7 +448,7 @@ const findExistingCart = async (identifiers: CartIdentifiers) => {
             });
             cart.token_user = tokenUser;
         }
-        return cart;
+        return cart ? (cart as CartWithRelations) : null;
     }
 
     return null;
@@ -450,7 +565,7 @@ export const index = async (req: Request, res: Response) => {
             res.clearCookie(CART_COOKIE_NAME);
         }
 
-        const summary = buildCartData(
+        let summary = buildCartData(
             (cart?.cart_items ?? []) as CartItemWithRelations[]
         );
         keepCartInSession(req, summary.sessionItems);
@@ -458,11 +573,66 @@ export const index = async (req: Request, res: Response) => {
 
         const vouchers = await fetchVouchers();
 
+        let appliedCoupon:
+            | {
+                  code: string;
+                  title: string;
+                  type: string;
+              }
+            | null = null;
+
+        if (cart?.coupon_id) {
+            const couponRow = await prisma.coupons.findUnique({
+                where: { couponid: cart.coupon_id },
+            });
+            if (couponRow) {
+                const result = applyCouponToSummary(
+                    summary,
+                    couponRow as unknown as CouponRow
+                );
+                summary = result.summary;
+                if (result.couponInfo) {
+                    appliedCoupon = {
+                        code: result.couponInfo.code,
+                        title: result.couponInfo.title,
+                        type: result.couponInfo.type,
+                    };
+                }
+            }
+        } else if (req.session && (req.session as any).cartCoupon) {
+            const sessionCoupon = (req.session as any).cartCoupon;
+            if (sessionCoupon && sessionCoupon.code) {
+                const couponRow = await prisma.coupons.findFirst({
+                    where: {
+                        code: {
+                            equals: sessionCoupon.code,
+                            mode: "insensitive",
+                        },
+                    },
+                });
+                if (couponRow) {
+                    const result = applyCouponToSummary(
+                        summary,
+                        couponRow as unknown as CouponRow
+                    );
+                    summary = result.summary;
+                    if (result.couponInfo) {
+                        appliedCoupon = {
+                            code: result.couponInfo.code,
+                            title: result.couponInfo.title,
+                            type: result.couponInfo.type,
+                        };
+                    }
+                }
+            }
+        }
+
         res.render("client/pages/cart/index", {
             cart: {
                 items: summary.viewItems,
                 totals: summary.totals,
                 isEmpty: summary.viewItems.length === 0,
+                coupon: appliedCoupon,
             },
             freeShip: summary.freeShip,
             vouchers,
@@ -476,6 +646,7 @@ export const index = async (req: Request, res: Response) => {
                 items: [],
                 totals: emptySummary.totals,
                 isEmpty: true,
+                coupon: null,
             },
             freeShip: {
                 ...emptySummary.freeShip,
@@ -1228,6 +1399,237 @@ export const removeSelectedItems = async (req: Request, res: Response) => {
             removedIds: txResult.removedIds,
         },
     });
+};
+
+export const prepareCheckout = async (req: Request, res: Response) => {
+    try {
+        const identifiers = {
+            cartId: readCookieCartId(req),
+            tokenUser: readTokenUser(req),
+        };
+
+        const cart = await findExistingCart(identifiers);
+        if (!cart) {
+            return res.status(400).json({
+                success: false,
+                message: "Giỏ hàng trống.",
+            });
+        }
+
+        const items = (cart.cart_items ?? []) as CartItemWithRelations[];
+        if (!items.length) {
+            return res.status(400).json({
+                success: false,
+                message: "Giỏ hàng trống.",
+            });
+        }
+
+        let summary = buildCartData(items);
+
+        const couponCode =
+            typeof req.body?.couponCode === "string"
+                ? req.body.couponCode.trim()
+                : "";
+
+        let couponRow: CouponRow | null = null;
+        if (couponCode) {
+            couponRow = await prisma.coupons.findFirst({
+                where: {
+                    code: {
+                        equals: couponCode,
+                        mode: "insensitive",
+                    },
+                },
+            });
+        } else if (cart.coupon_id) {
+            couponRow = (await prisma.coupons.findUnique({
+                where: { couponid: cart.coupon_id },
+            })) as CouponRow | null;
+        }
+
+        let appliedCouponInfo: {
+            id: number;
+            code: string;
+            title: string;
+            type: string;
+        } | null = null;
+
+        if (couponRow) {
+            const result = applyCouponToSummary(summary, couponRow);
+            summary = result.summary;
+            if (result.couponInfo) {
+                appliedCouponInfo = result.couponInfo;
+            }
+        }
+
+        const shippingFee = Math.max(
+            0,
+            Math.round(summary.totals.shipping ?? 0)
+        );
+        const grandTotal = Math.max(
+            0,
+            Math.round(summary.totals.total ?? 0)
+        );
+
+        await prisma.carts.update({
+            where: { id: cart.id },
+            data: {
+                shipping_fee: new Prisma.Decimal(shippingFee),
+                coupon_id: appliedCouponInfo ? appliedCouponInfo.id : null,
+                grand_total: new Prisma.Decimal(grandTotal),
+                updated_at: new Date(),
+            },
+        });
+
+        if (req.session) {
+            const couponSession = appliedCouponInfo
+                ? {
+                      code: appliedCouponInfo.code,
+                      label: appliedCouponInfo.title,
+                      type: appliedCouponInfo.type,
+                  }
+                : null;
+            (req.session as any).checkoutCoupon = couponSession;
+            (req.session as any).cartCoupon = couponSession;
+        }
+
+        return res.json({
+            success: true,
+            redirect: "/checkout",
+            totals: summary.totals,
+            coupon: appliedCouponInfo
+                ? {
+                      code: appliedCouponInfo.code,
+                      title: appliedCouponInfo.title,
+                      type: appliedCouponInfo.type,
+                  }
+                : null,
+        });
+    } catch (error) {
+        console.error("PREPARE CHECKOUT ERROR:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Không thể chuẩn bị thanh toán.",
+        });
+    }
+};
+
+export const applyCoupon = async (req: Request, res: Response) => {
+    try {
+        const identifiers = {
+            cartId: readCookieCartId(req),
+            tokenUser: readTokenUser(req),
+        };
+
+        const cart = await findExistingCart(identifiers);
+        if (!cart) {
+            return res.status(400).json({
+                success: false,
+                message: "Giỏ hàng trống.",
+            });
+        }
+
+        const items = (cart.cart_items ?? []) as CartItemWithRelations[];
+        if (!items.length) {
+            return res.status(400).json({
+                success: false,
+                message: "Giỏ hàng trống.",
+            });
+        }
+
+        let summary = buildCartData(items);
+
+        const couponCode =
+            typeof req.body?.couponCode === "string"
+                ? req.body.couponCode.trim()
+                : "";
+
+        let couponRow: CouponRow | null = null;
+        if (couponCode) {
+            couponRow = await prisma.coupons.findFirst({
+                where: {
+                    code: {
+                        equals: couponCode,
+                        mode: "insensitive",
+                    },
+                    status: "ACTIVE",
+                },
+            });
+        } else if (cart.coupon_id) {
+            couponRow = (await prisma.coupons.findUnique({
+                where: { couponid: Number(cart.coupon_id) },
+            })) as CouponRow | null;
+        }
+
+        if (couponCode && !couponRow) {
+            return res.status(404).json({
+                success: false,
+                message: "Không tìm thấy mã giảm giá phù hợp.",
+            });
+        }
+
+        let appliedCouponInfo: {
+            id: number;
+            code: string;
+            title: string;
+            type: string;
+        } | null = null;
+
+        if (couponRow) {
+            const result = applyCouponToSummary(summary, couponRow);
+            summary = result.summary;
+            if (result.couponInfo) {
+                appliedCouponInfo = result.couponInfo;
+            }
+        } else {
+            summary = buildCartData(items);
+        }
+
+        const shippingFee = Math.max(
+            0,
+            Math.round(summary.totals.shipping ?? 0)
+        );
+        const grandTotal = Math.max(
+            0,
+            Math.round(summary.totals.total ?? 0)
+        );
+
+        await prisma.carts.update({
+            where: { id: cart.id },
+            data: {
+                shipping_fee: new Prisma.Decimal(shippingFee),
+                coupon_id: appliedCouponInfo ? appliedCouponInfo.id : null,
+                grand_total: new Prisma.Decimal(grandTotal),
+                updated_at: new Date(),
+            },
+        });
+
+        if (req.session) {
+            (req.session as any).cartCoupon = appliedCouponInfo
+                ? {
+                      code: appliedCouponInfo.code,
+                      label: appliedCouponInfo.title,
+                  }
+                : null;
+        }
+
+        return res.json({
+            success: true,
+            totals: summary.totals,
+            coupon: appliedCouponInfo
+                ? {
+                      code: appliedCouponInfo.code,
+                      title: appliedCouponInfo.title,
+                  }
+                : null,
+        });
+    } catch (error) {
+        console.error("APPLY COUPON ERROR:", error);
+        return res.status(500).json({
+            success: false,
+            message: "Không thể áp dụng mã giảm giá.",
+        });
+    }
 };
 
 export const clearCart = async (req: Request, res: Response) => {
