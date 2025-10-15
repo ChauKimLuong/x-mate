@@ -3,13 +3,16 @@ import { OrdersController } from "../../controllers/admin/orders.controller";
 
 const r = Router();
 
-// Trang danh sách đơn hàng
+// Danh sách đơn hàng
 r.get("/", OrdersController.list);
 
-// Trang chi tiết đơn hàng
+// Chi tiết đơn hàng
 r.get("/:id/detail", OrdersController.detail);
 
-// Trang yêu cầu hủy đơn
-r.get("/:id/request", OrdersController.request);
+// Xác nhận đơn
+r.post("/:id/confirm", OrdersController.confirm);
+
+// Hủy đơn
+r.post("/:id/cancel", OrdersController.cancel);
 
 export default r;

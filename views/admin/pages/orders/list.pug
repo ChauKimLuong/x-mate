@@ -1,43 +1,148 @@
 extends ../../layouts/default.pug
 
 block content
+  style.
+    .orders-wrapper {
+      padding: 2rem;
+      background: #f9fafc;
+      font-family: "Poppins", sans-serif;
+    }
+
+    .orders-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      padding: 1.5rem 2rem;
+    }
+
+    h3.page-title {
+      font-weight: 600;
+      color: #222;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    thead {
+      background-color: #f3f4f6;
+    }
+
+    th {
+      padding: 12px 10px;
+      color: #555;
+      text-transform: uppercase;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 14px 10px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background-color: #f9f9ff;
+    }
+
+    .product-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .badge {
+      padding: 5px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 12px;
+      display: inline-block;
+    }
+
+    .badge-pending { background-color: #fff3cd; color: #856404; }
+    .badge-confirmed { background-color: #d4edda; color: #155724; }
+    .badge-cancelled { background-color: #f8d7da; color: #721c24; }
+
+    .action-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .btn i {
+      font-size: 14px;
+    }
+
+    .btn-confirm { background-color: #007bff; color: #fff; }
+    .btn-cancel { background-color: #dc3545; color: #fff; }
+    .btn-view { background-color: #6c757d; color: #fff; }
+
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
   .orders-wrapper
-    .orders-header
-      h3
-        i.bi.bi-card-list
-        | Danh sách đơn hàng
+    h3.page-title
+      i.bi.bi-card-list
+      |  Orders Management
 
     .orders-card
-      .table-responsive
-        table.orders-table
-          thead
+      table
+        thead
+          tr
+            th Product
+            th Customer
+            th Total
+            th Status
+            th Actions
+        tbody
+          each order in orders
+            - const thumb = order.thumbnail || '/img/default-product.jpg'
             tr
-              th.text-center Mã đơn
-              th.text-start Khách hàng
-              th.text-end Tổng tiền
-              th.text-center Trạng thái
-              th.text-center Hành động
-          tbody
-            each order in orders
-              tr
-                td.text-center #{order.id}
-                td.text-start #{order.customer}
-                td.text-end #{order.total.toLocaleString()} đ
-                td.text-center
-                  if order.status === "Đã duyệt"
-                    span.badge.badge-success #{order.status}
-                  else if order.status === "Yêu cầu hủy"
-                    span.badge.badge-warning #{order.status}
-                  else
-                    span.badge.badge-secondary #{order.status}
-                td.text-center
-                  .action-group
-                    a.btn.btn-primary.btn-sm(href="#", title="Duyệt")
-                      i.bi.bi-check2
-                      span.btn-text Duyệt
-                    a.btn.btn-outline.btn-sm(href=`/admin/orders/${order.id}/request`, title="Yêu cầu hủy")
-                      i.bi.bi-exclamation-triangle
-                      span.btn-text Hủy
-                    a.btn.btn-outline.btn-sm(href=`/admin/orders/${order.id}/detail`, title="Chi tiết")
-                      i.bi.bi-eye
-                      span.btn-text Xem
+              td
+                img.product-thumb(src=thumb, alt="Product Image")
+              td #{order.customerName}
+              td #{Number(order.total || 0).toLocaleString('en-US')} ₫
+              td
+                if order.status === 'pending'
+                  span.badge.badge-pending Pending
+                else if order.status === 'confirmed'
+                  span.badge.badge-confirmed Confirmed
+                else
+                  span.badge.badge-cancelled Cancelled
+              td
+                .action-group
+                  if order.status === 'pending'
+                    form(action=`/admin/orders/${order.id}/confirm`, method="POST")
+                      button.btn.btn-confirm(type="submit", title="Confirm")
+                        i.bi.bi-check-circle
+                        | Confirm
+                    form(action=`/admin/orders/${order.id}/cancel`, method="POST")
+                      button.btn.btn-cancel(type="submit", title="Cancel")
+                        i.bi.bi-x-circle
+                        | Cancel
+                  a.btn.btn-view(href=`/admin/orders/${order.id}/detail`, title="View")
+                    i.bi.bi-eye
+                    | View

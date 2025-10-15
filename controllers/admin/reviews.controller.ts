@@ -1,77 +1,111 @@
+import { PrismaClient } from "@prisma/client";
 import { Request, Response } from "express";
 
-export const getReviewsList = (_req: Request, res: Response) => {
-  const reviews = [
-    {
-      country: "U.S.A",
-      date: "21 December 2023",
-      content:
-        "I recently purchased a t-shirt that I was quite excited about...",
-      stars: 5,
-      quality: "Excellent Quality",
-      avatar: "https://i.pravatar.cc/100?img=11",
-      user: "Michael B. Coch",
-      title: "Kaika Hill, CEO / Hill & CO",
-    },
-    {
-      country: "Canada",
-      date: "16 March 2023",
-      content:
-        "I purchased a pair of jeans. The fabric is fantastic—it's durable...",
-      stars: 5,
-      quality: "Best Quality",
-      avatar: "https://i.pravatar.cc/100?img=12",
-      user: "Theresa T. Brose",
-      title: "Millenia Life / General internist",
-    },
-    {
-      country: "Germany",
-      date: "23 October 2023",
-      content:
-        "The fit is perfect, hugging in all the right places while allowing ease of movement...",
-      stars: 4,
-      quality: "Good Quality",
-      avatar: "https://i.pravatar.cc/100?img=13",
-      user: "James L. Erickson",
-      title: "Omni Tech Solutions / Founder",
-    },
-    {
-      country: "Germany",
-      date: "23 October 2023",
-      content:
-        "The fit is perfect, hugging in all the right places while allowing ease of movement...",
-      stars: 4,
-      quality: "Good Quality",
-      avatar: "https://i.pravatar.cc/100?img=14",
-      user: "Lily W. Wilson",
-      title: "Grade A Investment / Manager",
-    },
-    {
-      country: "Canada",
-      date: "29 May 2023",
-      content:
-        "Additionally, the fit is perfect, providing great support and comfort...",
-      stars: 5,
-      quality: "Excellent Quality",
-      avatar: "https://i.pravatar.cc/100?img=15",
-      user: "Sarah M. Brooks",
-      title: "Northland / Customer",
-    },
-    {
-      country: "Iceland",
-      date: "12 May 2023",
-      content:
-        "I ordered my usual size, but the shoes are either too small or too big...",
-      stars: 3,
-      quality: "Bad Quality",
-      avatar: "https://i.pravatar.cc/100?img=16",
-      user: "Jennifer Schafer",
-      title: "Freelancer",
-    },
-  ];
+const prisma = new PrismaClient();
 
-  res.render("admin/pages/reviews/list", {
-    title: "Reviews List",
-    reviews,
-  });
+export const ReviewsController = {
+  // 📄 Danh sách review
+  async list(req: Request, res: Response) {
+    try {
+      const reviews = await prisma.product_reviews.findMany({
+        include: {
+          order_items: {
+            include: {
+              products: {
+                select: {
+                  title: true,
+                  thumbnail: true,
+                },
+              },
+            },
+          },
+          review_replies: true,
+        },
+        orderBy: { created_at: "desc" },
+      });
+
+      const formatted = reviews.map((r) => ({
+        id: r.id,
+        productTitle: r.order_items?.products?.title || "Sản phẩm không xác định",
+        thumbnail:
+          r.order_items?.products?.thumbnail || "/img/default-product.jpg",
+        customerName: r.token_user || "Người dùng ẩn danh",
+        rating: r.rating,
+        content: r.content,
+        replyCount: r.review_replies?.length || 0,
+        createdAt: r.created_at,
+      }));
+
+      res.render("admin/pages/reviews/list", { reviews: formatted });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Lỗi khi tải danh sách đánh giá");
+    }
+  },
+
+  // 🔍 Chi tiết review
+  async detail(req: Request, res: Response) {
+    try {
+      const id = req.params.id;
+      const review = await prisma.product_reviews.findUnique({
+        where: { id },
+        include: {
+          order_items: {
+            include: {
+              products: {
+                select: {
+                  title: true,
+                  thumbnail: true,
+                  price: true,
+                },
+              },
+            },
+          },
+          review_replies: true,
+        },
+      });
+
+      if (!review) return res.status(404).send("Không tìm thấy đánh giá.");
+
+      const viewModel = {
+        id: review.id,
+        productTitle: review.order_items?.products?.title || "Không xác định",
+        thumbnail:
+          review.order_items?.products?.thumbnail || "/img/default-product.jpg",
+        rating: review.rating,
+        content: review.content,
+        replies: review.review_replies || [],
+        createdAt: review.created_at,
+      };
+
+      res.render("admin/pages/reviews/detail", { review: viewModel });
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Lỗi khi tải chi tiết đánh giá");
+    }
+  },
+
+  // 💬 Gửi phản hồi
+  async reply(req: Request, res: Response) {
+    try {
+      const { reviewId, content } = req.body;
+
+      if (!reviewId || !content.trim()) {
+        return res.status(400).send("Thiếu nội dung phản hồi");
+      }
+
+      await prisma.review_replies.create({
+        data: {
+          review_id: reviewId,
+          author: "admin",
+          content,
+        },
+      });
+
+      res.redirect(`/admin/reviews/${reviewId}/detail`);
+    } catch (err) {
+      console.error(err);
+      res.status(500).send("Không thể gửi phản hồi");
+    }
+  },
 };

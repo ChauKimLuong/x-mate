@@ -1,51 +1,251 @@
 extends ../../layouts/default.pug
 
 block content
-  .orders-wrapper
-    .orders-header
+  style.
+    .order-detail-wrapper {
+      padding: 2rem;
+      background-color: #f8f9fb;
+      font-family: "Poppins", sans-serif;
+      min-height: 100vh;
+    }
+
+    .order-card {
+      background-color: #fff;
+      border-radius: 16px;
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.05);
+      padding: 2rem;
+    }
+
+    .order-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 2rem;
+    }
+
+    .order-header h3 {
+      font-weight: 600;
+      color: #1e1e1e;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn-back {
+      background: #e9ecef;
+      border: none;
+      color: #333;
+      border-radius: 8px;
+      padding: 8px 16px;
+      font-weight: 500;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      text-decoration: none;
+    }
+
+    .btn-back:hover {
+      background: #dee2e6;
+    }
+
+    .order-info {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1.2rem 2rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .info-block strong {
+      display: block;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+      color: #777;
+      margin-bottom: 2px;
+    }
+
+    .info-block p {
+      margin: 0;
+      color: #222;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .status-section {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+    }
+
+    .status-badge {
+      display: inline-block;
+      padding: 6px 14px;
+      border-radius: 20px;
+      font-weight: 600;
+      font-size: 13px;
+      margin-top: 4px;
+      text-align: center;
+      min-width: 110px;
+    }
+
+    .status-pending { background: rgba(255, 236, 158, 0.3); color: #8a6d3b; border: 1px solid rgba(255, 236, 158, 0.8); }
+    .status-confirmed { background: rgba(200, 255, 200, 0.35); color: #155724; border: 1px solid rgba(150, 230, 150, 0.5); }
+    .status-cancelled { background: rgba(255, 180, 180, 0.35); color: #842029; border: 1px solid rgba(255, 180, 180, 0.6); }
+
+    /* === TABLE FIX ALIGN === */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 14px;
+      margin-top: 1.5rem;
+    }
+
+    th, td {
+      padding: 14px 16px;
+      border-bottom: 1px solid #eee;
+      text-align: center;
+      vertical-align: middle;
+    }
+
+    th:first-child, td:first-child {
+      text-align: left;
+    }
+
+    th {
+      background-color: #f6f7fb;
+      color: #444;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 12px;
+      letter-spacing: 0.4px;
+      line-height: 1.4;
+    }
+
+    tr {
+      height: 90px;
+      transition: background 0.2s ease;
+    }
+
+    tr:hover {
+      background-color: #f9f9ff;
+    }
+
+    /* === PRODUCT CELL === */
+    .product-cell {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .product-thumb {
+      width: 64px;
+      height: 64px;
+      object-fit: cover;
+      border-radius: 10px;
+      flex-shrink: 0;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.08);
+      transition: transform 0.2s ease;
+    }
+
+    .product-thumb:hover {
+      transform: scale(1.05);
+    }
+
+    .product-title {
+      font-weight: 500;
+      color: #222;
+      font-size: 14px;
+      margin: 0;
+      line-height: 1.4;
+    }
+
+    .summary {
+      display: flex;
+      justify-content: flex-end;
+      padding-top: 1rem;
+      font-size: 15px;
+      font-weight: 600;
+      color: #333;
+    }
+
+    @media (max-width: 768px) {
+      table, thead, tbody, th, td, tr {
+        display: block;
+      }
+      thead { display: none; }
+      tr {
+        margin-bottom: 1rem;
+        background: #fff;
+        border-radius: 8px;
+        padding: 10px;
+      }
+      td {
+        text-align: left;
+        border-bottom: none;
+        padding: 6px 0;
+      }
+      .product-thumb { width: 56px; height: 56px; }
+    }
+
+  .order-detail-wrapper
+    .order-header
       h3
         i.bi.bi-receipt
-        | Chi tiết đơn hàng ##{order.id}
+        |  Order Details
+      a.btn-back(href="/admin/orders")
+        i.bi.bi-arrow-left
+        |  Back
 
-    .orders-card
-      h5.section-title Thông tin đơn hàng
-      ul.order-info
-        li
-          span.key Mã đơn:
-          span.val #{order.id}
-        li
-          span.key Khách hàng:
-          span.val #{order.customer}
-        li
-          span.key Ngày đặt:
-          span.val #{order.date}
-        li
-          span.key Địa chỉ giao hàng:
-          span.val #{order.address}
-        li
-          span.key Tổng tiền:
-          span.val #{order.total.toLocaleString()} đ
+    .order-card
+      .order-info
+        .info-block
+          strong Order ID
+          p #{order.id}
+        .info-block
+          strong Customer
+          p #{order.shipping_full_name}
+        .info-block
+          strong Phone
+          p #{order.shipping_phone}
+        .info-block
+          strong Address
+          p #{order.shipping_line1}, #{order.shipping_ward}, #{order.shipping_district}, #{order.shipping_city}
+        .info-block
+          strong Created At
+          p #{new Date(order.created_at).toLocaleString('en-US')}
+        .info-block.status-section
+          strong Status
+          if order.status === 'pending'
+            span.status-badge.status-pending Pending
+          else if order.status === 'confirmed'
+            span.status-badge.status-confirmed Confirmed
+          else
+            span.status-badge.status-cancelled Cancelled
 
-      hr.divider
+      hr
 
-      h5.section-title Danh sách sản phẩm
-      .table-responsive
-        table.orders-table.compact
-          thead
+      h5(style="font-weight:600;color:#222;margin-bottom:1rem;") Items in this Order
+      table
+        thead
+          tr
+            th Product
+            th Variant
+            th Quantity
+            th Unit Price
+            th Total
+        tbody
+          each item in order.order_items
+            - const imgSrc = item.products.thumbnail || '/img/default-product.jpg';
             tr
-              th.text-start Sản phẩm
-              th.text-center Số lượng
-              th.text-end Đơn giá
-              th.text-end Thành tiền
-          tbody
-            each item in order.items
-              tr
-                td.text-start #{item.name}
-                td.text-center #{item.qty}
-                td.text-end #{item.price.toLocaleString()} đ
-                td.text-end #{(item.qty * item.price).toLocaleString()} đ
+              td
+                .product-cell
+                  img.product-thumb(src=imgSrc, alt=item.products.title)
+                  p.product-title #{item.products.title}
+              td #{item.productVariants ? item.productVariants.color : '-'}
+              td #{item.quantity}
+              td #{Number(item.price).toLocaleString('en-US')} ₫
+              td #{Number(item.line_total).toLocaleString('en-US')} ₫
 
-      .action-row
-        a.btn.btn-secondary.btn-lg(href="/admin/orders")
-          i.bi.bi-arrow-left
-          | Quay lại danh sách
+      .summary
+        span Grand Total: #{Number(order.grand_total).toLocaleString('en-US')} ₫

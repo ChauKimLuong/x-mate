@@ -6,6 +6,13 @@ import {
   exportInventoryExcel,
 } from "../../controllers/admin/reports.controller";
 
+console.log("🧩 reports.controller exports:", {
+  revenueReport,
+  exportRevenueExcel,
+  inventoryReport,
+  exportInventoryExcel,
+});
+
 const router = Router();
 
 router.get("/revenue", revenueReport);

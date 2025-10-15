@@ -193,22 +193,33 @@ export async function reorderDraftCsv(req: Request, res: Response) {
         productVariants: { select: { stock: true } },
       },
     });
-    const rows = [["productId", "title", "onHand", "reorderPoint", "suggestQty"]];
+
+    // Khai báo kiểu rõ ràng để TS hiểu
+    const rows: (string | number)[][] = [
+      ["productId", "title", "onHand", "reorderPoint", "suggestQty"],
+    ];
+
     products.forEach((p) => {
-      const onHand = p.productVariants.reduce((s, v) => s + (v.stock || 0), 0);
-      const rp = 10;
+      // Nếu productVariants rỗng -> onHand = 0
+      const onHand = p.productVariants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
+      const rp = 10; // reorder point
       const suggest = Math.max(0, rp - onHand);
       if (suggest > 0) rows.push([p.id, p.title, onHand, rp, suggest]);
     });
+
     const csv = toCsv(rows);
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", 'attachment; filename="reorder-draft.csv"');
+    res.setHeader(
+      "Content-Disposition",
+      'attachment; filename="reorder-draft.csv"'
+    );
     res.send(csv);
   } catch (e) {
     console.error(e);
     res.status(500).send("Cannot create draft PO");
   }
 }
+
 
 /** ========= Stocktake ========= */
 
@@ -271,8 +282,7 @@ export async function viewStocktake(req: Request, res: Response) {
     res.status(500).send("View stocktake error");
   }
 }
-
-// Download CSV template for a session
+        // ======== Download CSV template for a stocktake session ========
 export async function downloadStocktake(req: Request, res: Response) {
   try {
     const { sid } = req.params;
@@ -280,40 +290,60 @@ export async function downloadStocktake(req: Request, res: Response) {
     const s = sessions.find((x) => x.id === sid);
     if (!s) return res.status(404).send("Session not found");
 
-    // Build rows: variant-level
+    // Lấy danh sách variants + product liên kết
     const variants = await prisma.productVariants.findMany({
       select: {
         id: true,
         stock: true,
-        products: { select: { id: true, title: true, status: true, deleted: true } },
+        products: {
+          select: {
+            id: true,
+            title: true,
+            status: true,
+            deleted: true,
+          },
+        },
       },
     });
 
-    // scope filter
-    const rows = [["variantId", "productId", "title", "systemOnHand", "counted"]];
+    // Chuẩn bị dữ liệu CSV
+    const rows: (string | number)[][] = [
+      ["variantId", "productId", "title", "systemOnHand", "counted"],
+    ];
+
     for (const v of variants) {
       const prod = v.products;
       if (!prod) continue;
-      if (s.scope === "active" && (prod.deleted || prod.status !== "active")) continue;
 
-      const on = v.stock || 0;
+      // Nếu scope = "active" → bỏ qua sản phẩm đã xóa hoặc không active
+      if (s.scope === "active" && (prod.deleted || prod.status !== "active"))
+        continue;
 
+      const on = v.stock ?? 0;
+
+      // Nếu scope = "low" → chỉ lấy sản phẩm có tồn <= reorder point
       if (s.scope === "low") {
         const rp = 10;
         if (on > rp) continue;
       }
+
       rows.push([v.id, prod.id, prod.title, on, ""]);
     }
 
+    // Xuất CSV
     const csv = toCsv(rows);
     res.setHeader("Content-Type", "text/csv");
-    res.setHeader("Content-Disposition", `attachment; filename="stocktake-${sid}.csv"`);
+    res.setHeader(
+      "Content-Disposition",
+      `attachment; filename="stocktake-${sid}.csv"`
+    );
     res.send(csv);
   } catch (e) {
     console.error(e);
     res.status(500).send("Download stocktake error");
   }
 }
+
 
 // Upload stocktake CSV → preview (session moves to reviewing)
 export async function uploadStocktakeCsv(req: Request, res: Response) {
@@ -682,31 +712,45 @@ export async function exportCsv(req: Request, res: Response) {
       onHandMap.set(p.id, p.productVariants.reduce((t, v) => t + (v.stock || 0), 0));
     }
 
-    const reservedItems = await prisma.orderItems.findMany({
+    // ======= reserved (pending / paid / shipped)
+    const reservedItems = await prisma.order_items.findMany({
       where: {
-        orders: { status: { in: ["pending", "paid", "shipped"] }, createdAt: { gte: s, lt: e } },
+        orders: {
+          status: { in: ["pending", "paid", "shipped"] },
+          created_at: { gte: s, lt: e },
+        },
       },
-      select: { productId: true, quantity: true },
+      select: { product_id: true, quantity: true },
     });
+
     const reservedMap = new Map<string, number>();
     for (const it of reservedItems) {
-      reservedMap.set(it.productId, (reservedMap.get(it.productId) || 0) + (it.quantity || 0));
+      reservedMap.set(it.product_id, (reservedMap.get(it.product_id) || 0) + (it.quantity || 0));
     }
 
-    const completed = await prisma.orderItems.findMany({
-      where: { orders: { status: "completed", createdAt: { gte: s, lt: e } } },
-      select: { productId: true, quantity: true, priceSnap: true },
+    // ======= completed
+    const completed = await prisma.order_items.findMany({
+      where: {
+        orders: { status: "completed", created_at: { gte: s, lt: e } },
+      },
+      select: { product_id: true, quantity: true, price: true },
     });
+
     const soldMap = new Map<string, number>();
     const revenueMap = new Map<string, number>();
     for (const it of completed) {
-      soldMap.set(it.productId, (soldMap.get(it.productId) || 0) + (it.quantity || 0));
-      revenueMap.set(it.productId, (revenueMap.get(it.productId) || 0) + (it.priceSnap || 0) * (it.quantity || 0));
+      soldMap.set(it.product_id, (soldMap.get(it.product_id) || 0) + (it.quantity || 0));
+      revenueMap.set(
+        it.product_id,
+        (revenueMap.get(it.product_id) || 0) + Number(it.price || 0) * (it.quantity || 0)
+      );
     }
 
+    // ======= export rows
     const rows: (string | number)[][] = [
       ["productId", "title", "onHand", "reserved", "sold", "revenue"],
     ];
+
     for (const p of prods) {
       rows.push([
         p.id,

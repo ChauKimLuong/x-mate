@@ -434,8 +434,7 @@ export const showProduct = async (req: Request, res: Response) => {
           include: { colors: { select: { id: true, name: true, hex: true, swatchUrl: true } } },
           // ⚠️ Bỏ orderBy theo createdAt nếu model không có cột này
           orderBy: { id: 'asc' },
-        },
-        reviews: { select: { rating: true } },
+        }
       },
     });
 

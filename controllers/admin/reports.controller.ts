@@ -5,7 +5,7 @@ import ExcelJS from "exceljs";
 const prisma = new PrismaClient();
 
 /* =======================================================
-   💰 REVENUE REPORT
+   📊 RENDER REVENUE REPORT PAGE
    ======================================================= */
 export const revenueReport = async (req: Request, res: Response) => {
   try {
@@ -13,56 +13,71 @@ export const revenueReport = async (req: Request, res: Response) => {
     const to = req.query.to ? new Date(req.query.to as string) : new Date();
     const status = (req.query.status as string) || "All";
 
-    // Validate khoảng ngày
-    if (from > to)
-      return res.render("admin/pages/reports/revenue", {
-        title: "Reports",
-        active: "reports",
-        errorRevenue: "⚠ Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc!",
-        orders: [],
-        movements: [],
-      });
-
-    // Lọc theo trạng thái
-    const where: any = { createdAt: { gte: from, lte: to } };
+    const where: any = { created_at: { gte: from, lte: to } };
     if (status !== "All") {
       const s = status.toLowerCase();
-      if (s === "processing") {
-        where.status = { in: ["paid", "shipped"] };
-      } else if (["completed", "cancelled", "paid", "shipped"].includes(s)) {
-        where.status = s;
-      }
+      if (s === "processing") where.status = { in: ["paid", "shipped"] };
+      else if (["completed", "cancelled", "paid", "shipped"].includes(s)) where.status = s;
     }
 
+    // --- Lấy danh sách đơn hàng ---
     const orders = await prisma.orders.findMany({
       where,
-      include: { users: true },
-      orderBy: { createdAt: "desc" },
+      orderBy: { created_at: "desc" },
+      select: {
+        id: true,
+        status: true,
+        grand_total: true,
+        created_at: true,
+        token_user: true,
+      },
     });
 
-    const totalRevenue = orders.reduce((sum, o) => sum + o.total, 0);
-    const completed = orders.filter(o => o.status === "completed").length;
-    const processing = orders.filter(o => ["paid", "shipped"].includes(o.status)).length;
+    // --- Lấy danh sách user tương ứng ---
+    const tokens = Array.from(new Set(orders.map(o => o.token_user).filter(Boolean) as string[]));
+    const users = tokens.length
+      ? await prisma.users.findMany({
+          where: { token_user: { in: tokens } },
+          select: { token_user: true, full_name: true, email: true },
+        })
+      : [];
+    const userMap = new Map(users.map(u => [u.token_user, u]));
 
+    // --- Tạo rows để render ---
+    const rows = orders.map(o => {
+      const user = o.token_user ? userMap.get(o.token_user) : undefined;
+      return {
+        id: o.id,
+        createdAt: o.created_at,
+        userName: user?.full_name || "Khách vãng lai",
+        userEmail: user?.email || "-",
+        total: Number(o.grand_total || 0),
+        status: o.status,
+      };
+    });
+
+    // --- Tính toán tổng doanh thu ---
+    const totalRevenue = rows.reduce((sum, r) => sum + r.total, 0);
+    const completed = rows.filter(r => r.status === "completed").length;
+    const processing = rows.filter(r => ["paid", "shipped"].includes(r.status)).length;
+
+    // --- Render ra trang view ---
     res.render("admin/pages/reports/revenue", {
       title: "Reports",
       active: "reports",
       from: from.toISOString().substring(0, 10),
       to: to.toISOString().substring(0, 10),
       status,
-      orders,
+      orders: rows,
       totalRevenue,
       completed,
       processing,
-      // Data Inventory rỗng
-      fromInv: "",
-      toInv: "",
-      reason: "",
+      // placeholders for inventory
+      categories: [],
       movements: [],
-      totalAdjustments: 0,
-      added: 0,
-      removed: 0,
-      onHand: 0,
+      totalProductTypes: 0,
+      totalStockRemaining: 0,
+      totalSold: 0,
     });
   } catch (err) {
     console.error("❌ Revenue report error:", err);
@@ -79,7 +94,7 @@ export const exportRevenueExcel = async (req: Request, res: Response) => {
     const to = req.query.to ? new Date(req.query.to as string) : new Date();
     const status = (req.query.status as string) || "All";
 
-    const where: any = { createdAt: { gte: from, lte: to } };
+    const where: any = { created_at: { gte: from, lte: to } };
     if (status !== "All") {
       const s = status.toLowerCase();
       if (s === "processing") {
@@ -89,14 +104,46 @@ export const exportRevenueExcel = async (req: Request, res: Response) => {
       }
     }
 
+    // Lấy danh sách đơn hàng
     const orders = await prisma.orders.findMany({
       where,
-      include: { users: true },
-      orderBy: { createdAt: "desc" },
+      orderBy: { created_at: "desc" },
+      select: {
+        id: true,
+        status: true,
+        grand_total: true,
+        created_at: true,
+        token_user: true,
+      },
     });
 
     if (!orders.length) return res.status(400).send("Không có dữ liệu để xuất Excel!");
 
+    // Lấy danh sách user tương ứng qua token_user
+    const tokens = Array.from(new Set(orders.map(o => o.token_user).filter(Boolean) as string[]));
+    const users = tokens.length
+      ? await prisma.users.findMany({
+          where: { token_user: { in: tokens } },
+          select: { token_user: true, full_name: true, email: true },
+        })
+      : [];
+
+    const userMap = new Map(users.map(u => [u.token_user, u]));
+
+    // ✅ Tạo rows có đầy đủ user_name và user_email
+    const rows = orders.map(o => {
+      const user = o.token_user ? userMap.get(o.token_user) : undefined;
+      return {
+        id: o.id,
+        created_at: o.created_at,
+        user_name: user?.full_name || "Khách vãng lai",
+        user_email: user?.email || "-",
+        total_number: Number(o.grand_total || 0),
+        status: o.status,
+      };
+    });
+
+    // === Excel export ===
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Revenue Report");
 
@@ -109,20 +156,24 @@ export const exportRevenueExcel = async (req: Request, res: Response) => {
       { header: "Status", key: "status", width: 15 },
     ];
 
-    orders.forEach(o =>
+    // ✅ Ghi từng dòng
+    rows.forEach(o => {
       ws.addRow({
         id: o.id,
-        date: o.createdAt.toLocaleDateString("vi-VN"),
-        customer: o.users?.full_name || "-",
-        email: o.users?.email || "-",
-        total: o.total.toLocaleString("vi-VN"),
+        date: new Date(o.created_at).toLocaleDateString("vi-VN"),
+        customer: o.user_name,
+        email: o.user_email,
+        total: o.total_number.toLocaleString("vi-VN"),
         status: o.status,
-      })
-    );
+      });
+    });
 
     const buffer = await wb.xlsx.writeBuffer();
     res.setHeader("Content-Disposition", "attachment; filename=revenue_report.xlsx");
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader(
+      "Content-Type",
+      "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+    );
     res.send(buffer);
   } catch (err) {
     console.error("❌ Export revenue error:", err);
@@ -177,18 +228,18 @@ export const inventoryReport = async (req: Request, res: Response) => {
     });
 
     // --- Lấy danh sách orderItems trong khoảng thời gian ---
-    const soldItems = await prisma.orderItems.findMany({
+    const soldItems = await prisma.order_items.findMany({
       where: {
-        createdAt: { gte: fromInv, lte: toInv },
+        created_at: { gte: fromInv, lte: toInv },
         orders: { status: { in: ["completed", "paid", "shipped"] } },
       },
-      select: { productId: true, quantity: true },
+      select: { product_id: true, quantity: true },
     });
 
     // Gom theo productId
     const soldMap = new Map<string, number>();
     soldItems.forEach(i => {
-      soldMap.set(i.productId, (soldMap.get(i.productId) || 0) + i.quantity);
+      soldMap.set(i.product_id, (soldMap.get(i.product_id) || 0) + i.quantity);
     });
 
     // --- Tạo bảng dữ liệu ---
