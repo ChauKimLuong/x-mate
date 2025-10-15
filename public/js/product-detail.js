@@ -1,4 +1,5 @@
-﻿(function () {
+﻿//@ts-nocheck
+(function () {
   var mainImage = document.getElementById('mainImage');
   if (!mainImage) return;
 

@@ -8,5 +8,12 @@ router.post("/update-info", userController.updateInfo)
 router.post("/change-password", userController.changePassword)
 router.get("/address", userController.address);
 router.post("/address", userController.addressPost)
+router.post("/address/update", userController.addressUpdate)
+router.post("/address/default/:addressId", userController.addressDefault)
+router.post("/address/delete/:addressId", userController.addressDelete)
+router.get("/voucher", userController.voucher);
+router.get("/order", userController.order);
+router.get("/review", userController.review);
+router.post("/review", userController.reviewPost);
 
 export default router;

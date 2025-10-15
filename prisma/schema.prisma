@@ -32,11 +32,17 @@ model productVariants {
   color              String
   images             String[]
   stock              Int                  @default(0)
+  colorId            String?
+  colorHexLegacy     String?
+  swatchUrlLegacy    String?
+  cart_items         cart_items[]
   inventoryMovements inventoryMovements[]
-  orderItems         orderItems[]
+  order_items        order_items[]
+  colors             colors?              @relation(fields: [colorId], references: [id], onUpdate: NoAction, map: "ProductVariant_colorId_colors_fk")
   products           products             @relation(fields: [productId], references: [id], onDelete: Cascade, map: "ProductVariant_productId_fkey")
 
   @@index([productId], map: "ProductVariant_productId_idx")
+  @@index([colorId], map: "ProductVariant_colorId_idx")
 }
 
 model products {
@@ -56,11 +62,11 @@ model products {
   soldCount          Int                  @default(0)
   ratingAvg          Float                @default(0)
   ratingCount        Int                  @default(0)
+  cart_items         cart_items[]
   inventoryMovements inventoryMovements[]
-  orderItems         orderItems[]
+  order_items        order_items[]
   productVariants    productVariants[]
   categories         categories           @relation(fields: [categoryId], references: [id], map: "Product_categoryId_fkey")
-  reviews            reviews[]
 
   @@index([categoryId], map: "Product_categoryId_idx")
   @@index([status, deleted], map: "Product_status_deleted_idx")
@@ -85,9 +91,9 @@ model users {
   address    String?
   height_cm  Int?
   weight_kg  Decimal?    @db.Decimal(5, 1)
+  role       String?     @db.Uuid
   addresses  addresses[]
-  orders     orders[]
-  reviews    reviews[]
+  roles      roles?      @relation(fields: [role], references: [id], onUpdate: NoAction, map: "fk_users_role")
 }
 
 model addresses {
@@ -129,8 +135,10 @@ model coupons {
   status         String           @default("INACTIVE") @db.VarChar(20)
   createdat      DateTime         @default(now()) @db.Timestamp(6)
   updatedat      DateTime         @default(now()) @db.Timestamp(6)
+  carts          carts[]
   couponproducts couponproducts[]
   couponusages   couponusages[]
+  orders         orders[]
 }
 
 model couponusages {
@@ -152,7 +160,6 @@ model inventoryMovements {
   refOrderId      String?
   note            String?
   createdAt       DateTime         @default(now()) @db.Timestamptz(6)
-  orderItems      orderItems?      @relation(fields: [orderItemId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "inv_orderItem_fkey")
   products        products         @relation(fields: [productId], references: [id], onUpdate: NoAction, map: "inv_product_fkey")
   productVariants productVariants? @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "inv_variant_fkey")
 
@@ -161,58 +168,111 @@ model inventoryMovements {
   @@index([variantId], map: "inv_variant_idx")
 }
 
-model orderItems {
-  id                 String               @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  orderId            String               @db.Uuid
-  productId          String
-  variantId          String?
-  titleSnap          String
-  priceSnap          Int
-  quantity           Int                  @default(1)
-  createdAt          DateTime             @default(now()) @db.Timestamptz(6)
-  inventoryMovements inventoryMovements[]
-  orders             orders               @relation(fields: [orderId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  products           products             @relation(fields: [productId], references: [id], onUpdate: NoAction)
-  productVariants    productVariants?     @relation(fields: [variantId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  reviews            reviews[]
-
-  @@index([orderId])
-  @@index([productId])
-  @@index([variantId])
-}
-
 model orders {
-  id            String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId        String        @db.Uuid
-  status        OrderStatus   @default(pending)
-  paymentStatus PaymentStatus @default(unpaid)
-  total         Int           @default(0)
-  note          String?
-  createdAt     DateTime      @default(now()) @db.Timestamptz(6)
-  updatedAt     DateTime      @default(now()) @db.Timestamptz(6)
-  orderItems    orderItems[]
-  users         users         @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-
-  @@index([status, paymentStatus], map: "orders_status_pay_idx")
-  @@index([userId, status])
+  id                 String        @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  token_user         String?
+  status             String        @default("pending")
+  payment_method     String
+  coupon_id          Int?
+  subtotal           Decimal       @default(0) @db.Decimal(12, 0)
+  discount_total     Decimal       @default(0) @db.Decimal(12, 0)
+  shipping_fee       Decimal       @default(0) @db.Decimal(12, 0)
+  grand_total        Decimal       @default(0) @db.Decimal(12, 0)
+  shipping_full_name String
+  shipping_phone     String
+  shipping_line1     String
+  shipping_city      String
+  shipping_district  String
+  shipping_ward      String
+  note               String?
+  created_at         DateTime      @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime      @default(now()) @db.Timestamptz(6)
+  order_items        order_items[]
+  coupons            coupons?      @relation(fields: [coupon_id], references: [couponid], onUpdate: NoAction)
 }
 
-model reviews {
-  id          String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  userId      String      @db.Uuid
-  productId   String
-  orderItemId String?     @db.Uuid
-  rating      Int
-  content     String?
-  images      String[]    @default([])
-  createdAt   DateTime    @default(now()) @db.Timestamptz(6)
-  updatedAt   DateTime    @default(now()) @db.Timestamptz(6)
-  orderItems  orderItems? @relation(fields: [orderItemId], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  products    products    @relation(fields: [productId], references: [id], onDelete: Cascade, onUpdate: NoAction)
-  users       users       @relation(fields: [userId], references: [id], onDelete: Cascade, onUpdate: NoAction)
+model roles {
+  id          String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name        String    @unique @db.VarChar(50)
+  description String?
+  created_at  DateTime? @default(now()) @db.Timestamptz(6)
+  users       users[]
+}
 
-  @@unique([userId, productId], map: "reviews_user_product_uidx")
-  @@index([productId, rating], map: "reviews_product_rating_idx")
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model cart_items {
+  id              Int             @id @default(autoincrement())
+  cart_id         Int
+  product_id      String
+  variant_id      String
+  image_url       String?
+  size            String?
+  color           String?
+  price_unit      Decimal         @db.Decimal(12, 0)
+  quantity        Int
+  line_subtotal   Decimal?        @db.Decimal(12, 0)
+  line_discount   Decimal?        @default(0) @db.Decimal(12, 0)
+  line_total      Decimal?        @db.Decimal(12, 0)
+  carts           carts           @relation(fields: [cart_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  products        products        @relation(fields: [product_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  productVariants productVariants @relation(fields: [variant_id], references: [id], onUpdate: NoAction)
+
+  @@unique([cart_id, variant_id])
+}
+
+model carts {
+  id           Int          @id @default(autoincrement())
+  token_user   String?
+  grand_total  Decimal      @default(0) @db.Decimal(12, 0)
+  created_at   DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime     @default(now()) @db.Timestamptz(6)
+  shipping_fee Decimal      @default(0) @db.Decimal(12, 0)
+  coupon_id    Int?
+  cart_items   cart_items[]
+  coupons      coupons?     @relation(fields: [coupon_id], references: [couponid], onUpdate: NoAction)
+}
+
+model colors {
+  id              String            @id
+  name            String
+  slug            String            @unique
+  hex             String?
+  swatchUrl       String?
+  isActive        Boolean           @default(true)
+  createdAt       DateTime          @default(now()) @db.Timestamptz(6)
+  updatedAt       DateTime          @default(now()) @db.Timestamptz(6)
+  productVariants productVariants[]
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model order_items {
+  id                 String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_id           String           @db.Uuid
+  product_id         String
+  variant_id         String?
+  product_slug       String
+  thumbnail_snapshot String?
+  price              Decimal          @db.Decimal(12, 0)
+  quantity           Int
+  size               String?
+  color              String?
+  line_total         Decimal          @db.Decimal(12, 0)
+  created_at         DateTime         @default(now()) @db.Timestamptz(6)
+  orders             orders           @relation(fields: [order_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_order_items_order")
+  products           products         @relation(fields: [product_id], references: [id], onUpdate: NoAction, map: "fk_order_items_product")
+  productVariants    productVariants? @relation(fields: [variant_id], references: [id], onUpdate: NoAction, map: "fk_order_items_variant")
+  product_review     product_reviews? @relation("OrderItemReview")
+}
+
+model product_reviews {
+  id             String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  order_item_id  String       @unique @db.Uuid
+  token_user     String?
+  rating         Int
+  content        String
+  created_at     DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime     @default(now()) @db.Timestamptz(6)
+  order_item_ref order_items  @relation("OrderItemReview", fields: [order_item_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 }
 
 enum Status {

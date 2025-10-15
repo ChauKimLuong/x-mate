@@ -1,0 +1,166 @@
+extends ../../layouts/default.pug
+
+block title
+  title XMate • Giỏ hàng
+
+block extra_css
+  link(rel="stylesheet", href="/css/cart.css")
+
+block extra_js
+  if cart && cart.totals
+    script.
+      window.__CART_BASE_TOTALS = !{JSON.stringify(cart.totals)};
+  else
+    script.
+      window.__CART_BASE_TOTALS = {};
+  if freeShip
+    script.
+      window.__CART_BASE_FREESHIP = !{JSON.stringify(freeShip)};
+  else
+    script.
+      window.__CART_BASE_FREESHIP = {};
+  if cart && cart.coupon
+    script.
+      window.__CART_ACTIVE_VOUCHER = !{JSON.stringify(cart.coupon)};
+  else
+    script.
+      window.__CART_ACTIVE_VOUCHER = null;
+  if typeof canUseVoucher !== 'undefined'
+    script.
+      window.__CART_CAN_USE_VOUCHER = !{JSON.stringify(!!canUseVoucher)};
+  else
+    script.
+      window.__CART_CAN_USE_VOUCHER = true;
+  script(src="/js/cart.js", defer)
+
+block content
+  .cart-page
+    .container
+
+      section.free-ship
+        .fs-top
+          span#fs-text= freeShip ? freeShip.headerText : 'Miễn phí vận chuyển cho đơn từ 500.000₫'
+          span#fs-right= freeShip ? freeShip.statusText : ''
+        .fs-bar
+          - const progressPercent = freeShip ? freeShip.progressPercent : 0
+          #fs-bar-fill(style=`width:${progressPercent}%`)
+        .fs-scale
+          span 0
+          span= freeShip ? freeShip.thresholdText : '500.000₫'
+
+      .row
+        .card
+          .list-head
+            label.chk-all
+              input#chk-all(type="checkbox", disabled=cart && cart.isEmpty)
+              span Chọn tất cả
+            form#bulk-delete-form(method="post", action="/cart/items/batch-delete")
+              input(type="hidden", name="redirect", value="/cart")
+              button#btnDeleteSelected.btn.btn-danger.btn-sm(type="submit", disabled=cart && cart.isEmpty) Xóa đã chọn
+
+          if cart && !cart.isEmpty
+            table
+              thead
+                tr
+                  th.chk
+                  th Sản phẩm
+                  th.center.nowrap Đơn giá
+                  th.center.nowrap(style="width:220px;") Số lượng
+                  th.right.nowrap Thành tiền
+                  th.right(style="width:1px;")
+              tbody#cart-body
+                each item in cart.items
+                  tr(data-item-id=item.id)
+                    td.chk
+                      input(type="checkbox", name="itemIds", value=item.id, data-item=item.id, form="bulk-delete-form")
+                    td
+                      .prod
+                        img.img(src=item.image || '/images/placeholder.png', alt=item.title, loading="lazy")
+                        .info
+                          p.title= item.title
+                          if item.color || item.size
+                            p.muted
+                              if item.color
+                                span Màu: #{item.color}
+                              if item.color && item.size
+                                br
+                              if item.size
+                                span Size: #{item.size}
+                          if item.slug
+                            a.muted(href=`/product/detail/${item.slug}`, target="_blank") Xem chi tiết
+                    td.center.nowrap= item.unitPriceText
+                    td.center.nowrap
+                      form.cart-qty-form(method="post", action=`/cart/items/${item.id}/quantity`)
+                        input(type="hidden", name="redirect", value="/cart")
+                        .qty-stepper
+                          button.btn.btn-qty(type="submit", name="action", value="decrease", aria-label="Giảm số lượng") -
+                          input.inp-qty(type="number", min="0", name="quantity", value=item.quantity, data-item=item.id)
+                          button.btn.btn-qty(type="submit", name="action", value="increase", aria-label="Tăng số lượng") +
+                        button.btn.btn-sm.btn-qty-update(type="submit", name="action", value="set") Cập nhật
+                    td.right.nowrap
+                      span= item.lineTotalText
+                      if item.lineDiscount > 0
+                        br
+                        small.muted= item.lineDiscountText
+                    td.right
+                      form.cart-remove-form(method="post", action=`/cart/items/${item.id}/delete`)
+                        input(type="hidden", name="redirect", value="/cart")
+                        button.btn.btn-outline.btn-sm(type="submit") Xóa
+          else
+            #empty.empty(style="display:block;") Giỏ hàng trống.
+
+        aside.card.summary
+          - const voucherAllowed = typeof canUseVoucher === 'boolean' ? canUseVoucher : true;
+          .voucher-strip
+            button.nav.prev(type="button", aria-label="Prev") ‹
+            #coupon-list.tickets(class=!voucherAllowed ? 'is-disabled' : '')
+              if voucherAllowed && vouchers && vouchers.length
+                each voucher in vouchers
+                  .ticket(
+                    class=voucher.disabled ? 'is-disabled' : ''
+                    data-code=voucher.code
+                    data-type=voucher.type
+                    data-discount=voucher.discountValue
+                    data-max=voucher.maxDiscount
+                    data-min=voucher.minOrderValue
+                  )
+                    div.code= voucher.code
+                    div.desc= voucher.title
+                    div.meta= voucher.meta
+                    div.meta= voucher.expiry
+              else if voucherAllowed
+                .ticket
+                  div.code Ưu đãi
+                  div.desc Hiện chưa có mã ưu đãi khả dụng.
+              else
+                .ticket
+                  div.code Voucher
+                  div.desc Voucher chỉ áp dụng cho thành viên đã đăng nhập.
+            button.nav.next(type="button", aria-label="Next") ›
+
+          .coupon
+            input#coupon(type="text", placeholder=voucherAllowed ? "Nhập mã giảm giá" : "Đăng nhập để sử dụng voucher", disabled=!voucherAllowed)
+            button#btnCoupon.btn.btn-primary(type="button", disabled=!voucherAllowed)= voucherAllowed ? "Áp dụng" : "Không khả dụng"
+          if !voucherAllowed
+            p.voucher-note.muted(style="margin:8px 0 0") Vui lòng đăng nhập để xem và sử dụng voucher.
+
+          .rowline
+            .muted Tạm tính
+            .nowrap(id="subtotal")= cart && cart.totals ? cart.totals.subtotalText : '0 ₫'
+          .rowline
+            .muted Giảm giá
+            .nowrap(id="discount")= cart && cart.totals ? cart.totals.discountText : '0 ₫'
+          .rowline
+            .muted Phí vận chuyển
+            .nowrap
+              span#shipping= cart && cart.totals ? cart.totals.shippingText : '0 ₫'
+              - const freeShipReached = cart && cart.totals ? cart.totals.freeShipReached : false
+              span#ship-badge.badge-free(hidden=!freeShipReached) Miễn phí
+          hr
+          .rowline.total
+            div Tổng cộng
+            div#total.nowrap= cart && cart.totals ? cart.totals.totalText : '0 ₫'
+
+          .actions.actions-right
+            a.btn(href="/") ← Tiếp tục mua
+            a#btnCheckout.btn.btn-primary(href="/checkout") Thanh toán

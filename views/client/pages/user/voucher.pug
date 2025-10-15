@@ -1,0 +1,42 @@
+extends ../../layouts/default.pug
+include ../../mixins/user-sidebar.pug
+
+block title
+    title Ví Voucher
+
+block extra_css
+    link(rel="stylesheet" href="/css/components/user.css")
+
+block content
+    .account-page
+        +accountSidebar('vouchers')
+
+        main.account-main
+            .white-surface
+                h1.surface-title Ví Voucher
+
+                if !vouchers || !vouchers.length
+                    .empty-state Ví voucher của bạn đang trống. Săn ưu đãi để nhận thêm nhé!
+                else
+                    .voucher-wallet
+                        .voucher-wallet__grid
+                            each v in vouchers
+                                article.voucher-card
+                                    - const isUnavailable = v.isExpired || v.isOutOfQuota;
+                                    header.voucher-card__header
+                                        span.voucher-card__code #{v.code}
+                                        span.voucher-card__remaining(class=isUnavailable ? 'is-expired' : '') #{v.remainingLabel}
+                                    p.voucher-card__description #{v.description}
+                                    if v.notes && v.notes.length
+                                        ul.voucher-card__notes
+                                            each note in v.notes
+                                                li.voucher-card__note #{note}
+                                    footer.voucher-card__footer
+                                        span.voucher-card__expiry(class=isUnavailable ? 'is-expired' : '') HSD: #{v.expiryText}
+                                        if v.termsUrl && v.termsUrl !== '#'
+                                            a.voucher-card__terms(href=v.termsUrl) Điều kiện
+                                        else
+                                            span.voucher-card__terms Điều kiện
+
+block extra_js
+    //- Trang này hiện chưa cần JS riêng

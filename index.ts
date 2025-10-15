@@ -1,16 +1,21 @@
-﻿import express, { Request, Response, NextFunction } from "express";
+import express from "express";
 import session from "express-session";
 import flash from "express-flash";
 import dotenv from "dotenv";
+import cookieParser from "cookie-parser";
+
 dotenv.config();
 
 import { connect as connectDB } from "./config/database";
 connectDB();
 
 import clientRoutes from "./routes/client/index.route";
+import cartQuantityMiddleware from "./middlewares/client/cartQuantity.middleware";
+
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+app.use(cookieParser());
 app.use(express.static("public"));
 app.set("views", "./views");
 app.set("view engine", "pug");
@@ -28,8 +33,10 @@ app.use(
 );
 app.use(flash());
 
+app.use(cartQuantityMiddleware);
+
 clientRoutes(app);
 
 app.listen(PORT, () => {
-    console.log(`Server đang chạy tại http://localhost:${PORT}`);
+    console.log(`Server dang chay tai http://localhost:${PORT}`);
 });

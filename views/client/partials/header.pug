@@ -1,9 +1,9 @@
-﻿header.site-header
+header.site-header
   .top-strip
     .container
       ul.top-links
         li
-          a(href="/ve-chung-toi") VỀ X-MATE
+          a(href="/ve-chung-toi") Ve X-MATE
         li
           a(href="/cxp") CXP
       ul.top-links.top-links--right
@@ -14,33 +14,33 @@
         li
           a(href="/cskh") CSKH
         li
-          a(href="/auth/login") Đăng nhập
+          a(href="/auth/login") Dang nhap
   .main-bar
     .container
-      a.brand(href="/", aria-label="Trang chủ X-Mate")
+      a.brand(href="/", aria-label="Trang chu X-Mate")
         img(src="/images/logo1.png", alt="X-Mate", height="60")
       nav.primary-nav
         a.primary-nav__item.is-new(href="/hang-moi") NEW
         a.primary-nav__item(href="/nam") NAM
-        a.primary-nav__item(href="/nu") NỮ
-        a.primary-nav__item(href="/the-thao") THỂ THAO
+        a.primary-nav__item(href="/nu") NU
+        a.primary-nav__item(href="/the-thao") THE THAO
         a.primary-nav__item.is-sale(href="/sale")
           span.primary-nav__sale SALE
           span.primary-nav__sale-tag -50%
         a.primary-nav__item(href="/cs") C&S
       .header-actions
         form.search-form(action="/search", method="get")
-          label.sr-only(for="header-search") Tìm kiếm sản phẩm
-          input#header-search(type="search", name="q", placeholder="Tìm kiếm...")
-          button(type="submit", aria-label="Tìm kiếm")
+          label.sr-only(for="header-search") Tim kiem san pham
+          input#header-search(type="search", name="q", placeholder="Tim kiem...")
+          button(type="submit", aria-label="Tim kiem")
             span.icon.icon--search
-        a.action-link(href="/account", aria-label="Tài khoản")
+        a.action-link(href="/user/info", aria-label="Tai khoan")
           span.fa-solid.fa-user
-        a.action-link.cart(href="/cart", aria-label="Giỏ hàng")
+        a.action-link.cart(href="/cart", aria-label="Gio hang")
           span.fa-solid.fa-cart-shopping
-          span.cart__badge 0
+          span.cart__badge= typeof cartQuantity === "number" ? cartQuantity : 0
   //- .promo-strip
   //-   .container
   //-     p.promo-strip__message
-  //-       | [KHÁCH HÀNG MỚI] NHẬP COOLNEW GIẢM 50K CHO ĐƠN TỪ 299K
-  //-       a(href="/khuyen-mai")  KHÁM PHÁ
+  //-       | [KHACH HANG MOI] NHAP COOLNEW GIAM 50K CHO DON TU 299K
+  //-       a(href="/khuyen-mai")  KHAM PHA
