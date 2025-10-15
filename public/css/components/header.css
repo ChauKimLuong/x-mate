@@ -1,6 +1,8 @@
 ﻿header.site-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 1000;
   background: transparent;
   color: #1a1a1a;

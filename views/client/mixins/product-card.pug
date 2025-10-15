@@ -1,65 +1,30 @@
 mixin productCard(p)
-    - const productId = p?.id || p?._id || ''
+    - const productId = p?.id || ''
     - const productSlug = p?.slug || ''
-    - const productTitle = p?.title || 'San pham'
-    - const prismaVariants = Array.isArray(p?.productVariants) ? p.productVariants : []
-    - const legacyVariants = Array.isArray(p?.variants) ? p.variants : []
-    - const variantImages = [...legacyVariants, ...prismaVariants].flatMap(v => v?.images || [])
-    - const baseImages = Array.isArray(p?.images) ? p.images : []
-    - const allImages = [p?.thumbnail, ...variantImages, ...baseImages].filter(Boolean)
-    - const thumb = allImages[0] || '/images/placeholder.jpg'
-    - const hoverThumb = allImages[1] || thumb
-    - const sizeList = (Array.isArray(p?.sizes) && p.sizes.length) ? p.sizes : ((Array.isArray(p?.size) && p.size.length) ? p.size : null)
-    - const sizes = sizeList || ['S', 'M', 'L', 'XL', '2XL', '3XL']
-    - const colorsField = Array.isArray(p?.colors) ? p.colors : []
-    - const colorsLegacy = legacyVariants.map(v => v?.color).filter(Boolean)
-    - const colorsPrisma = prismaVariants.map(v => v?.color).filter(Boolean)
-    - const colors = [...new Set([...colorsField, ...colorsLegacy, ...colorsPrisma].filter(Boolean))].slice(0, 5)
-    - const activeColor = colors[0]
-    - const toNumber = (value) => {
-    -     if (value === null || value === undefined) return null;
-    -     if (typeof value === 'number') return Number.isFinite(value) ? value : null;
-    -     if (typeof value === 'string') {
-    -         const parsed = Number(value);
-    -         return Number.isFinite(parsed) ? parsed : null;
-    -     }
-    -     if (typeof value === 'bigint') return Number(value);
-    -     if (value && typeof value === 'object' && typeof value.toString === 'function') {
-    -         const parsed = Number(value.toString());
-    -         return Number.isFinite(parsed) ? parsed : null;
-    -     }
-    -     return null;
-    - }
-    - const rawPrice = toNumber(p?.price)
-    - const discountValueRaw = toNumber(p?.discount)
-    - const discountValue = discountValueRaw && discountValueRaw > 0 ? discountValueRaw : 0
-    - const computedFinal = rawPrice !== null ? Math.max(0, Math.round(rawPrice * (100 - discountValue) / 100)) : null
-    - const formatVnd = (value) => {
-    -     if (typeof value !== 'number' || !Number.isFinite(value)) return null;
-    -     return new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND', maximumFractionDigits: 0 }).format(value);
-    - }
-    - const finalPriceText = p?.finalPriceText || (() => {
-    -     const finalPrice = toNumber(p?.finalPrice);
-    -     if (typeof finalPrice === 'number') return formatVnd(finalPrice);
-    -     return computedFinal !== null ? formatVnd(computedFinal) : null;
-    - })()
-    - const originalPriceText = p?.priceText || formatVnd(rawPrice)
-    - const hasDiscount = discountValue > 0 && rawPrice !== null
-    - const priceForCart = typeof computedFinal === 'number' ? computedFinal : (rawPrice ?? 0)
+    - const productTitle = p?.title || 'Sản phẩm'
+    - const thumbnail = p?.thumbnail || '/images/placeholder.jpg'
+    - const hoverThumbnail = p?.hoverThumbnail || thumbnail
+    - const sizes = Array.isArray(p?.sizes) ? p.sizes : []
+    - const colors = Array.isArray(p?.colors) ? p.colors : []
+    - const finalPriceText = p?.finalPriceText || ''
+    - const originalPriceText = p?.originalPriceText || null
+    - const hasDiscount = Boolean(p?.hasDiscount)
+    - const discountPercent = typeof p?.discountPercent === 'number' ? p.discountPercent : 0
+    - const priceForCart = typeof p?.priceForCart === 'number' ? p.priceForCart : 0
 
     .product-card(
         data-product-id=productId
         data-product-slug=productSlug
         data-product-title=productTitle
         data-product-price=priceForCart
-        data-product-image=thumb
+        data-product-image=thumbnail
     )
         .thumb-wrap
             .thumb-ratio
                 a.product-link(href=`/product/detail/${productSlug}` aria-label=productTitle)
-                    img.product-thumb(src=thumb alt=productTitle loading="lazy")
-                    if hoverThumb && hoverThumb !== thumb
-                        img.product-thumb.product-thumb--hover(src=hoverThumb alt=productTitle loading="lazy")
+                    img.product-thumb(src=thumbnail alt=productTitle loading="lazy")
+                    if hoverThumbnail && hoverThumbnail !== thumbnail
+                        img.product-thumb.product-thumb--hover(src=hoverThumbnail alt=productTitle loading="lazy")
             if sizes && sizes.length
                 .quick-add(tabindex="0")
                     .quick-add__title
@@ -71,19 +36,19 @@ mixin productCard(p)
 
         if colors && colors.length
             .swatches
-                each c in colors
-                    - const act = (c === activeColor) ? ' is-active' : ''
-                    button.swatch(class=act type="button" data-color=c style=`--swatch:${c || '#1f2937'}`)
-                        span.visually-hidden= c || 'Mau khac'
+                each color, idx in colors
+                    - const act = idx === 0 ? ' is-active' : ''
+                    - const swatchName = color?.name || 'Màu khác'
+                    - const swatchHex = color?.hex || '#1f2937'
+                    button.swatch(class=act type="button" data-color-name=swatchName data-color-hex=swatchHex style=`--swatch:${swatchHex}`)
+                        span.visually-hidden= swatchName
 
         .info
             a.title(href=`/product/detail/${productSlug}`)= productTitle
             .price-row
                 if finalPriceText
                     span.final= finalPriceText
-                else if originalPriceText
-                    span.final= originalPriceText
-                if hasDiscount
-                    span.discount-pill -#{discountValue}%
+                if hasDiscount && discountPercent
+                    span.discount-pill -#{discountPercent}%
                 if hasDiscount && originalPriceText
                     span.old= originalPriceText

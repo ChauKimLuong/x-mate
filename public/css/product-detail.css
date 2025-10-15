@@ -781,6 +781,10 @@ details.product-detail__description > *:not(summary) {
   gap: 14px;
 }
 
+input, button {
+  font-family: var(--font);
+}
+
 .product-detail__voucher-label {
   font-weight: 700;
   font-size: 15px;

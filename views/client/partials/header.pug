@@ -31,7 +31,8 @@ header.site-header
       .header-actions
         form.search-form(action="/search", method="get")
           label.sr-only(for="header-search") Tim kiem san pham
-          input#header-search(type="search", name="q", placeholder="Tim kiem...")
+          - const currentSearchQuery = typeof searchQuery === 'string' ? searchQuery : ''
+          input#header-search(type="search", name="q", placeholder="Tim kiem...", value=currentSearchQuery)
           button(type="submit", aria-label="Tim kiem")
             span.icon.icon--search
         a.action-link(href="/user/info", aria-label="Tai khoan")

@@ -1,4 +1,4 @@
-﻿extends ../../layouts/default.pug
+extends ../../layouts/default.pug
 include ../../mixins/product-card.pug
 
 block title
@@ -7,12 +7,25 @@ block title
 block content
   .home-banner
 
+  if error
+    .alert.alert--error(role="alert")= error
+  if isSearch
+    .search-summary
+      .search-summary__container
+        h1.search-summary__title
+          | Kết quả cho "
+          span.search-summary__keyword= searchQuery
+          | "
+        p.search-summary__meta= `${searchTotal} sản phẩm`
   .products
     if products && products.length
       each p in products
         +productCard(p)
     else
-      p(style="padding:1rem") Chưa có sản phẩm nào
+      if isSearch
+        .search-empty Không tìm thấy sản phẩm nào phù hợp.
+      else
+        .search-empty Chưa có sản phẩm nào.
 
 block extra_js
   script(src="/js/header.js")
