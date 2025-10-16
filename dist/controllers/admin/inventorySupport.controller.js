@@ -21,6 +21,7 @@ exports.downloadStocktake = downloadStocktake;
 exports.uploadStocktakeCsv = uploadStocktakeCsv;
 exports.postStocktake = postStocktake;
 exports.deleteStocktake = deleteStocktake;
+exports.stocktakeJson = stocktakeJson;
 exports.bulkUpload = bulkUpload;
 exports.quickCount = quickCount;
 exports.bulkCommit = bulkCommit;
@@ -30,6 +31,7 @@ exports.exportCsv = exportCsv;
 exports.templateCsv = templateCsv;
 exports.diagnostics = diagnostics;
 exports.rebuildOnHand = rebuildOnHand;
+exports.lookup = lookup;
 const database_1 = __importDefault(require("../../config/database"));
 const fs_1 = __importDefault(require("fs"));
 const promises_1 = __importDefault(require("fs/promises"));
@@ -144,6 +146,7 @@ function page(req, res) {
                 diagnostics: { negative, orphan },
                 barcodeUrl: undefined,
                 helpers: { money: fmtMoney },
+                initTab: undefined,
             });
         }
         catch (e) {
@@ -243,28 +246,7 @@ function viewStocktake(req, res) {
             const s = sessions.find((x) => x.id === sid);
             if (!s)
                 return res.status(404).send("Session not found");
-            const products = yield database_1.default.products.findMany({
-                where: { deleted: false, status: "active" },
-                select: { id: true, title: true, productVariants: { select: { id: true, stock: true } } },
-            });
-            const lowStock = products
-                .map((p) => ({ title: p.title, stock: p.productVariants.reduce((a, b) => a + b.stock, 0), reorderPoint: 10 }))
-                .sort((a, b) => a.stock - b.stock)
-                .slice(0, 10);
-            const negative = yield database_1.default.productVariants.findMany({
-                where: { stock: { lt: 0 } },
-                select: { id: true, productId: true, stock: true },
-            });
-            res.render("admin/pages/inventory-support/helper", {
-                title: "Inventory Support",
-                active: "inventory-support",
-                lowStock,
-                sessions: [s, ...sessions.filter((x) => x.id !== sid)].slice(0, 10),
-                bulkPreview: bulkPreviewCache,
-                diagnostics: { negative, orphan: [] },
-                barcodeUrl: undefined,
-                helpers: { money: fmtMoney },
-            });
+            return res.redirect("/admin/inventory-support#p-stock");
         }
         catch (e) {
             console.error(e);
@@ -385,12 +367,14 @@ function postStocktake(req, res) {
             const s = sessions.find((x) => x.id === sid);
             if (!s)
                 return res.status(404).send("Session not found");
-            if (s.status !== "reviewing" || !((_a = s.lines) === null || _a === void 0 ? void 0 : _a.length)) {
-                return res.status(400).send("Session not in reviewing or no lines");
+            if (!((_a = s.lines) === null || _a === void 0 ? void 0 : _a.length)) {
+                return res.status(400).send("No lines to post. Please upload CSV first.");
             }
             yield database_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 for (const line of s.lines) {
                     if (line.counted == null || line.delta == null || line.delta === 0)
+                        continue;
+                    if (!line.productId || !line.variantId)
                         continue;
                     yield tx.inventoryMovements.create({
                         data: {
@@ -433,6 +417,50 @@ function deleteStocktake(req, res) {
         catch (e) {
             console.error(e);
             res.status(500).send("Delete stocktake error");
+        }
+    });
+}
+function stocktakeJson(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        var _a;
+        try {
+            const { sid } = req.params;
+            const sessions = yield readSessions();
+            const s = sessions.find((x) => x.id === sid);
+            if (!s)
+                return res.status(404).json({ ok: false, error: "Session not found" });
+            let lines = null;
+            let postedLines = null;
+            if (s.status === "reviewing" && ((_a = s.lines) === null || _a === void 0 ? void 0 : _a.length)) {
+                lines = s.lines;
+            }
+            else if (s.status === "posted") {
+                const moves = yield database_1.default.inventoryMovements.findMany({
+                    where: { note: `stocktake ${s.id}` },
+                    select: {
+                        variantId: true,
+                        productId: true,
+                        delta: true,
+                        products: { select: { id: true, title: true } },
+                    },
+                    orderBy: { createdAt: "desc" },
+                    take: 500,
+                });
+                postedLines = moves.map((m) => {
+                    var _a;
+                    return ({
+                        variantId: m.variantId || null,
+                        productId: m.productId,
+                        title: ((_a = m.products) === null || _a === void 0 ? void 0 : _a.title) || m.productId,
+                        delta: m.delta,
+                    });
+                });
+            }
+            res.json({ ok: true, session: s, lines, postedLines });
+        }
+        catch (e) {
+            console.error(e);
+            res.status(500).json({ ok: false });
         }
     });
 }
@@ -763,6 +791,38 @@ function rebuildOnHand(req, res) {
         catch (e) {
             console.error(e);
             res.status(500).send("Rebuild onHand error");
+        }
+    });
+}
+function lookup(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const q = String(req.query.q || "").trim();
+            if (!q)
+                return res.json({ ok: true, items: [] });
+            const items = yield database_1.default.products.findMany({
+                where: { deleted: false, title: { contains: q, mode: "insensitive" } },
+                select: {
+                    id: true,
+                    title: true,
+                    productVariants: { select: { id: true }, take: 1 },
+                },
+                take: 20,
+                orderBy: { title: "asc" },
+            });
+            const rows = items.map((p) => {
+                var _a, _b;
+                return ({
+                    productId: p.id,
+                    title: p.title,
+                    variantId: ((_b = (_a = p.productVariants) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.id) || null,
+                });
+            });
+            res.json({ ok: true, items: rows });
+        }
+        catch (e) {
+            console.error(e);
+            res.status(500).json({ ok: false });
         }
     });
 }

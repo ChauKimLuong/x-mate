@@ -1,6 +1,7 @@
 //- views/admin/pages/inventory-support/helper.pug
 extends ../../layouts/default
 include ../../mixins/icons
+include ./session-modal.pug
 
 block head
   style.
@@ -38,6 +39,7 @@ block head
     .btn .ico svg{display:block}
 
 block content
+  +sessionModal()
   h2(style="margin:0 0 16px") INVENTORY SUPPORT
 
   // Tabs
@@ -138,7 +140,7 @@ block content
                 td= s.createdAt
                 td
                   .hstack(style="gap:8px;align-items:center;flex-wrap:wrap")
-                    a.btn(href=`/admin/inventory-support/stocktake/${s.id}`) View
+                    a.btn.session-view(href=`/admin/inventory-support/stocktake/${s.id}` data-sid=s.id) View
                     if s.status === 'draft' || s.status === 'reviewing'
                       a.btn.primary(href=`/admin/inventory-support/stocktake/${s.id}/download`)
                         span.ico
@@ -283,7 +285,7 @@ block content
         else
           .empty No orphan variants.
 
-block scripts
+append scripts
   script.
     // ===== Tabs (shared) + lazy init theo tab =====
     (function(){

@@ -147,6 +147,7 @@ export async function page(req: Request, res: Response) {
       diagnostics: { negative, orphan },
       barcodeUrl: undefined,
       helpers: { money: fmtMoney },
+      initTab: undefined,
     });
   } catch (e) {
     console.error(e);
@@ -245,20 +246,68 @@ export async function createStocktake(req: Request, res: Response) {
 }
 
 // View a session
+// View a session (render inline on helper page)
 export async function viewStocktake(req: Request, res: Response) {
   try {
     const { sid } = req.params;
-    const sessions = await readSessions();
+
+    // 1) Danh sách sessions (để table "Recent Sessions" vẫn còn)
+    const sessions = (await readSessions())
+      .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
+      .slice(0, 10);
+
     const s = sessions.find((x) => x.id === sid);
     if (!s) return res.status(404).send("Session not found");
 
-    // Render the helper page but focus stock tab; include this one session at top of list
+    // 2) Chuẩn bị rows hiển thị tùy trạng thái
+    let rows:
+      | { title: string; variantId: string | null; systemOnHand: number | string; counted: number | string; delta: number | string }[]
+      = [];
+
+    if (s.status === "reviewing" && s.lines?.length) {
+      rows = s.lines.map((r) => ({
+        title: r.title,
+        variantId: r.variantId || null,
+        systemOnHand: r.systemOnHand ?? "-",
+        counted: r.counted ?? "-",
+        delta: r.delta ?? "-",
+      }));
+    } else if (s.status === "posted") {
+      const moves = await prisma.inventoryMovements.findMany({
+        where: { note: `stocktake ${s.id}` },
+        select: {
+          variantId: true,
+          productId: true,
+          delta: true,
+          products: { select: { id: true, title: true } },
+        },
+        orderBy: { createdAt: "desc" },
+        take: 500,
+      });
+      rows = moves.map((m) => ({
+        title: m.products?.title || m.productId,
+        variantId: m.variantId || null,
+        systemOnHand: "-",
+        counted: "-",
+        delta: m.delta,
+      }));
+    }
+
+    // 3) Low-stock + diagnostics như trang page()
     const products = await prisma.products.findMany({
       where: { deleted: false, status: "active" },
-      select: { id: true, title: true, productVariants: { select: { id: true, stock: true } } },
+      select: {
+        id: true,
+        title: true,
+        productVariants: { select: { stock: true } },
+      },
     });
     const lowStock = products
-      .map((p) => ({ title: p.title, stock: p.productVariants.reduce((a, b) => a + b.stock, 0), reorderPoint: 10 }))
+      .map((p) => ({
+        title: p.title,
+        stock: p.productVariants.reduce((sum, v) => sum + (v.stock || 0), 0),
+        reorderPoint: 10,
+      }))
       .sort((a, b) => a.stock - b.stock)
       .slice(0, 10);
 
@@ -267,21 +316,28 @@ export async function viewStocktake(req: Request, res: Response) {
       select: { id: true, productId: true, stock: true },
     });
 
+    // 4) Render helper với sessionDetail
     res.render("admin/pages/inventory-support/helper", {
       title: "Inventory Support",
       active: "inventory-support",
       lowStock,
-      sessions: [s, ...sessions.filter((x) => x.id !== sid)].slice(0, 10),
-      bulkPreview: bulkPreviewCache,
+      sessions,
+      bulkPreview: null,
       diagnostics: { negative, orphan: [] },
       barcodeUrl: undefined,
       helpers: { money: fmtMoney },
+      initTab: "p-stock",
+      sessionDetail: {
+        session: s,
+        rows,
+      },
     });
   } catch (e) {
     console.error(e);
     res.status(500).send("View stocktake error");
   }
 }
+
         // ======== Download CSV template for a stocktake session ========
 export async function downloadStocktake(req: Request, res: Response) {
   try {
@@ -400,21 +456,25 @@ export async function uploadStocktakeCsv(req: Request, res: Response) {
 }
 
 // Post stocktake (commit deltas)
+// Post stocktake (commit deltas)
 export async function postStocktake(req: Request, res: Response) {
   try {
     const { sid } = req.params;
     const sessions = await readSessions();
     const s = sessions.find((x) => x.id === sid);
     if (!s) return res.status(404).send("Session not found");
-    if (s.status !== "reviewing" || !s.lines?.length) {
-      return res.status(400).send("Session not in reviewing or no lines");
+    if (!s.lines?.length) {
+      return res.status(400).send("No lines to post. Please upload CSV first.");
     }
+
+    // snapshot trước khi ghi DB để hiển thị lại System/Counted sau khi posted
+    const snapshot = s.lines.map(l => ({ ...l }));
 
     await prisma.$transaction(async (tx) => {
       for (const line of s.lines!) {
         if (line.counted == null || line.delta == null || line.delta === 0) continue;
+        if (!line.productId || !line.variantId) continue;
 
-        // create movement
         await tx.inventoryMovements.create({
           data: {
             productId: line.productId,
@@ -425,7 +485,6 @@ export async function postStocktake(req: Request, res: Response) {
           },
         });
 
-        // sync variant stock to counted
         await tx.productVariants.update({
           where: { id: line.variantId },
           data: { stock: line.counted },
@@ -434,14 +493,17 @@ export async function postStocktake(req: Request, res: Response) {
     });
 
     s.status = "posted";
+    (s as any).postedLines = snapshot; // giữ System/Counted/Delta
     s.lines = [];
     await writeSessions(sessions);
+
     res.redirect(`/admin/inventory-support#p-stock`);
   } catch (e) {
     console.error(e);
     res.status(500).send("Post stocktake error");
   }
 }
+
 // Delete a stocktake session
 export async function deleteStocktake(req: Request, res: Response) {
   try {
@@ -464,6 +526,62 @@ export async function deleteStocktake(req: Request, res: Response) {
 
 
 /** ========= Bulk Adjust ========= */
+
+export async function stocktakeJson(req: Request, res: Response) {
+  try {
+    const { sid } = req.params;
+    const sessions = await readSessions();
+    const s = sessions.find((x) => x.id === sid);
+    if (!s) return res.status(404).json({ ok: false, error: "Session not found" });
+
+    let lines: StocktakeLine[] | null = null;
+    let postedLines:
+      | { variantId: string | null; productId: string; title: string; systemOnHand: number | string; counted: number | string; delta: number | string }[]
+      | null = null;
+
+    if (s.status === "reviewing" && s.lines?.length) {
+      lines = s.lines;
+    } else if (s.status === "posted") {
+      const snap = (s as any).postedLines as StocktakeLine[] | undefined;
+      if (snap?.length) {
+        postedLines = snap.map(r => ({
+          variantId: r.variantId || null,
+          productId: r.productId,
+          title: r.title,
+          systemOnHand: r.systemOnHand ?? '-',
+          counted: r.counted ?? '-',
+          delta: r.delta ?? '-',
+        }));
+      } else {
+        const moves = await prisma.inventoryMovements.findMany({
+          where: { note: `stocktake ${s.id}` },
+          select: {
+            variantId: true,
+            productId: true,
+            delta: true,
+            products: { select: { id: true, title: true } },
+          },
+          orderBy: { createdAt: "desc" },
+          take: 500,
+        });
+        postedLines = moves.map((m) => ({
+          variantId: m.variantId || null,
+          productId: m.productId,
+          title: m.products?.title || m.productId,
+          systemOnHand: '-',
+          counted: '-',
+          delta: m.delta,
+        }));
+      }
+    }
+
+    res.json({ ok: true, session: s, lines, postedLines });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false });
+  }
+}
+
 
 // Upload CSV -> preview (cache in memory)
 export async function bulkUpload(req: Request, res: Response) {
@@ -836,5 +954,32 @@ export async function rebuildOnHand(req: Request, res: Response) {
   } catch (e) {
     console.error(e);
     res.status(500).send("Rebuild onHand error");
+  }
+}
+
+// Simple product lookup for Quick Count UI
+export async function lookup(req: Request, res: Response) {
+  try {
+    const q = String(req.query.q || "").trim();
+    if (!q) return res.json({ ok: true, items: [] });
+    const items = await prisma.products.findMany({
+      where: { deleted: false, title: { contains: q, mode: "insensitive" as any } },
+      select: {
+        id: true,
+        title: true,
+        productVariants: { select: { id: true }, take: 1 },
+      },
+      take: 20,
+      orderBy: { title: "asc" },
+    });
+    const rows = items.map((p) => ({
+      productId: p.id,
+      title: p.title,
+      variantId: p.productVariants?.[0]?.id || null,
+    }));
+    res.json({ ok: true, items: rows });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false });
   }
 }

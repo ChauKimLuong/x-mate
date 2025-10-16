@@ -25,7 +25,7 @@ exports.getLogin = getLogin;
 const postLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     var _a, _b;
     try {
-        const { email, password } = req.body;
+        const { email, password, remember } = req.body;
         if (!email || !password) {
             req.flash("error", "Vui lòng nhập email và mật khẩu");
             return res.redirect("/admin/login");
@@ -53,7 +53,12 @@ const postLogin = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             id: user.id,
             email: user.email,
             role: roleName,
+            full_name: user.full_name,
+            avatar: user.avatar || null,
         };
+        if (remember) {
+            req.session.cookie.maxAge = 7 * 24 * 60 * 60 * 1000;
+        }
         return req.session.save(() => res.redirect("/admin/dashboard"));
     }
     catch (err) {

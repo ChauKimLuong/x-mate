@@ -81,7 +81,7 @@ class OrdersController {
                 }
                 yield prisma.orders.update({
                     where: { id },
-                    data: { status: "confirmed", updated_at: new Date() },
+                    data: { status: "completed", updated_at: new Date() },
                 });
                 const items = yield prisma.order_items.findMany({ where: { order_id: id } });
                 for (const item of items) {

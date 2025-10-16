@@ -1,0 +1,72 @@
+//- CHỈ mixin + scripts (không dùng append content nữa)
+mixin sessionModal()
+  //- Backdrop + inline styles để chắc chắn hiện
+  .modal-backdrop#sessionModal(
+    style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;background:rgba(2,6,23,.45)"
+  )
+    .modal(
+      role="dialog" aria-modal="true" aria-labelledby="sessTitle"
+      style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 24px 60px rgba(2,6,23,.25);max-width:960px;width:96vw;max-height:90vh;overflow:auto;padding:16px"
+    )
+      .modal-hd#sessTitle(style="font-weight:700;margin:0 0 8px") Stocktake Session
+      .modal-bd
+        .muted(id="sessMeta")
+        div(id="sessTableWrap")
+      .modal-ft(style="margin-top:12px;display:flex;justify-content:flex-end;gap:8px")
+        button.btn(type="button" onclick="document.getElementById('sessionModal').style.display='none'") Close
+
+append scripts
+  script.
+    (function(){
+      console.log('[inv] session-modal: init');
+      function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function openModal(){
+        var el=document.getElementById('sessionModal');
+        if(el){ el.style.display='flex'; } else { console.warn('[inv] #sessionModal not found'); }
+      }
+      document.addEventListener('click', function(e){
+        var a = e.target && e.target.closest && e.target.closest('a.session-view[data-sid]');
+        if(!a) return;
+        e.preventDefault();
+        var sid = a.getAttribute('data-sid'); if(!sid) return;
+        fetch('/admin/inventory-support/stocktake/'+encodeURIComponent(sid)+'/json')
+          .then(function(r){ return r.ok ? r.json() : Promise.reject(r); })
+          .then(function(json){
+            if(!json || !json.ok) throw new Error('bad');
+            var s=json.session||{}; var lines=json.lines||[]; var posted=json.postedLines||[];
+            var meta = 'Name: '+esc(s.name||'')+' • Status: '+esc(s.status||'')+' • Created: '+esc(s.createdAt||'')+' • Scope: '+esc(s.scope||'');
+            var metaEl=document.getElementById('sessMeta'); if(metaEl) metaEl.innerHTML=meta;
+            var wrap=document.getElementById('sessTableWrap');
+            if(wrap){
+              if((s.status==='reviewing' && lines.length) || (s.status==='posted' && posted.length)){
+                var rows = (s.status==='posted' ? posted : lines);
+
+                var html = '<table style="width:100%;border-collapse:separate;border-spacing:0">'
+                  + '<thead><tr>'
+                  + '<th style="text-align:left;padding:12px 14px;border-bottom:1px solid #eef0f5">Product</th>'
+                  + '<th style="text-align:left;padding:12px 14px;border-bottom:1px solid #eef0f5">Variant</th>'
+                  + '<th style="text-align:right;padding:12px 14px;border-bottom:1px solid #eef0f5">System</th>'
+                  + '<th style="text-align:right;padding:12px 14px;border-bottom:1px solid #eef0f5">Counted</th>'
+                  + '<th style="text-align:right;padding:12px 14px;border-bottom:1px solid #eef0f5">Delta</th>'
+                  + '</tr></thead><tbody>'
+                  + rows.map(function(r){ return '<tr>'
+                    + '<td style="padding:12px 14px;border-top:1px solid #f2f3f7">'+esc(r.title)+'</td>'
+                    + '<td style="padding:12px 14px;border-top:1px solid #f2f3f7">'+esc(r.variantId||'-')+'</td>'
+                    + '<td style="padding:12px 14px;text-align:right;border-top:1px solid #f2f3f7">'+esc(r.systemOnHand!=null?r.systemOnHand:'-')+'</td>'
+                    + '<td style="padding:12px 14px;text-align:right;border-top:1px solid #f2f3f7">'+esc(r.counted!=null?r.counted:'-')+'</td>'
+                    + '<td style="padding:12px 14px;text-align:right;border-top:1px solid #f2f3f7">'+esc(r.delta!=null?r.delta:'-')+'</td>'
+                    + '</tr>'; }).join('')
+                  + '</tbody></table>';
+                wrap.innerHTML = html;
+              } else {
+                wrap.innerHTML = '<div class="empty" style="padding:18px;text-align:center;color:#98A2B3">No lines to show.</div>';
+              }
+            }
+            openModal();
+          })
+          .catch(function(err){
+            console.error('[inv] session-json error', err);
+            alert('Cannot load session detail');
+          });
+      }, { passive:false });
+    })();

@@ -80,7 +80,6 @@ const revenueReport = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
     }
     catch (err) {
-        console.error("❌ Revenue report error:", err);
         res.status(500).send("Error loading revenue report");
     }
 });
@@ -158,7 +157,6 @@ const exportRevenueExcel = (req, res) => __awaiter(void 0, void 0, void 0, funct
         res.send(buffer);
     }
     catch (err) {
-        console.error("❌ Export revenue error:", err);
         res.status(500).send("Error exporting revenue Excel");
     }
 });
@@ -245,7 +243,6 @@ const inventoryReport = (req, res) => __awaiter(void 0, void 0, void 0, function
         });
     }
     catch (err) {
-        console.error("❌ Inventory report error:", err);
         res.status(500).send("Error loading inventory report");
     }
 });
@@ -295,7 +292,6 @@ const exportInventoryExcel = (req, res) => __awaiter(void 0, void 0, void 0, fun
         res.send(buffer);
     }
     catch (err) {
-        console.error("❌ Export inventory error:", err);
         res.status(500).send("Error exporting inventory Excel");
     }
 });

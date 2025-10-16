@@ -10,6 +10,8 @@ r.get("/", c.page);
 
 // Low-stock API
 r.get("/low-stock", c.lowStock);
+// Lookup products (for Quick Count helper)
+r.get("/lookup", c.lookup);
 
 // Reorder draft CSV
 r.post("/reorder-draft", c.reorderDraftCsv);
@@ -17,6 +19,7 @@ r.post("/reorder-draft", c.reorderDraftCsv);
 // Stocktake
 r.post("/stocktake", c.createStocktake);
 r.get("/stocktake/:sid", c.viewStocktake);
+r.get("/stocktake/:sid/json", c.stocktakeJson);
 r.get("/stocktake/:sid/download", c.downloadStocktake);
 r.post("/stocktake/:sid/upload", upload.single("file"), c.uploadStocktakeCsv);
 r.post("/stocktake/:sid/post", c.postStocktake);

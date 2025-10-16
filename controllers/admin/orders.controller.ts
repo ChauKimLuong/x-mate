@@ -83,7 +83,7 @@ export class OrdersController {
       // Cập nhật trạng thái đơn
       await prisma.orders.update({
         where: { id },
-        data: { status: "confirmed", updated_at: new Date() },
+        data: { status: "completed", updated_at: new Date() },
       });
 
       // Trừ tồn kho
