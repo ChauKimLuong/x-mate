@@ -179,11 +179,16 @@ html(lang="vi")
       main.main
         header.topbar
           .left
-          .right
-            button.btn LogOut
+          .right(style="display:flex;align-items:center;gap:10px")
             .user
-              img(src="https://i.pravatar.cc/40?img=5" alt="avatar")
-              span.name Admin
+              - const _admin = typeof admin !== 'undefined' ? admin : null;
+              - const _email = _admin && _admin.email ? _admin.email : '';
+              - const _avatar = _admin && _admin.avatar && _admin.avatar.trim() !== '' ? _admin.avatar : ('https://i.pravatar.cc/40?u=' + (_email || 'admin'));
+              - const _name = _admin && (_admin.full_name || _admin.email) ? (_admin.full_name || _admin.email) : 'Admin';
+              img(src=_avatar alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;")
+              span.name= _name
+            form(action="/admin/logout" method="post" style="display:inline")
+              button.btn(type="submit" style="background:#ef4444;border:0;color:#fff") Log out
 
         .container
           block content

@@ -8,9 +8,18 @@ import { dashboard } from "../../controllers/admin/dashboard.controller";
 import promotionsRouter from "./promotions.route";
 import reportsRouter from "./reports.route";
 import usersRouter from "./users.route";
+import authRouter from "./auth.route";
+import { requireAdmin } from "../../middlewares/adminAuth";
 const r = Router();
 
-r.get("/", dashboard);
+r.use("/", authRouter);
+
+// Protect all routes below
+r.use(requireAdmin);
+
+// Dashboard routes
+r.get("/", (req, res) => res.redirect("/admin/dashboard"));
+r.get("/dashboard", dashboard);
 r.use("/promotions", promotionsRouter);
 r.use("/reports", reportsRouter);
 r.use("/users", usersRouter);

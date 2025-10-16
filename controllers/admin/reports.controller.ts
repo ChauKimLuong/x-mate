@@ -80,7 +80,7 @@ export const revenueReport = async (req: Request, res: Response) => {
       totalSold: 0,
     });
   } catch (err) {
-    console.error("❌ Revenue report error:", err);
+    // console.error("❌ Revenue report error:", err);
     res.status(500).send("Error loading revenue report");
   }
 };
@@ -176,7 +176,7 @@ export const exportRevenueExcel = async (req: Request, res: Response) => {
     );
     res.send(buffer);
   } catch (err) {
-    console.error("❌ Export revenue error:", err);
+    // console.error("❌ Export revenue error:", err);
     res.status(500).send("Error exporting revenue Excel");
   }
 };
@@ -282,7 +282,7 @@ export const inventoryReport = async (req: Request, res: Response) => {
       processing: 0,
     });
   } catch (err) {
-    console.error("❌ Inventory report error:", err);
+    // console.error("❌ Inventory report error:", err);
     res.status(500).send("Error loading inventory report");
   }
 };
@@ -336,7 +336,7 @@ export const exportInventoryExcel = async (req: Request, res: Response) => {
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.send(buffer);
   } catch (err) {
-    console.error("❌ Export inventory error:", err);
+    // console.error("❌ Export inventory error:", err);
     res.status(500).send("Error exporting inventory Excel");
   }
 };
