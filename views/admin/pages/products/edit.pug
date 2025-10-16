@@ -130,7 +130,7 @@ block content
           span.tag #{p.slug}
       h2.tl Edit Product
 
-    form#editForm(method="post" action=`/admin/products/${p.id}` enctype="multipart/form-data")
+    form#editForm(method="post" action=`/admin/products/${p.id || p.productId}` enctype="multipart/form-data")
       .grid
         // LEFT
         .card.sec
@@ -281,8 +281,12 @@ block content
                                 option(value="replace") Replace images
                           td
                             input(type="hidden" name=`variants[${i}][_delete]` value="0")
-                            button.btn.ghost.type-toggle(data-row=i type="button" onclick=`this.previousElementSibling.value='1';this.closest('tr').remove();`) Remove
-                  tfoot
+                            button.btn.ghost.type-toggle(
+                              data-row=i 
+                              type="button" 
+                              onclick=`this.previousElementSibling.value='1';this.closest('tr').style.display='none';`
+                            ) Remove
+
                     tr
                       td(colspan="4")
                         button.btn(type="button" id="btnAddVariant") + Add variant
@@ -408,7 +412,7 @@ block scripts
       var vtbl      = document.getElementById('vtbl');
       var vtblBody  = vtbl ? vtbl.querySelector('tbody') : null;
       var form      = document.getElementById('editForm');
-      var vIdx      = 0;
+      var vIdx = (vtblBody ? vtblBody.querySelectorAll('tr').length : 0);
 
       // Modal fields
       var vm_colorName  = document.getElementById('vm_colorName');

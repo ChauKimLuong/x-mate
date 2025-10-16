@@ -4,7 +4,7 @@ import prisma from "../../config/database";
 import path from "path";
 import fs from "fs/promises";
 import { randomUUID } from "crypto";
-
+import qs from "qs";
 /* ========= Helpers chung ========= */
 const formatMoney = (n: number) => `$${(Number(n) || 0).toFixed(2)}`;
 const toInt = (v: any) => (Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : 0);
@@ -472,14 +472,26 @@ export const showProduct = async (req: Request, res: Response) => {
 export const editProductForm = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
+    console.log("🟡 editProductForm -> req.params.id =", id);
 
+    // ✅ Bước 1: kiểm tra id có hợp lệ không
+    if (!id || id === "undefined" || id === ":id") {
+      console.error("❌ editProductForm: missing or invalid id param");
+      return res.status(400).send("Missing or invalid product ID in URL.");
+    }
+
+    // ✅ Bước 2: lấy dữ liệu song song (product + categories)
     const [row, categories] = await Promise.all([
       prisma.products.findUnique({
         where: { id },
         include: {
           productVariants: {
-            include: { colors: { select: { id: true, name: true, hex: true, swatchUrl: true } } },
-            orderBy: { id: 'asc' },
+            include: {
+              colors: {
+                select: { id: true, name: true, hex: true, swatchUrl: true },
+              },
+            },
+            orderBy: { id: "asc" },
           },
           categories: { select: { id: true, title: true } },
         },
@@ -491,47 +503,77 @@ export const editProductForm = async (req: Request, res: Response) => {
       }),
     ]);
 
+    console.log("🟢 editProductForm -> row?.id =", row?.id);
+
+    // ✅ Bước 3: nếu không tìm thấy product → trả về view trống (để tránh crash)
     if (!row) {
       return res.status(404).render("admin/pages/products/edit", {
-        title: "Edit Product",
+        title: "Edit Product (Not Found)",
         active: "products",
         product: null,
-        categories, // luôn truyền để view không lỗi
+        categories,
       });
     }
 
+    // ✅ Bước 4: render ra view, key phải là `product`
     return res.render("admin/pages/products/edit", {
-      title: "Edit Product",
+      title: `Edit Product: ${row.title}`,
       active: "products",
-      product: row,      // có row.status
+      product: row, // <— đúng key, tương thích với `- const p = product || {}` trong pug
       categories,
     });
   } catch (err) {
-    console.error("editProductForm error:", err);
-    if (!res.headersSent) res.status(500).send("Internal error.");
+    console.error("💥 editProductForm error:", err);
+    if (!res.headersSent) {
+      res.status(500).send("Internal server error while loading edit form.");
+    }
   }
 };
-
 // ===== UPDATE: POST /admin/products/:id
+
 export const updateProduct = async (req: Request, res: Response) => {
   try {
     const { id } = req.params;
-    const b = req.body as any;
+    if (!id) {
+      console.error("❌ updateProduct: Missing id param");
+      return res.status(400).send("Missing product id.");
+    }
+
+    console.log("🟢 updateProduct -> req.params.id =", id);
+
+    // 1) Parse body an toàn cho variants[0][...]
+    const b = qs.parse(req.body) as any;
     const files = (req.files as Express.Multer.File[]) || [];
 
+    // ---- helpers
+    const toIntStrict = (v: any): number | undefined => {
+      if (v === undefined || v === null) return undefined;
+      const s = String(v).trim().replace(/[,\s.]/g, "");
+      if (s === "") return undefined;
+      const n = Number(s);
+      return Number.isFinite(n) ? Math.trunc(n) : undefined;
+    };
+    const isHttpUrl = (s: string) => /^https?:\/\//i.test(String(s || "").trim());
+    const pushLines = (t: string, into: string[]) =>
+      String(t || "")
+        .split(/\r?\n/)
+        .map((s) => s.trim())
+        .filter(Boolean)
+        .forEach((u) => into.push(u));
+
     // ---- fields cơ bản
-    const title = (b.title || '').trim();
-    const categoryId = (b.categoryId || '').trim();
-    const status: "active" | "inactive" = (b.status === "inactive" ? "inactive" : "active");
-    const price = Number.isFinite(Number(b.price)) ? Math.trunc(Number(b.price)) : 0;
-    const discount = Number.isFinite(Number(b.discount)) ? Math.trunc(Number(b.discount)) : 0;
+    const title = (b.title || "").trim();
+    const categoryId = (b.categoryId || "").trim();
+    const status: "active" | "inactive" = b.status === "inactive" ? "inactive" : "active";
+    const price = toIntStrict(b.price) ?? 0;
+    const discount = toIntStrict(b.discount) ?? 0;
     const description = typeof b.description === "string" ? b.description : null;
 
     const sizeRaw = b["size[]"] ?? b.size ?? [];
-    const sizes: string[] = Array.isArray(sizeRaw) ? sizeRaw.filter(Boolean) : (sizeRaw ? [String(sizeRaw)] : []);
+    const sizes: string[] = Array.isArray(sizeRaw) ? sizeRaw.filter(Boolean) : sizeRaw ? [String(sizeRaw)] : [];
 
     // ---- thumbnail
-    const thumbnailUrl = (b.thumbnailUrl || '').trim();
+    const thumbnailUrl = (b.thumbnailUrl || "").trim();
     let thumbnail: string | undefined = undefined;
     if (thumbnailUrl) {
       thumbnail = thumbnailUrl;
@@ -540,16 +582,7 @@ export const updateProduct = async (req: Request, res: Response) => {
       if (thumbFile) thumbnail = await saveFileToPublic(thumbFile);
     }
 
-    // ---- helpers
-    const isHttpUrl = (s: string) => /^https?:\/\//i.test(String(s || '').trim());
-    const pushLines = (t: string, into: string[]) =>
-      String(t || "")
-        .split(/\r?\n/)
-        .map((s) => s.trim())
-        .filter(Boolean)
-        .forEach((u) => into.push(u));
-
-    // ---- parse variants
+    // ---- parse variants vào variantMap
     type VItem = {
       id?: string | null;
       _delete?: boolean;
@@ -559,65 +592,114 @@ export const updateProduct = async (req: Request, res: Response) => {
       files: Express.Multer.File[];
       colorHexLegacy?: string | null;
       swatchUrlLegacy?: string | null;
-      imagesMode?: "append" | "replace"; // <--- thêm
+      imagesMode?: "append" | "replace";
+      _uploadedUrls?: string[]; // sẽ set trước transaction
     };
     const variantMap: Record<string, VItem> = {};
 
-    // Nhặt keys dạng variants[IDX][...]
-    Object.keys(b).forEach((k) => {
-      const m = k.match(
-        /^variants\[(\w+)\]\[(id|_delete|color|stock|imageUrls|colorHexLegacy|swatchUrlLegacy|imagesMode)\](?:\[\])?$/
+    // (A) Ưu tiên: nếu qs đã nested -> b.variants là array/object
+    const vRaw = (b && b.variants) || undefined;
+    if (vRaw && typeof vRaw === "object") {
+      const assignFromNode = (idx: string, node: any) => {
+        const it: VItem = (variantMap[idx] ||= { urls: [], files: [] });
+        if (node == null) return;
+        if (node.id != null) it.id = String(node.id || "").trim() || null;
+        if (node._delete != null) it._delete = node._delete === "1" || node._delete === true || node._delete === "true";
+        if (node.color != null) it.color = typeof node.color === "string" ? node.color.trim() : node.color;
+        if (node.stock != null) {
+          const maybe = toIntStrict(node.stock);
+          if (maybe !== undefined && maybe >= 0) it.stock = maybe;
+        }
+        if (node.colorHexLegacy != null) it.colorHexLegacy = String(node.colorHexLegacy || "").trim() || null;
+        if (node.swatchUrlLegacy != null) it.swatchUrlLegacy = String(node.swatchUrlLegacy || "").trim() || null;
+        if (node.imagesMode != null) {
+          const v = String(node.imagesMode || "").toLowerCase();
+          it.imagesMode = v === "replace" ? "replace" : "append";
+        }
+        if (node.imageUrls != null) {
+          if (Array.isArray(node.imageUrls)) node.imageUrls.forEach((t: string) => pushLines(t, it.urls));
+          else pushLines(String(node.imageUrls || ""), it.urls);
+        }
+      };
+      if (Array.isArray(vRaw)) {
+        vRaw.forEach((node: any, i: number) => assignFromNode(String(i), node));
+      } else {
+        Object.keys(vRaw).forEach((k) => assignFromNode(k, (vRaw as any)[k]));
+      }
+    }
+
+    // (B) Fallback: thêm từ key phẳng (nếu còn sót)
+    Object.keys(req.body || {}).forEach((key) => {
+      const m = key.match(
+        /^variants\[([\w-]+)\]\[(id|_delete|color|stock|imageUrls|colorHexLegacy|swatchUrlLegacy|imagesMode)\](?:\[\])?$/
       );
       if (!m) return;
       const idx = m[1];
       const field = m[2] as keyof VItem | "imageUrls";
-      const item = (variantMap[idx] ||= { urls: [], files: [] });
+      const it: VItem = (variantMap[idx] ||= { urls: [], files: [] });
+      const rawVal = (req.body as any)[key];
 
       if (field === "imageUrls") {
-        const raw = b[k];
-        Array.isArray(raw) ? raw.forEach((t: string) => pushLines(t, item.urls)) : raw && pushLines(raw, item.urls);
+        Array.isArray(rawVal) ? rawVal.forEach((t: string) => pushLines(t, it.urls)) : pushLines(String(rawVal || ""), it.urls);
         return;
       }
       if (field === "stock") {
-        item.stock = Number.isFinite(Number(b[k])) ? Math.trunc(Number(b[k])) : 0;
+        const maybe = toIntStrict(rawVal);
+        if (maybe !== undefined && maybe >= 0) it.stock = maybe;
         return;
       }
       if (field === "_delete") {
-        const v = b[k];
-        item._delete = v === "1" || v === "true" || v === true;
+        it._delete = rawVal === "1" || rawVal === "true" || rawVal === true;
         return;
       }
       if (field === "id") {
-        const v = (b[k] || "").trim();
-        item.id = v || null;
+        it.id = (String(rawVal || "").trim() || null) as any;
         return;
       }
       if (field === "imagesMode") {
-        const v = String(b[k] || "").toLowerCase();
-        item.imagesMode = v === "replace" ? "replace" : "append"; // default append
+        const v = String(rawVal || "").toLowerCase();
+        it.imagesMode = v === "replace" ? "replace" : "append";
         return;
       }
-      // color / colorHexLegacy / swatchUrlLegacy
-      (item as any)[field] = (typeof b[k] === "string" ? b[k].trim() : null);
+      (it as any)[field] = typeof rawVal === "string" ? rawVal.trim() : rawVal;
     });
 
-    // Nhặt files ảnh dạng variants[IDX][images][]
+    // (C) Files: variants[IDX][images][]
     files.forEach((f) => {
-      const m = f.fieldname.match(/^variants\[(\w+)\]\[images\]\[\]$/);
-      if (!m) return;
-      const idx = m[1];
+      const mm = f.fieldname.match(/^variants\[([\w-]+)\]\[images\]\[\]$/);
+      if (!mm) return;
+      const idx = mm[1];
       (variantMap[idx] ||= { urls: [], files: [] }).files.push(f);
     });
 
-    // ---- ảnh hiện tại để phục vụ "append"
+    // Log kiểm tra
+    const keys = Object.keys(variantMap).sort((a, b) => Number(a) - Number(b));
+    console.log("VARIANT MAP KEYS:", keys);
+    for (const k of keys) {
+      const v = variantMap[k];
+      console.log(" -", k, { id: v.id, color: v.color, stock: v.stock, urls: v.urls?.length, files: v.files?.length });
+    }
+
+    // 2) Chuẩn bị dữ liệu ảnh ngoài transaction (tránh timeout)
+    for (const idx of keys) {
+      const v = variantMap[idx];
+      const uploaded: string[] = [];
+      for (const f of v.files) {
+        uploaded.push(await saveFileToPublic(f, "public/uploads/variants"));
+      }
+      v._uploadedUrls = uploaded;
+    }
+
+    // 3) Lấy ảnh hiện tại của variants để hỗ trợ append
     const current = await prisma.productVariants.findMany({
       where: { productId: id },
       select: { id: true, images: true },
     });
-    const currentImgMap = new Map(current.map(v => [v.id, Array.isArray(v.images) ? v.images : []]));
+    const currentImgMap = new Map(current.map((v) => [v.id, Array.isArray(v.images) ? v.images : []]));
 
+    // 4) Transaction: chỉ query DB
     await prisma.$transaction(async (tx) => {
-      // Update product
+      // 4.1 Update product
       await tx.products.update({
         where: { id },
         data: {
@@ -633,62 +715,53 @@ export const updateProduct = async (req: Request, res: Response) => {
         },
       });
 
-      // Upsert variants
-      for (const idx of Object.keys(variantMap)) {
+      // 4.2 Upsert variants
+      for (const idx of keys) {
         const v = variantMap[idx];
 
-        // upload files của variant
-        const uploadedUrls: string[] = [];
-        for (const f of v.files) {
-          uploadedUrls.push(await saveFileToPublic(f, "public/uploads/variants"));
-        }
-        const newCandidateImages = [...v.urls, ...uploadedUrls]; // những gì user vừa nhập/upload
-        const mode: "append" | "replace" = v.imagesMode || "append";
-
-        // Ưu tiên swatchUrl hợp lệ -> xoá hex; ngược lại nếu hex hợp lệ -> xoá url
+        // validate color swatch (mutually exclusive)
         let colorHexLegacy = (v.colorHexLegacy || "") as string;
         let swatchUrlLegacy = (v.swatchUrlLegacy || "") as string;
-
         const hexOk = /^#?[0-9a-fA-F]{3}$/.test(colorHexLegacy) || /^#?[0-9a-fA-F]{6}$/.test(colorHexLegacy);
         const urlOk = isHttpUrl(swatchUrlLegacy);
-
-        if (urlOk) {
-          colorHexLegacy = "";
-        } else if (hexOk) {
-          swatchUrlLegacy = "";
-        } else {
+        if (urlOk) colorHexLegacy = "";
+        else if (hexOk) swatchUrlLegacy = "";
+        else {
           colorHexLegacy = "";
           swatchUrlLegacy = "";
         }
 
+        const newCandidateImages = [...(v.urls || []), ...(v._uploadedUrls || [])];
+        const mode: "append" | "replace" = v.imagesMode || "append";
+
         if (v.id) {
-          // Cũ
+          // existing
           if (v._delete) {
             await tx.productVariants.delete({ where: { id: v.id } });
             continue;
           }
           const data: any = {};
           if (typeof v.color === "string" && v.color.trim()) data.color = v.color.trim();
-          if (typeof v.stock === "number" && v.stock >= 0) data.stock = v.stock;
+          if (v.stock !== undefined && Number.isFinite(v.stock) && v.stock >= 0) data.stock = v.stock;
 
           data.colorHexLegacy = colorHexLegacy || null;
           data.swatchUrlLegacy = swatchUrlLegacy || null;
 
-          // Ảnh: append hoặc replace (nếu không có input mới => giữ nguyên)
           if (newCandidateImages.length > 0) {
             if (mode === "append") {
               const existing = currentImgMap.get(v.id) || [];
               data.images = [...existing, ...newCandidateImages];
             } else {
-              data.images = newCandidateImages; // replace
+              data.images = newCandidateImages;
             }
           }
+
           await tx.productVariants.update({ where: { id: v.id }, data });
         } else {
-          // Mới
+          // create new
           const colorName = (v.color || "").trim();
           if (!colorName) continue;
-          const stockVal = Number.isFinite(Number(v.stock)) ? Math.trunc(Number(v.stock)) : 0;
+          const stockVal = toIntStrict(v.stock) ?? 0;
 
           await tx.productVariants.create({
             data: {
@@ -696,7 +769,7 @@ export const updateProduct = async (req: Request, res: Response) => {
               productId: id,
               color: colorName,
               stock: stockVal,
-              images: newCandidateImages, // mới thì set theo input
+              images: newCandidateImages,
               colorHexLegacy: colorHexLegacy || null,
               swatchUrlLegacy: swatchUrlLegacy || null,
             },
@@ -705,14 +778,12 @@ export const updateProduct = async (req: Request, res: Response) => {
       }
     });
 
-    // đổi theo route view của bạn: /admin/products/:id hoặc /admin/products/:id/view
     res.redirect(`/admin/products/${id}`);
   } catch (err) {
     console.error("Update product (upsert variants) failed.", err);
     if (!res.headersSent) res.status(500).send("Update product failed.");
   }
 };
-
 // controllers/admin/products.controller.ts
 export const softDeleteProduct = async (req: Request, res: Response) => {
   try {
