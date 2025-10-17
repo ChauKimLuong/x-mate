@@ -180,7 +180,8 @@ block content
 
 
       // ===== Variants =====
-      if product.productVariants && product.productVariants.length
+      - const pv = Array.isArray(product?.productVariants) ? product.productVariants.filter(v => !v.deleted) : []
+      if pv && pv.length
         .pv-sec.pv-wrap
           .pv-sec__hd
             .pv-sec__ttl Variants
@@ -192,7 +193,7 @@ block content
                 th(style="width:14%") Swatch
                 th Images
             tbody
-              each v in product.productVariants
+              each v in pv
                 tr.pv-row
                   td.pv-cell
                     .swatch

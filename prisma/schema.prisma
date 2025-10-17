@@ -35,6 +35,8 @@ model productVariants {
   colorId            String?
   colorHexLegacy     String?
   swatchUrlLegacy    String?
+  deleted            Boolean              @default(false)
+  deletedAt          DateTime?
   cart_items         cart_items[]
   inventoryMovements inventoryMovements[]
   order_items        order_items[]

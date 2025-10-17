@@ -120,7 +120,7 @@ block content
   - const cats = Array.isArray(categories) ? categories : []
   - const defaultSizes = ['XS','S','M','L','XL','XXL','3XL','4XL']
   - const sizeArr = Array.isArray(p.size) ? p.size : []
-  - const pv = Array.isArray(p.productVariants) ? p.productVariants : []
+  - const pv = Array.isArray(p.productVariants) ? p.productVariants.filter(v => !v.deleted) : []
 
   .edit
     .info-bar

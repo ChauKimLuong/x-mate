@@ -6,7 +6,7 @@ import fs from "fs/promises";
 import { randomUUID } from "crypto";
 import qs from "qs";
 /* ========= Helpers chung ========= */
-const formatMoney = (n: number) => `$${(Number(n) || 0).toFixed(2)}`;
+const formatMoney = (n: number) => `${(Number(n) || 0).toLocaleString('vi-VN')}đ`;
 const toInt = (v: any) => (Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : 0);
 const val = (v?: any) => (typeof v === "string" ? v.trim() : v);
 
@@ -93,7 +93,8 @@ export const getProducts = async (req: Request, res: Response) => {
       include: {
         categories: { select: { title: true } },
         productVariants: {
-          select: { stock: true, images: true, color: true }, // cần images để fallback
+          where: { deleted: false },
+          select: { stock: true, images: true, color: true },
         },
       },
       orderBy: { createdAt: "desc" },
@@ -431,8 +432,8 @@ export const showProduct = async (req: Request, res: Response) => {
       include: {
         categories: { select: { id: true, title: true } },
         productVariants: {
+          where: { deleted: false },
           include: { colors: { select: { id: true, name: true, hex: true, swatchUrl: true } } },
-          // ⚠️ Bỏ orderBy theo createdAt nếu model không có cột này
           orderBy: { id: 'asc' },
         }
       },
@@ -440,7 +441,8 @@ export const showProduct = async (req: Request, res: Response) => {
 
     if (!row) return res.status(404).render("admin/pages/products/view", { product: null });
 
-    const stockLeft = row.productVariants.reduce((s, v) => s + ((Number(v.stock) || 0)), 0);
+    const pv = Array.isArray(row.productVariants) ? row.productVariants.filter((v: any) => !v.deleted) : [];
+    const stockLeft = pv.reduce((s, v) => s + ((Number(v.stock) || 0)), 0);
     const statusText = row.status === 'inactive' ? 'Inactive' : 'Active';
     const statusClass = row.status === 'inactive' ? 'pv-badge pv-badge--muted' : 'pv-badge pv-badge--ok';
 
@@ -449,8 +451,8 @@ export const showProduct = async (req: Request, res: Response) => {
       categoryTitle: row.categories?.title || '—',
       priceText: (Number(row.price)||0).toLocaleString("vi-VN") + "đ",
       stockLeft,
-      variantCount: row.productVariants.length,
-      images: [ row.thumbnail, ...row.productVariants.flatMap(v => v.images || []) ].filter(Boolean),
+      variantCount: pv.length,
+      images: [ row.thumbnail, ...pv.flatMap(v => v.images || []) ].filter(Boolean),
       statusText,
       statusClass,
     };
@@ -486,6 +488,7 @@ export const editProductForm = async (req: Request, res: Response) => {
         where: { id },
         include: {
           productVariants: {
+            where: { deleted: false },
             include: {
               colors: {
                 select: { id: true, name: true, hex: true, swatchUrl: true },
@@ -675,6 +678,27 @@ export const updateProduct = async (req: Request, res: Response) => {
     // Log kiểm tra
     const keys = Object.keys(variantMap).sort((a, b) => Number(a) - Number(b));
     console.log("VARIANT MAP KEYS:", keys);
+
+    // Preflight: detect variants that are referenced (will soft-delete those)
+    const toDeleteIds = Object.keys(variantMap)
+      .map((k) => variantMap[k])
+      .filter((v) => v && v.id && v._delete)
+      .map((v) => String(v.id));
+
+    const blocked = new Set<string>();
+    if (toDeleteIds.length > 0) {
+      const [cartRefs, orderRefs, invRefs] = await Promise.all([
+        prisma.cart_items.findMany({ where: { variant_id: { in: toDeleteIds } }, select: { variant_id: true } }),
+        prisma.order_items.findMany({ where: { variant_id: { in: toDeleteIds } }, select: { variant_id: true } }),
+        prisma.inventoryMovements.findMany({ where: { variantId: { in: toDeleteIds } }, select: { variantId: true } }),
+      ]);
+      cartRefs.forEach((c) => blocked.add(c.variant_id));
+      orderRefs.forEach((o) => o.variant_id && blocked.add(o.variant_id));
+      invRefs.forEach((m) => m.variantId && blocked.add(m.variantId));
+      if (blocked.size > 0) {
+        console.warn("Soft-deleting referenced variants:", Array.from(blocked));
+      }
+    }
     for (const k of keys) {
       const v = variantMap[k];
       console.log(" -", k, { id: v.id, color: v.color, stock: v.stock, urls: v.urls?.length, files: v.files?.length });
@@ -737,7 +761,11 @@ export const updateProduct = async (req: Request, res: Response) => {
         if (v.id) {
           // existing
           if (v._delete) {
-            await tx.productVariants.delete({ where: { id: v.id } });
+            if (blocked.has(String(v.id))) {
+              await tx.productVariants.update({ where: { id: v.id }, data: { deleted: true, deletedAt: new Date(), stock: 0 } });
+            } else {
+              await tx.productVariants.delete({ where: { id: v.id } });
+            }
             continue;
           }
           const data: any = {};
@@ -778,10 +806,16 @@ export const updateProduct = async (req: Request, res: Response) => {
       }
     });
 
-    res.redirect(`/admin/products/${id}`);
+    return res.redirect(303, `/admin/products/${id}`);
   } catch (err) {
     console.error("Update product (upsert variants) failed.", err);
-    if (!res.headersSent) res.status(500).send("Update product failed.");
+    if (!res.headersSent) {
+      res
+        .status(500)
+        .send(
+          "Cập nhật sản phẩm thất bại. Nếu bạn vừa xóa biến thể, có thể biến thể đang được tham chiếu trong giỏ hàng/đơn hàng/kho. Vui lòng kiểm tra và thử lại."
+        );
+    }
   }
 };
 // controllers/admin/products.controller.ts
@@ -813,3 +847,5 @@ export const toggleStatus = async (req: Request, res: Response) => {
     res.status(500).send("Toggle failed.");
   }
 };
+
+
