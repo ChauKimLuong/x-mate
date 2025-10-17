@@ -80,6 +80,10 @@ html(lang="vi")
       .submenu a .dot{width:6px;height:6px;border-radius:999px;background:var(--sb-fg-muted)}
       .submenu a.active .dot{background:var(--sb-accent)}
 
+    // Sidebar color override
+    style.
+      :root{ --sb-fg:#6b7280; --sb-fg-muted:#6b7280; }
+
     // Optional head block
     block head
 
@@ -100,35 +104,33 @@ html(lang="vi")
             span.logo-badge
               img.logo-img(src="/images/logo-rm-bg.png" alt="X-Mate")
             span.txt X-Mate
-
-
         nav.menu
           // Dashboard
           a.item(class=is('overview')?'active':'', href="/admin")
             span.ico
               +icon-dashboard(20)
-            span.lbl Dashboard
+            span.lbl Tổng quan
 
           // Products (toggle)
           - const openProducts = active && active.startsWith('products');
           button.item.has-children(type="button", aria-expanded=openProducts?'true':'false', data-target="#submenu-products", class=openProducts?'active':'')
             span.ico
               +icon-products(20)
-            span.lbl Products
+            span.lbl Sản Phẩm
             span.caret ▾
           ul.submenu#submenu-products(class=openProducts?'open':'')
             li
               a(class=is('products:list')?'active':'', href="/admin/products")
                 //- span.dot
-                span.lbl List
+                span.lbl Danh sách
             li
               a(class=is('products:grid')?'active':'', href="/admin/products/edit")
                 //- span.dot
-                span.lbl Edit
+                span.lbl Chỉnh sửa
             li
               a(class=is('products:create')?'active':'', href="/admin/products/create")
                 //- span.dot
-                span.lbl Create
+                span.lbl Thêm mới
 
           // Category (ví dụ 1 nhóm khác nếu cần)
           //- button.item.has-children(type="button", aria-expanded="false", data-target="#submenu-category")
@@ -139,35 +141,50 @@ html(lang="vi")
           //- ul.submenu#submenu-category
           //-   li: a(href="#") span.dot + span.lbl List
 
+          // Categories (toggle)
+          - const openCategories = active && active.startsWith('categories');
+          button.item.has-children(type="button", aria-expanded=openCategories?'true':'false', data-target="#submenu-categories", class=openCategories?'active':'')
+            span.ico
+              +icon-categories(20)
+            span.lbl Danh mục
+            span.caret ▾
+          ul.submenu#submenu-categories(class=openCategories?'open':'')
+            li
+              a(class=is('categories:list')?'active':'', href="/admin/categories")
+                span.lbl Danh sách
+            li
+              a(class=is('categories:create')?'active':'', href="/admin/categories/create")
+                span.lbl Thêm mới
+
           // Inventory (single)
           a.item(class=is('inventory')?'active':'', href="/admin/inventory")
             span.ico
               +icon-inventory(20)
-            span.lbl Inventory
+            span.lbl Quản lý tồn kho
 
           // Inventory Support
           a.item(class=is('inventory-support')?'active':'', href="/admin/inventory-support")
             span.ico
               +icon-inv-support(20)
-            span.lbl Inventory Support
+            span.lbl Hỗ trợ tồn kho
 
           // Orders
           a.item(class=is('orders')?'active':'', href="/admin/orders")
             span.ico
               +icon-orders(20)
-            span.lbl Orders
+            span.lbl Đơn hàng
 
           // Promotions
           a.item(class=is('promotions')?'active':'', href="/admin/promotions")
             span.ico
               +icon-promotions(20)
-            span.lbl Promotions
+            span.lbl Khuyến mãi
 
           // Reports
           a.item(class=is('reports')?'active':'', href="/admin/reports/revenue")
             span.ico
               +icon-reports(20)
-            span.lbl Reports
+            span.lbl Báo cáo
 
           // Reviews
           a.item(class=is('reviews')?'active':'', href="/admin/reviews")

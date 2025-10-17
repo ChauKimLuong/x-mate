@@ -34,7 +34,7 @@ class OrdersController {
                     return ({
                         id: o.id,
                         customerName: o.shipping_full_name,
-                        total: Number(o.grand_total).toLocaleString("vi-VN"),
+                        total: Number(o.grand_total || 0),
                         status: o.status,
                         thumbnail: ((_c = (_b = (_a = o.order_items) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.products) === null || _c === void 0 ? void 0 : _c.thumbnail) || null
                     });

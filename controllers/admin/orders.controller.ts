@@ -33,7 +33,7 @@ export class OrdersController {
         thumbnail: o.order_items?.[0]?.products?.thumbnail || null
       }));
 
-      res.render("admin/pages/orders/list", { orders: viewOrders });
+      res.render("admin/pages/orders/list", { title: "Order", active: "orders", orders: viewOrders });
     } catch (error) {
       console.error("Lỗi khi tải danh sách đơn hàng:", error);
       res.status(500).send("Không thể tải danh sách đơn hàng");
@@ -58,7 +58,7 @@ export class OrdersController {
 
       if (!order) return res.status(404).send("Không tìm thấy đơn hàng");
 
-      res.render("admin/pages/orders/detail", { order });
+      res.render("admin/pages/orders/detail", { title: "Order", active: "orders", order });
     } catch (error) {
       console.error("Lỗi khi xem chi tiết đơn hàng:", error);
       res.status(500).send("Không thể tải chi tiết đơn hàng");

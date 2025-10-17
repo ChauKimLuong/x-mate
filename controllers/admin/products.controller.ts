@@ -44,6 +44,11 @@ const normColor = (s?: string) =>
 function getRange(range?: string) {
   const now = new Date();
   const startOfDay = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+  if (String(range).toLowerCase() === 'all') {
+    const s = new Date(0);
+    const e = new Date(now.getFullYear() + 1, 0, 1);
+    return { s, e, label: 'All Products' };
+  }
   if (range === "today") {
     const s = startOfDay(now); const e = new Date(s); e.setDate(e.getDate() + 1);
     return { s, e, label: "Today" };
@@ -79,28 +84,31 @@ async function saveFileToPublic(file: Express.Multer.File, destDir = "public/upl
 
 // GET /admin/products
 export const getProducts = async (req: Request, res: Response) => {
+  const allMode = String(req.query.take || '').toLowerCase() === 'all'
+    || String(req.query.all || '') === '1';
   const page = Math.max(1, Number(req.query.page) || 1);
-  const take = Math.min(50, Number(req.query.take) || 10);
-  const skip = (page - 1) * take;
+  const take = allMode ? undefined : Math.min(50, Number(req.query.take) || 10);
+  const skip = allMode ? undefined : (page - 1) * (take as number);
   const range = String(req.query.range || "month");
   const { s, e, label } = getRange(range);
 
   const createdFilter = { createdAt: { gte: s, lt: e } };
 
-  const [rows, total] = await Promise.all([
-    prisma.products.findMany({
-      where: { deleted: false, ...createdFilter },
-      include: {
-        categories: { select: { title: true } },
-        productVariants: {
-          where: { deleted: false },
-          select: { stock: true, images: true, color: true },
-        },
+  const findOpts: any = {
+    where: { deleted: false, ...createdFilter },
+    include: {
+      categories: { select: { title: true } },
+      productVariants: {
+        where: { deleted: false },
+        select: { stock: true, images: true, color: true },
       },
-      orderBy: { createdAt: "desc" },
-      skip,
-      take,
-    }),
+    },
+    orderBy: { createdAt: 'desc' },
+  };
+  if (!allMode) { findOpts.skip = skip; findOpts.take = take; }
+
+  const [rows, total] = await Promise.all([
+    prisma.products.findMany(findOpts),
     prisma.products.count({ where: { deleted: false, ...createdFilter } }),
   ]);
 
@@ -138,9 +146,10 @@ export const getProducts = async (req: Request, res: Response) => {
     title: "Product List",
     active: "products",
     products,
-    pagination: { page, take, total },
+    pagination: { page, take: (allMode ? total : (take as number) || 10), total },
     filterLabel: label,
     range,
+    allMode,
   });
 };
 

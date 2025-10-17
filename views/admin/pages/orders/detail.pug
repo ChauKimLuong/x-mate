@@ -213,7 +213,7 @@ block content
           p #{order.shipping_line1}, #{order.shipping_ward}, #{order.shipping_district}, #{order.shipping_city}
         .info-block
           strong Created At
-          p #{new Date(order.created_at).toLocaleString('en-US')}
+          p #{new Date(order.created_at).toLocaleString('vi-VN')}
         .info-block.status-section
           strong Status
           if order.status === 'pending'
@@ -244,8 +244,8 @@ block content
                   p.product-title #{item.products.title}
               td #{item.productVariants ? item.productVariants.color : '-'}
               td #{item.quantity}
-              td #{Number(item.price).toLocaleString('en-US')} ₫
-              td #{Number(item.line_total).toLocaleString('en-US')} ₫
+              td #{Number(item.price).toLocaleString('vi-VN')} ₫
+              td #{Number(item.line_total).toLocaleString('vi-VN')} ₫
 
       .summary
-        span Grand Total: #{Number(order.grand_total).toLocaleString('en-US')} ₫
+        span Grand Total: #{Number(order.grand_total).toLocaleString('vi-VN')} ₫

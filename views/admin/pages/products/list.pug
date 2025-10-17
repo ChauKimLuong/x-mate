@@ -56,6 +56,8 @@ block content
             a(href="/admin/products?range=week"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='week'?'background:#f6f7fb;':''}`) This Week
             a(href="/admin/products?range=month" style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='month'?'background:#f6f7fb;':''}`) This Month
             a(href="/admin/products?range=year"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='year'?'background:#f6f7fb;':''}`) This Year
+            a(href="/admin/products?range=all"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${(range==='all'||allMode)?'background:#f6f7fb;':''}`) All Products
+
 
     table(style="width:100%; border-collapse:separate; border-spacing:0")
       thead
@@ -121,7 +123,7 @@ block content
     - const take = pagination?.take || 10;
     - const q = `&take=${take}&range=${range || 'month'}`;
 
-    if totalPages > 1
+    if !allMode && totalPages > 1
       nav.pager-wrap(aria-label="Pagination")
         .pager
           // Prev

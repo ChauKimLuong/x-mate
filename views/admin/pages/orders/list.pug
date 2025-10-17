@@ -124,7 +124,7 @@ block content
               td
                 img.product-thumb(src=thumb, alt="Product Image")
               td #{order.customerName}
-              td #{Number(order.total || 0).toLocaleString('en-US')} ₫
+              td #{Number(order.total || 0).toLocaleString('vi-VN')} ₫
               td
                 if order.status === 'pending'
                   span.badge.badge-pending Pending

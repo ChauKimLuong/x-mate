@@ -9,6 +9,7 @@ import promotionsRouter from "./promotions.route";
 import reportsRouter from "./reports.route";
 import usersRouter from "./users.route";
 import authRouter from "./auth.route";
+import categoriesRouter from "./categories.route";
 import { requireAdmin } from "../../middlewares/adminAuth";
 const r = Router();
 
@@ -24,6 +25,7 @@ r.use("/promotions", promotionsRouter);
 r.use("/reports", reportsRouter);
 r.use("/users", usersRouter);
 
+r.use("/categories", categoriesRouter);
 r.use("/products", productsRouter);
 r.use("/inventory", inventoryRouter);
 r.use("/inventory-support", inventorySupportRouter);

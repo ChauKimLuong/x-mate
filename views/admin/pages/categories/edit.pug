@@ -1,0 +1,68 @@
+extends ../../layouts/default
+
+block head
+  style.
+    .form-card{background:#fff;border:1px solid #e5e7eb;border-radius:14px;box-shadow:0 8px 24px rgba(16,24,40,.06);padding:16px;max-width:880px}
+    .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px}
+    .field{display:grid;gap:6px}
+    .label{font-weight:700}
+    .input,.select,.textarea{width:100%;border:1px solid #e5e7eb;border-radius:10px;padding:10px 12px;font-size:14px}
+    .textarea{min-height:110px}
+    .toolbar{display:flex;justify-content:space-between;gap:8px;margin-top:12px}
+    .btn{display:inline-flex;align-items:center;justify-content:center;height:40px;padding:0 14px;border-radius:10px;border:1px solid #e5e7eb;background:#fff;font-weight:700}
+    .btn.primary{background:#f97316;border-color:#f97316;color:#fff}
+    .btn.danger{background:#fff5f5;border-color:#ffe0e0;color:#b91c1c}
+    .filebox{position:relative;display:inline-flex;align-items:center;gap:8px}
+    .filebox input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
+    .filebox .fake{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed #e5e7eb;border-radius:10px;background:#fff;font-weight:600;color:#374151}
+
+block content
+  - const c = row || {}
+  h2(style="margin:0 0 16px") EDIT CATEGORY
+
+  .form-card
+    form(method="post" action=`/admin/categories/${c.id}` enctype="multipart/form-data")
+      .row
+        .field
+          label.label(for="title") Title *
+          input.input#title(type="text" name="title" required value=c.title)
+        .field
+          label.label(for="parentId") Parent
+          select.select#parentId(name="parentId")
+            option(value="" selected=(String(c.parentId||'')==='')) None
+            if Array.isArray(parents)
+              each p in parents
+                option(value=p.id selected=(String(c.parentId||'')===String(p.id)))= p.title
+        .field
+          label.label(for="position") Position
+          input.input#position(type="number" name="position" value=c.position||0)
+        .field
+          label.label(for="status") Status
+          select.select#status(name="status")
+            option(value="active" selected=(c.status==='active')) active
+            option(value="inactive" selected=(c.status==='inactive')) inactive
+        .field
+          label.label(for="isFeatured") Featured
+          select.select#isFeatured(name="isFeatured")
+            option(value="0" selected=(!c.isFeatured)) No
+            option(value="1" selected=(!!c.isFeatured)) Yes
+
+      .field
+        label.label(for="thumbnailUrl") Thumbnail URL
+        input.input#thumbnailUrl(type="url" name="thumbnailUrl" value=c.thumbnail placeholder="https://... (or upload below)")
+        .filebox(style="margin-top:8px")
+          input(type="file" name="thumbnail" accept="image/*")
+          span.fake Upload image...
+
+      .field
+        label.label(for="description") Description
+        textarea.textarea#description(name="description")= c.description
+
+      .toolbar
+        div
+          form(method="post" action=`/admin/categories/${c.id}/toggle-status` style="display:inline")
+            button.btn(type="submit") Toggle status
+          form(method="post" action=`/admin/categories/${c.id}/delete` style="display:inline;margin-left:8px")
+            button.btn.danger(type="submit" onclick="return confirm('Delete this category?')") Delete
+        button.btn.primary(type="submit") Save changes
+

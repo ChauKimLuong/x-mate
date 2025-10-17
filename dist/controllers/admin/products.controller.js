@@ -18,7 +18,7 @@ const path_1 = __importDefault(require("path"));
 const promises_1 = __importDefault(require("fs/promises"));
 const crypto_1 = require("crypto");
 const qs_1 = __importDefault(require("qs"));
-const formatMoney = (n) => `$${(Number(n) || 0).toFixed(2)}`;
+const formatMoney = (n) => `${(Number(n) || 0).toLocaleString('vi-VN')}đ`;
 const toInt = (v) => (Number.isFinite(Number(v)) ? Math.trunc(Number(v)) : 0);
 const val = (v) => (typeof v === "string" ? v.trim() : v);
 const slugify = (s) => (s || "")
@@ -49,6 +49,11 @@ const normColor = (s) => (s || "")
 function getRange(range) {
     const now = new Date();
     const startOfDay = (d) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    if (String(range).toLowerCase() === 'all') {
+        const s = new Date(0);
+        const e = new Date(now.getFullYear() + 1, 0, 1);
+        return { s, e, label: 'All Products' };
+    }
     if (range === "today") {
         const s = startOfDay(now);
         const e = new Date(s);
@@ -85,25 +90,31 @@ function saveFileToPublic(file_1) {
     });
 }
 const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    const allMode = String(req.query.take || '').toLowerCase() === 'all'
+        || String(req.query.all || '') === '1';
     const page = Math.max(1, Number(req.query.page) || 1);
-    const take = Math.min(50, Number(req.query.take) || 10);
-    const skip = (page - 1) * take;
+    const take = allMode ? undefined : Math.min(50, Number(req.query.take) || 10);
+    const skip = allMode ? undefined : (page - 1) * take;
     const range = String(req.query.range || "month");
     const { s, e, label } = getRange(range);
     const createdFilter = { createdAt: { gte: s, lt: e } };
-    const [rows, total] = yield Promise.all([
-        database_1.default.products.findMany({
-            where: Object.assign({ deleted: false }, createdFilter),
-            include: {
-                categories: { select: { title: true } },
-                productVariants: {
-                    select: { stock: true, images: true, color: true },
-                },
+    const findOpts = {
+        where: Object.assign({ deleted: false }, createdFilter),
+        include: {
+            categories: { select: { title: true } },
+            productVariants: {
+                where: { deleted: false },
+                select: { stock: true, images: true, color: true },
             },
-            orderBy: { createdAt: "desc" },
-            skip,
-            take,
-        }),
+        },
+        orderBy: { createdAt: 'desc' },
+    };
+    if (!allMode) {
+        findOpts.skip = skip;
+        findOpts.take = take;
+    }
+    const [rows, total] = yield Promise.all([
+        database_1.default.products.findMany(findOpts),
         database_1.default.products.count({ where: Object.assign({ deleted: false }, createdFilter) }),
     ]);
     const products = rows.map((p) => {
@@ -132,9 +143,10 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         title: "Product List",
         active: "products",
         products,
-        pagination: { page, take, total },
+        pagination: { page, take: (allMode ? total : take || 10), total },
         filterLabel: label,
         range,
+        allMode,
     });
 });
 exports.getProducts = getProducts;
@@ -389,6 +401,7 @@ const showProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             include: {
                 categories: { select: { id: true, title: true } },
                 productVariants: {
+                    where: { deleted: false },
                     include: { colors: { select: { id: true, name: true, hex: true, swatchUrl: true } } },
                     orderBy: { id: 'asc' },
                 }
@@ -396,10 +409,11 @@ const showProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         });
         if (!row)
             return res.status(404).render("admin/pages/products/view", { product: null });
-        const stockLeft = row.productVariants.reduce((s, v) => s + ((Number(v.stock) || 0)), 0);
+        const pv = Array.isArray(row.productVariants) ? row.productVariants.filter((v) => !v.deleted) : [];
+        const stockLeft = pv.reduce((s, v) => s + ((Number(v.stock) || 0)), 0);
         const statusText = row.status === 'inactive' ? 'Inactive' : 'Active';
         const statusClass = row.status === 'inactive' ? 'pv-badge pv-badge--muted' : 'pv-badge pv-badge--ok';
-        const viewModel = Object.assign(Object.assign({}, row), { categoryTitle: ((_a = row.categories) === null || _a === void 0 ? void 0 : _a.title) || '—', priceText: (Number(row.price) || 0).toLocaleString("vi-VN") + "đ", stockLeft, variantCount: row.productVariants.length, images: [row.thumbnail, ...row.productVariants.flatMap(v => v.images || [])].filter(Boolean), statusText,
+        const viewModel = Object.assign(Object.assign({}, row), { categoryTitle: ((_a = row.categories) === null || _a === void 0 ? void 0 : _a.title) || '—', priceText: (Number(row.price) || 0).toLocaleString("vi-VN") + "đ", stockLeft, variantCount: pv.length, images: [row.thumbnail, ...pv.flatMap(v => v.images || [])].filter(Boolean), statusText,
             statusClass });
         return res.render("admin/pages/products/view", {
             title: "Product Detail",
@@ -427,6 +441,7 @@ const editProductForm = (req, res) => __awaiter(void 0, void 0, void 0, function
                 where: { id },
                 include: {
                     productVariants: {
+                        where: { deleted: false },
                         include: {
                             colors: {
                                 select: { id: true, name: true, hex: true, swatchUrl: true },
@@ -593,6 +608,24 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         });
         const keys = Object.keys(variantMap).sort((a, b) => Number(a) - Number(b));
         console.log("VARIANT MAP KEYS:", keys);
+        const toDeleteIds = Object.keys(variantMap)
+            .map((k) => variantMap[k])
+            .filter((v) => v && v.id && v._delete)
+            .map((v) => String(v.id));
+        const blocked = new Set();
+        if (toDeleteIds.length > 0) {
+            const [cartRefs, orderRefs, invRefs] = yield Promise.all([
+                database_1.default.cart_items.findMany({ where: { variant_id: { in: toDeleteIds } }, select: { variant_id: true } }),
+                database_1.default.order_items.findMany({ where: { variant_id: { in: toDeleteIds } }, select: { variant_id: true } }),
+                database_1.default.inventoryMovements.findMany({ where: { variantId: { in: toDeleteIds } }, select: { variantId: true } }),
+            ]);
+            cartRefs.forEach((c) => blocked.add(c.variant_id));
+            orderRefs.forEach((o) => o.variant_id && blocked.add(o.variant_id));
+            invRefs.forEach((m) => m.variantId && blocked.add(m.variantId));
+            if (blocked.size > 0) {
+                console.warn("Soft-deleting referenced variants:", Array.from(blocked));
+            }
+        }
         for (const k of keys) {
             const v = variantMap[k];
             console.log(" -", k, { id: v.id, color: v.color, stock: v.stock, urls: (_e = v.urls) === null || _e === void 0 ? void 0 : _e.length, files: (_f = v.files) === null || _f === void 0 ? void 0 : _f.length });
@@ -638,7 +671,12 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 const mode = v.imagesMode || "append";
                 if (v.id) {
                     if (v._delete) {
-                        yield tx.productVariants.delete({ where: { id: v.id } });
+                        if (blocked.has(String(v.id))) {
+                            yield tx.productVariants.update({ where: { id: v.id }, data: { deleted: true, deletedAt: new Date(), stock: 0 } });
+                        }
+                        else {
+                            yield tx.productVariants.delete({ where: { id: v.id } });
+                        }
                         continue;
                     }
                     const data = {};
@@ -678,12 +716,15 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                 }
             }
         }));
-        res.redirect(`/admin/products/${id}`);
+        return res.redirect(303, `/admin/products/${id}`);
     }
     catch (err) {
         console.error("Update product (upsert variants) failed.", err);
-        if (!res.headersSent)
-            res.status(500).send("Update product failed.");
+        if (!res.headersSent) {
+            res
+                .status(500)
+                .send("Cập nhật sản phẩm thất bại. Nếu bạn vừa xóa biến thể, có thể biến thể đang được tham chiếu trong giỏ hàng/đơn hàng/kho. Vui lòng kiểm tra và thử lại.");
+        }
     }
 });
 exports.updateProduct = updateProduct;
