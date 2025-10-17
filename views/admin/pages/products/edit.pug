@@ -26,16 +26,16 @@ block head
       --ring-weak:rgba(249,115,22,.18);--s2:8px;--s3:12px;--s4:16px;--s5:20px;
     }
     body{background:var(--bg)}
-    .edit{font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--ink);line-height:1.6;max-width:1310px;margin:0 auto;padding:24px 16px}
+    .edit{font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "DejaVu Sans", "Liberation Sans", sans-serif;color:var(--ink);line-height:1.6;max-width:1310px;margin:0 auto;padding:24px 16px}
     .edit .grid{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:var(--s4)}
     @media (max-width:980px){.edit .grid{grid-template-columns:1fr}}
     .card.sec{background:var(--surface);border:1px solid var(--line);border-radius:var(--r-lg);box-shadow:var(--sh-1);padding:var(--s4)}
-    .ttl{margin:0 0 var(--s3);font-weight:800;letter-spacing:.2px}
+    .ttl{margin:0 0 var(--s3);font-weight:600;letter-spacing:.2px}
     .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s3);margin-bottom:var(--s3)}
     .field{display:grid;gap:var(--s2);min-width:0}
-    .label{font-weight:700}
+    .label{font-weight:500}
     .help{color:var(--muted);font-size:12px}
-    .input,.select,.textarea{width:100%;min-width:0;font-size:14px;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:border-color .15s,box-shadow .15s,background .15s}
+    .input,.select,.textarea{width:100%;min-width:0;font-size:14px;font-weight:400;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:12px 14px;transition:border-color .15s,box-shadow .15s,background .15s}
     .input:focus,.select:focus,.textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 4px var(--ring-weak)}
     .textarea{min-height:120px;resize:vertical}
     .select{appearance:none;background:linear-gradient(#fff,#fff) padding-box}
@@ -88,7 +88,7 @@ block head
     .modal .sheet{width:min(760px,96vw);max-height:88vh;overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:16px;box-shadow:var(--sh-2);padding:20px;transform:translateY(6px) scale(.985);opacity:0;transition:transform .16s ease-out,opacity .16s ease-out,box-shadow .2s}
     .modal[open] .sheet{transform:translateY(0) scale(1);opacity:1}
     .modal .hdr{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;gap:12px}
-    .modal .hdr h3{font-weight:900;font-size:18px;margin:0}
+    .modal .hdr h3{font-weight:800;font-size:18px;margin:0}
     .modal .input,.modal .select,.modal .textarea{width:100%;min-width:0;font-size:14px;font-weight:500;color:var(--ink);background:#fff;border:1px solid var(--line);border-radius:12px;padding:10px 12px;transition:border-color .15s,box-shadow .15s}
     .modal .input:focus,.modal .select:focus,.modal .textarea:focus{outline:0;border-color:var(--accent);box-shadow:0 0 0 3px var(--ring-weak)}
     .modal .textarea{min-height:110px;resize:vertical}
@@ -97,12 +97,12 @@ block head
     .modal .select-wrap:after{content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-50%);color:#94a3b8;font-weight:700;pointer-events:none}
     .swatch-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
     .swatch{width:24px;height:24px;border-radius:8px;border:1px solid var(--line);background:#fff center/cover no-repeat}
-    .mode-chip{border:1px solid var(--line);border-radius:12px;padding:6px 10px;background:#fff;font-weight:800;cursor:pointer;transition:box-shadow .15s,border-color .15s,transform .06s}
+    .mode-chip{border:1px solid var(--line);border-radius:12px;padding:6px 10px;background:#fff;font-weight:600;cursor:pointer;transition:box-shadow .15s,border-color .15s,transform .06s}
     .mode-chip:hover{transform:translateY(-1px)}
     .mode-chip[aria-pressed="true"]{border-color:var(--accent);box-shadow:0 0 0 3px var(--ring-weak) inset}
     .picker{width:38px;height:38px;padding:0;border:1px solid var(--line);border-radius:10px}
     .modal .btn{height:40px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:#fff;font-weight:800;cursor:pointer;transition:box-shadow .15s,transform .06s ease,background .15s,border-color .15s}
-    .modal .btn.primary{background:linear-gradient(180deg,var(--accent),var(--accent-600));border-color:transparent;color:#fff;box-shadow:0 10px 24px rgba(249,115,22,.25)}
+    .modal .btn.primary{font-weight:500;background:linear-gradient(180deg,var(--accent),var(--accent-600));border-color:transparent;color:#fff;box-shadow:0 10px 24px rgba(249,115,22,.25)}
     .modal .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px;margin-bottom:12px}
     .modal .field{display:grid;gap:8px}
     /* ===== Variants hint ===== */
@@ -110,11 +110,11 @@ block head
     .hint{display:inline-flex; align-items:center; justify-content:center; width:28px; height:28px; border-radius:8px; border:1px solid var(--line); background:#fff; cursor:pointer}
     .hint:hover{box-shadow:0 4px 12px rgba(2,6,23,.08)}
     .hint-pop{position:absolute; top:100%; left:0; margin-top:8px; z-index:20; min-width:280px; max-width:420px; background:#fff; border:1px solid var(--line); border-radius:12px; box-shadow:0 12px 28px rgba(2,6,23,.10); padding:12px 14px; display:none}
-    .hint-pop.show{display:block}
-    .hint-pop p{margin:0 0 6px; font-size:13px; color:#374151}
+    .hint-pop.show{display:block;background:#08243F}
+    .hint-pop p{margin:0 0 6px; font-size:13px; color:#fff;font-weight:300;}
     .hint-pop p:last-child{margin-bottom:0}
-    .hint-pop .title{font-weight:800; margin-bottom:6px}
-
+    .hint-pop .title{font-weight:600; margin-bottom:6px; font-size:14px; color:#fff;background:#08243F; }
+    .btn {  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "DejaVu Sans", "Liberation Sans", sans-serif; font-weight:400;}
 block content
   - const p = product || {}
   - const cats = Array.isArray(categories) ? categories : []
@@ -125,10 +125,10 @@ block content
   .edit
     .info-bar
       .info-left
-        a.btn.ghost(href="/admin/products") Back to list
+        a.btn.ghost(href="/admin/products") Trở lại danh sách sản phẩm
         if p.slug
           span.tag #{p.slug}
-      h2.tl Edit Product
+      h2.tl Sửa sản phẩm
 
     form#editForm(method="post" action=`/admin/products/${p.id || p.productId}` enctype="multipart/form-data")
       .grid
@@ -190,44 +190,44 @@ block content
         .card.sec
           details.panel(open)
             summary
-              span Product Information
+              span Thông tin sản phẩm
               svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
                 path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
             .panel-body
               .row
                 .field
-                  label.label(for="title") Product Name *
+                  label.label(for="title") Tên sản phẩm *
                   input.input#title(type="text" name="title" required placeholder="Items Name" value=p.title)
                 .field
-                  label.label(for="categoryId") Product Categories *
+                  label.label(for="categoryId") Danh mục sản phẩm *
                   .select-wrap
                     select.select#categoryId(name="categoryId" required)
-                      option(value="") Choose a category
+                      option(value="") Chọn danh mục
                       each c in cats
                         option(value=c.id selected=(String(c.id)===String(p.categoryId)))= c.title
                 .field
-                  label.label(for="status") Status
+                  label.label(for="status") Trạng thái
                   .select-wrap
                     select.select#status(name="status")
-                      option(value="active" selected=(p.status!=='inactive')) active
-                      option(value="inactive" selected=(p.status==='inactive')) inactive
+                      option(value="active" selected=(p.status!=='inactive')) Hoạt động
+                      option(value="inactive" selected=(p.status==='inactive')) Không hoạt động
               .row
                 .field
-                  label.label(for="price") Price (USD) *
+                  label.label(for="price") Giá *
                   input.input#price(type="number" name="price" required min="0" step="1" placeholder="0" value=p.price)
                 .field
-                  label.label(for="discount") Discount (%)
+                  label.label(for="discount") Giảm giá (%)
                   input.input#discount(type="number" name="discount" min="0" max="99" step="1" placeholder="0" value=(typeof p.discount==='number'?p.discount:0))
               .row
                 .field(style="grid-column:1/-1")
-                  label.label(for="description") Description
+                  label.label(for="description") Mô tả
                   textarea.textarea#description(name="description" rows="4" placeholder="Short description about the product")= p.description
 
           // ===== VARIANTS (edit inline + add new) =====
           details.panel(open)
             summary
               .summary-wrap
-                span Variants (edit & add)
+                span Biến thể (chỉnh sửa & thêm)
                 +hint(
                   'Images mode',
                   [
@@ -242,10 +242,10 @@ block content
                 table.vt#vtbl
                   thead
                     tr
-                      th(style="width:280px") Color
-                      th(style="width:110px") Stock
-                      th Images (URLs / Upload)
-                      th(style="width:140px") Actions
+                      th(style="width:280px") Màu sắc
+                      th(style="width:110px") Số lượng
+                      th Ảnh (URLs / Upload)
+                      th(style="width:140px") Hành động
                   tbody
                     if pv && pv.length
                       each v, i in pv
@@ -258,7 +258,7 @@ block content
                             input(type="hidden" name=`variants[${i}][id]` value=v.id)
                             input.input(type="text" name=`variants[${i}][color]` placeholder="Color name" value=((v.colors && v.colors.name) || v.color) required)
                             .row(style="margin-top:8px;grid-template-columns:1fr")
-                              button.btn.xs.ghost(type="button" data-toggle="swatch" data-row=i)= optOpen ? 'Hide swatch options' : 'Swatch options'
+                              button.btn.xs.ghost(type="button" data-toggle="swatch" data-row=i)= optOpen ? 'Ẩn tùy chọn mẫu màu' : 'Hiện tùy chọn mẫu màu'
                             .opt-swatch(style=optOpen ? '' : 'display:none')
                               if (v.colorHexLegacy || (v.colors && v.colors.hex))
                                 input.input(style="margin-top:8px" type="text" name=`variants[${i}][colorHexLegacy]` placeholder="#HEX (optional)" value=(v.colorHexLegacy || (v.colors && v.colors.hex) || ''))
@@ -274,10 +274,10 @@ block content
                             textarea.textarea(name=`variants[${i}][imageUrls]` rows="3" placeholder="https://...jpg\nhttps://...png")= urls
                             .filebox(style="margin-top:8px")
                               input(type="file" name=`variants[${i}][images][]` accept="image/*" multiple)
-                              span.fake Upload images…
+                              span.fake Tải ảnh…
                             .select-wrap(style="margin-top:8px")
                               select.select(name=`variants[${i}][imagesMode]`)
-                                option(value="append" selected) Append images (khuyên dùng)
+                                option(value="append" selected) Append images
                                 option(value="replace") Replace images
                           td
                             input(type="hidden" name=`variants[${i}][_delete]` value="0")
@@ -289,30 +289,30 @@ block content
 
                     tr
                       td(colspan="4")
-                        button.btn(type="button" id="btnAddVariant") + Add variant
+                        button.btn(type="button" id="btnAddVariant") + Thêm biến thể mới
 
       .card.sec(style="margin-top:16px")
         .toolbar
-          a.btn.ghost(href="/admin/products") Cancel
-          button.btn.primary(type="submit") Save changes
+          a.btn.ghost(href="/admin/products") Hủy
+          button.btn.primary(type="submit") Lưu thay đổi
 
   // ===== Modal Add Variant =====
   .modal#variantModal
     .sheet
       .hdr
-        h3.ttl(style="margin:0") Add Variant
-        button.btn(type="button" id="closeVariantModal") Close
+        h3.ttl(style="margin:0") Thêm biến thể sản phẩm
+        button.btn(type="button" id="closeVariantModal") Đóng
       .row
         .field
-          label.label(for="vm_colorName") Color Name *
+          label.label(for="vm_colorName") Tên màu *
           input.input#vm_colorName(type="text" placeholder="VD: Xanh Forest Night" required)
         .field
-          label.label(for="vm_stock") Stock *
+          label.label(for="vm_stock") Số lượng *
           input.input#vm_stock(type="number" min="0" step="1" value="0")
       .card.sec
         details.panel
           summary
-            span Swatch (optional)
+            span Mẫu màu (không bắt buộc)
             svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
               path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
           .panel-body
@@ -321,7 +321,7 @@ block content
                 label.label Chế độ
                 .swatch-row
                   button.mode-chip#vm_mode_hex(type="button" data-mode="hex" aria-pressed="true") HEX
-                  button.mode-chip#vm_mode_img(type="button" data-mode="img" aria-pressed="false") Image
+                  button.mode-chip#vm_mode_img(type="button" data-mode="img" aria-pressed="false") Ảnh
                   span.swatch#vm_swatch(title="Preview")
                 span.help Nếu không chọn màu bảng chuẩn, hex/img sẽ lưu *Legacy*.
             .row#vm_hex_box
@@ -329,26 +329,26 @@ block content
                 label.label(for="vm_hex") HEX (ví dụ: #060504)
                 input.input#vm_hex(type="text" placeholder="#060504" maxlength="7" pattern="#?[0-9a-fA-F]{3,6}")
               .field
-                label.label(for="vm_picker") Color picker
+                label.label(for="vm_picker") Chọn màu
                 input.picker#vm_picker(type="color" value="#333333")
             .row#vm_img_box(style="display:none")
               .field
-                label.label(for="vm_swatchUrl") Swatch URL
+                label.label(for="vm_swatchUrl") Mẫu màu URL
                 input.input#vm_swatchUrl(type="url" placeholder="https://...png")
       .row
         .field
-          label.label(for="vm_urls") Image URLs (mỗi dòng 1 URL)
+          label.label(for="vm_urls") Ảnh URLs (mỗi dòng 1 URL)
           textarea.textarea#vm_urls(rows="4" placeholder="https://...jpg\nhttps://...png")
           span.help Ảnh hiển thị của variant (khác ảnh swatch).
         .field
-          label.label Upload Images
+          label.label Tải ảnh lên từ máy
           .filebox
             input#vm_files(type="file" accept="image/*" multiple)
             span.fake Chọn ảnh…
           span.help Bạn có thể dùng URL, upload, hoặc cả hai.
       .toolbar
         button.btn(type="button" id="vm_reset") Reset
-        button.btn.primary(type="button" id="vm_save") Save variant
+        button.btn.primary(type="button" id="vm_save") Lưu biến thể
 
 block scripts
   script.
@@ -573,7 +573,7 @@ block scripts
         if(!box) return;
         var visible = box.style.display !== 'none';
         box.style.display = visible ? 'none' : '';
-        t.textContent = visible ? 'Swatch options' : 'Hide swatch options';
+        t.textContent = visible ? 'Hiện tùy chọn mẫu màu' : 'Ẩn tùy chọn mẫu màu';
       });
 
       // ===== Mutual-exclusive: HEX vs Swatch URL (inline rows) =====

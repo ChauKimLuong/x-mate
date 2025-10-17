@@ -47,26 +47,26 @@ function getRange(range?: string) {
   if (String(range).toLowerCase() === 'all') {
     const s = new Date(0);
     const e = new Date(now.getFullYear() + 1, 0, 1);
-    return { s, e, label: 'All Products' };
+    return { s, e, label: 'Tất cả' };
   }
   if (range === "today") {
     const s = startOfDay(now); const e = new Date(s); e.setDate(e.getDate() + 1);
-    return { s, e, label: "Today" };
+    return { s, e, label: "Hôm nay" };
   }
   if (range === "week") {
     const d = new Date(now); const day = d.getDay() || 7;
     const s = startOfDay(new Date(d)); s.setDate(s.getDate() - (day - 1));
     const e = new Date(s); e.setDate(e.getDate() + 7);
-    return { s, e, label: "This Week" };
+    return { s, e, label: "Tuần này" };
   }
   if (range === "year") {
     const s = new Date(now.getFullYear(), 0, 1);
     const e = new Date(now.getFullYear() + 1, 0, 1);
-    return { s, e, label: "This Year" };
+    return { s, e, label: "Năm nay" };
   }
   const s = new Date(now.getFullYear(), now.getMonth(), 1);
   const e = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-  return { s, e, label: "This Month" };
+  return { s, e, label: "Tháng này" };
 }
 
 // lưu file vào /public/uploads (trả về URL public bắt đầu /uploads/..)

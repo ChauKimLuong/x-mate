@@ -3,14 +3,14 @@ extends ../../layouts/default
 
 block head
   style.
-    .create{--ink:#0f172a;--muted:#6b7280;--line:#e5e7eb;--bg:#fff;--ring:#f97316;--ring-weak:rgba(249,115,22,.15);--r:12px;--sh:0 6px 18px rgba(16,24,40,.06);--s2:8px;--s3:12px;--s4:16px;font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial;color:var(--ink);line-height:1.55;max-width:1180px;margin:0 auto;padding:16px}
+    .create{--ink:#0f172a;--muted:#6b7280;--line:#e5e7eb;--bg:#fff;--ring:#f97316;--ring-weak:rgba(249,115,22,.15);--r:12px;--sh:0 6px 18px rgba(16,24,40,.06);--s2:8px;--s3:12px;--s4:16px;  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, "Noto Sans", "DejaVu Sans", "Liberation Sans", sans-serif;color:var(--ink);line-height:1.55;max-width:1180px;margin:0 auto;padding:16px}
     .create *{box-sizing:border-box}
     .create .grid{display:grid;grid-template-columns:minmax(0,360px) minmax(0,1fr);gap:var(--s4)}
     .create .card.sec{background:var(--bg);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--sh);padding:var(--s4)}
     .create .ttl{margin:0 0 var(--s3);font-weight:700}
     .create .row{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:var(--s3);margin-bottom:var(--s3)}
     .create .field{display:grid;gap:var(--s2);min-width:0}
-    .create .label{font-weight:700}
+    .create .label{font-weight:500}
     .create .help{color:var(--muted);font-size:12px}
     .create .input,.create .select,.create .textarea{width:100%;min-width:0;border:1px solid var(--line);background:#fff;border-radius:var(--r);padding:12px 14px;font-size:14px;font-weight:500;color:var(--ink);transition:border-color .15s,box-shadow .15s}
     .create .input:focus,.create .select:focus,.create .textarea:focus{outline:0;border-color:var(--ring);box-shadow:0 0 0 4px var(--ring-weak)}
@@ -37,7 +37,7 @@ block head
     .create .filebox{position:relative;display:inline-flex;align-items:center;gap:8px}
     .create .filebox input[type="file"]{position:absolute;inset:0;opacity:0;cursor:pointer}
     .create .filebox .fake{display:inline-flex;align-items:center;gap:8px;padding:10px 12px;border:1px dashed var(--line);border-radius:var(--r);background:#fff;font-weight:600;color:#374151}
-    .create .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:800;cursor:pointer}
+    .create .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;height:40px;padding:0 14px;border-radius:12px;border:1px solid var(--line);background:#fff;color:var(--ink);font-weight:600;cursor:pointer}
     .create .btn.primary{background:var(--ring);color:#fff;border-color:var(--ring);box-shadow:0 6px 18px rgba(249,115,22,.25)}
     .create .btn.del{border-color:#ffe0e0;background:#fff5f5;color:#b91c1c}
     .create .toolbar{display:flex;justify-content:flex-end;gap:8px}
@@ -85,7 +85,7 @@ block head
       border:1px dashed var(--line, #e5e7eb);
       border-radius:12px;
       background:#fff;
-      font-weight:700;
+      font-weight:500;
       color:#374151;
       line-height:1;
       transition:border-color .15s, box-shadow .15s, transform .06s, background .15s;
@@ -120,7 +120,7 @@ block head
       content: attr(data-files);
       display:none;
       margin-left:2px;
-      font-weight:700;
+      font-weight:600;
       font-size:12px;
       color:#0f172a;
       background:#fff7ed;
@@ -181,7 +181,7 @@ block head
     .modal .select-wrap{position:relative}
     .modal .select-wrap:after{
       content:"▾";position:absolute;right:10px;top:50%;transform:translateY(-50%);
-      color:#64748b;font-weight:700;pointer-events:none
+      color:#64748b;font-weight:500;pointer-events:none
     }
 
     /* Panel/accordion – giảm đường kẻ & khoảng cách */
@@ -203,7 +203,7 @@ block head
     .swatch{width:24px;height:24px;border-radius:7px;border:1px solid var(--line);background:#fff center/cover no-repeat}
     .mode-chip{
       border:1px solid var(--line);border-radius:10px;padding:6px 10px;background:#fff;
-      font-weight:700;cursor:pointer;transition:box-shadow .15s,border-color .15s
+      font-weight:600;cursor:pointer;transition:box-shadow .15s,border-color .15s
     }
     .mode-chip[aria-pressed="true"]{border-color:var(--ring);box-shadow:0 0 0 3px var(--ring-weak) inset}
     .picker{width:36px;height:36px;padding:0;border:1px solid var(--line);border-radius:8px}
@@ -211,7 +211,7 @@ block head
     /* Buttons đồng bộ */
     .modal .btn{
       height:38px;padding:0 14px;border-radius:12px;border:1px solid var(--line);
-      background:#fff;font-weight:800;cursor:pointer;transition:box-shadow .15s, transform .04s ease
+      background:#fff;font-weight:600;cursor:pointer;transition:box-shadow .15s, transform .04s ease
     }
     .modal .btn:active{transform:translateY(1px)}
     .modal .btn.primary{background:var(--ring);border-color:var(--ring);color:#fff;box-shadow:0 8px 22px rgba(249,115,22,.22)}
@@ -229,7 +229,7 @@ block content
   - var hasColors = (typeof variantOptions !== 'undefined' && variantOptions && Array.isArray(variantOptions.colors) && variantOptions.colors.length>0)
   - var colorList = Array.isArray(colors) ? colors : [] // server nên truyền mảng colors [{id,name,hex,swatchUrl}]
   .create
-    h2(style="margin:0 0 16px") CREATE PRODUCT
+    h2(style="margin:0 0 16px") THÊM SẢN PHẨM MỚI
 
     if hasColors
       datalist#colorNameList
@@ -272,71 +272,71 @@ block content
         .card.sec
           details.panel(open)
             summary
-              span Product Information
+              span Thông tin sản phẩm
               svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
                 path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
             .panel-body
               .row
                 .field
-                  label.label(for="title") Product Name *
+                  label.label(for="title") Tên sản phẩm *
                   input.input#title(type="text" name="title" required placeholder="Items Name")
                 .field
-                  label.label(for="categoryId") Product Categories *
+                  label.label(for="categoryId") Danh mục sản phẩm *
                   .select-wrap
                     select.select#categoryId(name="categoryId" required)
-                      option(value="") Choose a category
+                      option(value="") Chọn danh mục
                       each c in cats
                         option(value=c.id)= c.title
                 .field
-                  label.label(for="status") Status
+                  label.label(for="status") Trạng thái
                   .select-wrap
                     select.select#status(name="status")
-                      option(value="active" selected) active
-                      option(value="inactive") inactive
+                      option(value="active" selected) Hoạt động
+                      option(value="inactive") Không hoạt động
               .row
                 .field
-                  label.label(for="price") Price *
+                  label.label(for="price") Giá *
                   input.input#price(type="number" name="price" required min="0" step="1" placeholder="0")
                 .field
-                  label.label(for="discount") Discount (%)
+                  label.label(for="discount") Giảm giá (%)
                   input.input#discount(type="number" name="discount" min="0" max="99" step="1" placeholder="0")
               .row
                 .field(style="grid-column:1/-1")
-                  label.label(for="description") Description
+                  label.label(for="description") Mô tả
                   textarea.textarea#description(name="description" rows="4" placeholder="Short description about the product")
 
           // VARIANTS
-          h3.ttl(style="margin-top:8px") Variants
+          h3.ttl(style="margin-top:8px") Biến thể
           .table-wrap
             table.vt#vtbl
               thead
                 tr
-                  th(style="width:280px") Color
-                  th(style="width:110px") Stock
-                  th(style="width:120px") Images
+                  th(style="width:280px") Màu sắc
+                  th(style="width:110px") Số lượng
+                  th(style="width:120px") Ảnh
                   th(style="width:120px")
               tbody
                 //- hàng sẽ được JS thêm vào
               tfoot
                 tr
                   td(colspan="4")
-                    button.btn(type="button" id="btnAddVariant") + Add variant
+                    button.btn(type="button" id="btnAddVariant") + Thêm biến thể
 
       .card.sec(style="margin-top:16px")
         .toolbar
-          a.btn(href="/admin/products") Cancel
-          button.btn.primary(type="submit") Create Product
+          a.btn(href="/admin/products") Đóng
+          button.btn.primary(type="submit") Thêm sản phẩm
 
     //- ===== Modal thêm Variant (REPLACE BLOCK) =====
   .modal#variantModal
     .sheet
       .hdr
-        h3.ttl(style="margin:0") Add Variant
-        button.btn(type="button" id="closeVariantModal") Close
+        h3.ttl(style="margin:0") Thêm biến thể
+        button.btn(type="button" id="closeVariantModal") Đóng
       .row
         if colorList && colorList.length
           .field
-            label.label(for="vm_colorId") Color (từ bảng colors)
+            label.label(for="vm_colorId") Màu sắc
             .select-wrap
               select.select#vm_colorId
                 option(value="") — Chọn màu (ưu tiên) —
@@ -347,13 +347,13 @@ block content
           label.label(for="vm_colorName") Màu sắc (bắt buộc nếu không chọn Color)
           input.input#vm_colorName(type="text" placeholder="VD: Nâu Cappuccino" list="colorNameList" required)
         .field
-          label.label(for="vm_stock") Stock *
+          label.label(for="vm_stock") Số lượng *
           input.input#vm_stock(type="number" min="0" step="1" value="0")
 
       .card.sec
         details.panel(open)
           summary
-            span Swatch (optional)
+            span Mẫu ảnh (tùy chọn)
             svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
               path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
           .panel-body
@@ -397,7 +397,7 @@ block content
 
       .toolbar
         button.btn(type="button" id="vm_reset") Reset
-        button.btn.primary(type="button" id="vm_save") Save variant
+        button.btn.primary(type="button" id="vm_save") Lưu 
 block scripts
   // expose variantOptions nếu server chưa truyền
   script.

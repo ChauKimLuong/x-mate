@@ -132,14 +132,6 @@ html(lang="vi")
                 //- span.dot
                 span.lbl Thêm mới
 
-          // Category (ví dụ 1 nhóm khác nếu cần)
-          //- button.item.has-children(type="button", aria-expanded="false", data-target="#submenu-category")
-          //-   span.ico
-          //-     +icon-category(20)
-          //-   span.lbl Category
-          //-   span.caret ▾
-          //- ul.submenu#submenu-category
-          //-   li: a(href="#") span.dot + span.lbl List
 
           // Categories (toggle)
           - const openCategories = active && active.startsWith('categories');
@@ -211,7 +203,7 @@ html(lang="vi")
               img(src=_avatar alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;")
               span.name= _name
             form(action="/admin/logout" method="post" style="display:inline")
-              button.btn(type="submit" style="background:#ef4444;border:0;color:#fff") Log out
+              button.btn(type="submit" style="background:#ef4444;border:0;color:#fff") Đăng xuất
 
         .container
           block content

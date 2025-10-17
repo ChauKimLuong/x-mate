@@ -35,13 +35,13 @@ block head
 block content
   - const rows = Array.isArray(products) && products.length ? products : []
 
-  h2(style="margin:0 0 16px") PRODUCT LIST
+  h2(style="margin:0 0 16px") DANH SÁCH SẢN PHẨM
 
   .card(style="padding:0;border-radius:18px;box-shadow:0 8px 24px rgba(16,24,40,.06)")
     .perf-hd
-      .ttl All Product List
+      .ttl SẢN PHẨM
       .seg
-        button.btn.btn-dark(onclick="location.href='/admin/products/create'" style="background:#E6612A") Add Product
+        button.btn.btn-dark(onclick="location.href='/admin/products/create'" style="background:#E6612A") Thêm sản phẩm
 
         //- Dropdown filter ranges
         .filter(style="position:relative;display:inline-block;margin-left:8px")
@@ -52,11 +52,11 @@ block content
             span #{filterLabel || 'This Month'}
             span ▾
           .menu#filterMenu(style="position:absolute;right:0;top:110%;min-width:180px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.06);padding:8px;display:none;z-index:30")
-            a(href="/admin/products?range=today" style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='today'?'background:#f6f7fb;':''}`) Today
-            a(href="/admin/products?range=week"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='week'?'background:#f6f7fb;':''}`) This Week
-            a(href="/admin/products?range=month" style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='month'?'background:#f6f7fb;':''}`) This Month
-            a(href="/admin/products?range=year"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='year'?'background:#f6f7fb;':''}`) This Year
-            a(href="/admin/products?range=all"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${(range==='all'||allMode)?'background:#f6f7fb;':''}`) All Products
+            a(href="/admin/products?range=today" style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='Hôm nay'?'background:#f6f7fb;':''}`) Hôm nay
+            a(href="/admin/products?range=week"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='Tuần này'?'background:#f6f7fb;':''}`) Tuần này
+            a(href="/admin/products?range=month" style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='Tháng này'?'background:#f6f7fb;':''}`) Tháng này
+            a(href="/admin/products?range=year"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='Năm này'?'background:#f6f7fb;':''}`) Năm này
+            a(href="/admin/products?range=all"  style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${(range==='Tất cả'||allMode)?'background:#f6f7fb;':''}`) Tất cả
 
 
     table(style="width:100%; border-collapse:separate; border-spacing:0")
@@ -64,12 +64,12 @@ block content
         tr
           th.sel(style="padding:14px 16px; border-bottom:1px solid #eef0f5")
             input#ckAll(type="checkbox" title="Select all")
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Product Name & Size
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Price
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Stock
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Category
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Rating
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Action
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Tên sản phẩm & Size
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Giá
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Tồn kho
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Danh mục
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Đánh giá
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Hành động
       tbody
         each p in rows
           tr(data-id=p.id)
@@ -87,10 +87,9 @@ block content
             td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= p.priceText
 
             td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
-              span(style="font-weight:700") #{p.left}
-              |  Item Left
+              span Còn #[span(style="font-weight:700") #{p.left}]   sản phẩm
               br
-              span(style="color:#8c98a9; font-size:13px") #{p.sold} Sold
+              span(style="color:#8c98a9; font-size:13px") #{p.sold} đã bán
 
             //- Category
             td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= p.category
@@ -100,7 +99,7 @@ block content
               span(style="display:inline-flex;align-items:center;gap:6px;background:#eef2ff;border-radius:10px;padding:4px 8px;color:#f59e0b")
                 +ic_star(14)
                 span(style="color:#111") #{(p.rating || 0).toFixed(1)}
-              span(style="color:#8c98a9; margin-left:8px") #{p.reviews || 0} Review
+              span(style="color:#8c98a9; margin-left:8px") #{p.reviews || 0} Đánh giá
 
             td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
               .actions(style="display:flex; gap:8px; align-items:center")
