@@ -4,84 +4,84 @@ block content
   - var currentMode = typeof mode !== 'undefined' ? mode : 'create';
   - var F = typeof form !== 'undefined' ? form : {};
   .dash-wrap
-    h2.welcome #{currentMode === 'create' ? 'ADD NEW PROMOTION' : 'EDIT PROMOTION'}
+    h2.welcome #{currentMode === 'create' ? 'THÊM KHUYẾN MÃI MỚI' : 'SỬA KHUYẾN MÃI'}
 
     form(method="post" action= currentMode==='create' ? '/admin/promotions' : `/admin/promotions/${F.couponid}`)
       .grid(style="display:grid;grid-template-columns:1fr 1fr;gap:20px;")
 
         // LEFT PANEL: Promotion Information + Discount
         .panel(style="background:#fff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(16,24,40,0.06);")
-          h3(style="margin-top:0") Promotion Information
-          label Code
+          h3(style="margin-top:0") Thông tin khuyến mãi
+          label Mã
           input(type="text" name="code" value=(F.code || '') placeholder="e.g. SUMMER24" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;")
-          label Title
-          input(type="text" name="title" value=(F.title || '') placeholder="Short title" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;")
+          label Tiêu đề
+          input(type="text" name="title" value=(F.title || '') placeholder="Tiêu đề ngắn" style="width:100%;padding:8px;margin-bottom:8px;border:1px solid #ddd;border-radius:8px;")
           
-          h3 Date Schedule
-          label Start Date
+          h3 Lịch thời gian
+          label Ngày bắt đầu
           input(type="date" name="start" value=(F.startdate ? new Date(F.startdate).toISOString().split('T')[0] : '') style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:10px;")
-          label End Date
+          label Ngày kết thúc
           input(type="date" name="end" value=(F.enddate ? new Date(F.enddate).toISOString().split('T')[0] : '') style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;")
  
-          h3(style="margin-top:0") Promotion Status
+          h3(style="margin-top:0") Trạng thái khuyến mãi
           .radio-group(style="display:flex;gap:12px;margin-bottom:14px;flex-wrap:wrap;")
             - var st = F.status || 'ACTIVE';
             label
               input(type="radio" name="status" value="ACTIVE" checked=st==='ACTIVE')
-              | Active
+              | Đang hoạt động
             label
               input(type="radio" name="status" value="INACTIVE" checked=st==='INACTIVE')
-              | Inactive
+              | Không hoạt động
             label
               input(type="radio" name="status" value="SCHEDULED" checked=st==='SCHEDULED')
-              | Scheduled
+              | Đã lên lịch
 
         // RIGHT PANEL: Status + Schedule + Rules
         .panel(style="background:#fff;padding:16px;border-radius:16px;box-shadow:0 8px 24px rgba(16,24,40,0.06);")
-          h3 Discount Type
+          h3 Kiểu giảm giá
           - var tp = F.type || 'PERCENT';
           .radio-group(style="display:flex;gap:12px;margin-bottom:8px;flex-wrap:wrap;")
             label
               input(type="radio" name="type" value="PERCENT" checked=tp==='PERCENT')
-              | Percentage
+              | Phần trăm
             label
               input(type="radio" name="type" value="AMOUNT" checked=tp==='AMOUNT')
-              | Fixed Amount
+              | Số tiền cố định
             label
               input(type="radio" name="type" value="FREESHIP" checked=tp==='FREESHIP')
-              | Free Shipping
+              | Miễn phí vận chuyển
 
-          label Discount Value
+          label Giá trị giảm
           input#discountInput(
             type="number" step="0.01" min="0"
             name="discount"
             value=(F.discountvalue ? F.discountvalue.toString() : 0)
-            placeholder="Value"
+            placeholder="Giá trị"
             style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:12px;"
           )
 
-          h3 Rules
-          label Usage limit (optional)
+          h3 Quy định
+          label Giới hạn sử dụng (tùy chọn)
           input(type="number" min="0" name="usagelimit"
                 value=(typeof F.usagelimit !== 'undefined' && F.usagelimit !== null ? F.usagelimit : '')
-                placeholder="e.g. 100"
+                placeholder="vd: 100"
                 style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;")
 
-          label Min order value (optional)
+          label Giá trị đơn tối thiểu (tùy chọn)
           input(type="number" step="0.01" min="0" name="minordervalue"
                 value=(F.minordervalue ? F.minordervalue.toString() : '')
-                placeholder="e.g. 300000"
+                placeholder="vd: 300000"
                 style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;margin-bottom:8px;")
 
-          label Max discount (optional)
+          label Giảm tối đa (tùy chọn)
           input(type="number" step="0.01" min="0" name="maxdiscount"
                 value=(F.maxdiscount ? F.maxdiscount.toString() : '')
-                placeholder="Cap amount when type = PERCENT"
+                placeholder="Giới hạn khi kiểu = PHẦN TRĂM"
                 style="width:100%;padding:8px;border:1px solid #ddd;border-radius:8px;")
 
           .actions(style="margin-top:16px;display:flex;gap:10px;")
-            button.btn-dark(type="submit") #{currentMode==='create' ? 'Create Promotion' : 'Update Promotion'}
-            a.btn(href="/admin/promotions") Cancel
+            button.btn-dark(type="submit") #{currentMode==='create' ? 'Tạo khuyến mãi' : 'Cập nhật khuyến mãi'}
+            a.btn(href="/admin/promotions") Hủy
 
 block scripts
   script.

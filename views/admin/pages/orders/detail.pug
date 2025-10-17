@@ -192,48 +192,48 @@ block content
     .order-header
       h3
         i.bi.bi-receipt
-        |  Order Details
+        |  Chi tiết đơn hàng
       a.btn-back(href="/admin/orders")
         i.bi.bi-arrow-left
-        |  Back
+        |  Quay lại
 
     .order-card
       .order-info
         .info-block
-          strong Order ID
+          strong Mã đơn hàng
           p #{order.id}
         .info-block
-          strong Customer
+          strong Khách hàng
           p #{order.shipping_full_name}
         .info-block
-          strong Phone
+          strong SĐT
           p #{order.shipping_phone}
         .info-block
-          strong Address
+          strong Địa chỉ
           p #{order.shipping_line1}, #{order.shipping_ward}, #{order.shipping_district}, #{order.shipping_city}
         .info-block
-          strong Created At
+          strong Tạo lúc
           p #{new Date(order.created_at).toLocaleString('vi-VN')}
         .info-block.status-section
-          strong Status
+          strong Trạng thái
           if order.status === 'pending'
-            span.status-badge.status-pending Pending
+            span.status-badge.status-pending Chờ xử lý
           else if order.status === 'confirmed'
-            span.status-badge.status-confirmed Confirmed
+            span.status-badge.status-confirmed Đã xác nhận
           else
-            span.status-badge.status-cancelled Cancelled
+            span.status-badge.status-cancelled Đã hủy
 
       hr
 
-      h5(style="font-weight:600;color:#222;margin-bottom:1rem;") Items in this Order
+      h5(style="font-weight:600;color:#222;margin-bottom:1rem;") Sản phẩm trong đơn
       table
         thead
           tr
-            th Product
-            th Variant
-            th Quantity
-            th Unit Price
-            th Total
+            th Sản phẩm
+            th Biến thể
+            th Số lượng
+            th Đơn giá
+            th Tổng
         tbody
           each item in order.order_items
             - const imgSrc = item.products.thumbnail || '/img/default-product.jpg';
@@ -248,4 +248,4 @@ block content
               td #{Number(item.line_total).toLocaleString('vi-VN')} ₫
 
       .summary
-        span Grand Total: #{Number(order.grand_total).toLocaleString('vi-VN')} ₫
+        span Tổng cộng: #{Number(order.grand_total).toLocaleString('vi-VN')} ₫

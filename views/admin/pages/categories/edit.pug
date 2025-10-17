@@ -18,51 +18,50 @@ block head
 
 block content
   - const c = row || {}
-  h2(style="margin:0 0 16px") EDIT CATEGORY
+  h2(style="margin:0 0 16px") CHỈNH SỬA DANH MỤC
 
   .form-card
     form(method="post" action=`/admin/categories/${c.id}` enctype="multipart/form-data")
       .row
         .field
-          label.label(for="title") Title *
+          label.label(for="title") Tiêu đề *
           input.input#title(type="text" name="title" required value=c.title)
         .field
-          label.label(for="parentId") Parent
+          label.label(for="parentId") Danh mục cha
           select.select#parentId(name="parentId")
-            option(value="" selected=(String(c.parentId||'')==='')) None
+            option(value="" selected=(String(c.parentId||'')==='')) Không
             if Array.isArray(parents)
               each p in parents
                 option(value=p.id selected=(String(c.parentId||'')===String(p.id)))= p.title
         .field
-          label.label(for="position") Position
+          label.label(for="position") Vị trí
           input.input#position(type="number" name="position" value=c.position||0)
         .field
-          label.label(for="status") Status
+          label.label(for="status") Trạng thái
           select.select#status(name="status")
-            option(value="active" selected=(c.status==='active')) active
-            option(value="inactive" selected=(c.status==='inactive')) inactive
+            option(value="active" selected=(c.status==='active')) Hoạt động
+            option(value="inactive" selected=(c.status==='inactive')) Không hoạt động
         .field
-          label.label(for="isFeatured") Featured
+          label.label(for="isFeatured") Nổi bật
           select.select#isFeatured(name="isFeatured")
-            option(value="0" selected=(!c.isFeatured)) No
-            option(value="1" selected=(!!c.isFeatured)) Yes
+            option(value="0" selected=(!c.isFeatured)) Không
+            option(value="1" selected=(!!c.isFeatured)) Có
 
       .field
-        label.label(for="thumbnailUrl") Thumbnail URL
-        input.input#thumbnailUrl(type="url" name="thumbnailUrl" value=c.thumbnail placeholder="https://... (or upload below)")
+        label.label(for="thumbnailUrl") URL ảnh đại diện
+        input.input#thumbnailUrl(type="url" name="thumbnailUrl" value=c.thumbnail placeholder="https://... (hoặc tải lên bên dưới)")
         .filebox(style="margin-top:8px")
           input(type="file" name="thumbnail" accept="image/*")
-          span.fake Upload image...
+          span.fake Tải ảnh lên...
 
       .field
-        label.label(for="description") Description
+        label.label(for="description") Mô tả
         textarea.textarea#description(name="description")= c.description
 
       .toolbar
         div
           form(method="post" action=`/admin/categories/${c.id}/toggle-status` style="display:inline")
-            button.btn(type="submit") Toggle status
+            button.btn(type="submit") Chuyển trạng thái
           form(method="post" action=`/admin/categories/${c.id}/delete` style="display:inline;margin-left:8px")
-            button.btn.danger(type="submit" onclick="return confirm('Delete this category?')") Delete
-        button.btn.primary(type="submit") Save changes
-
+            button.btn.danger(type="submit" onclick="return confirm('Xóa danh mục này?')") Xóa
+        button.btn.primary(type="submit") Lưu thay đổi

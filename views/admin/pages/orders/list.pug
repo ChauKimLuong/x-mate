@@ -106,43 +106,43 @@ block content
   .orders-wrapper
     h3.page-title
       i.bi.bi-card-list
-      |  Orders Management
+      |  Quản lý đơn hàng
 
     .orders-card
       table
         thead
           tr
-            th Product
-            th Customer
-            th Total
-            th Status
-            th Actions
+            th Sản phẩm
+            th Khách hàng
+            th Tổng
+            th Trạng thái
+            th Thao tác
         tbody
           each order in orders
             - const thumb = order.thumbnail || '/img/default-product.jpg'
             tr
               td
-                img.product-thumb(src=thumb, alt="Product Image")
+                img.product-thumb(src=thumb, alt="Ảnh sản phẩm")
               td #{order.customerName}
               td #{Number(order.total || 0).toLocaleString('vi-VN')} ₫
               td
                 if order.status === 'pending'
-                  span.badge.badge-pending Pending
+                  span.badge.badge-pending Chờ xử lý
                 else if order.status === 'confirmed'
-                  span.badge.badge-confirmed Confirmed
+                  span.badge.badge-confirmed Đã xác nhận
                 else
-                  span.badge.badge-cancelled Cancelled
+                  span.badge.badge-cancelled Đã hủy
               td
                 .action-group
                   if order.status === 'pending'
                     form(action=`/admin/orders/${order.id}/confirm`, method="POST")
-                      button.btn.btn-confirm(type="submit", title="Confirm")
+                      button.btn.btn-confirm(type="submit", title="Xác nhận")
                         i.bi.bi-check-circle
-                        | Confirm
+                        | Xác nhận
                     form(action=`/admin/orders/${order.id}/cancel`, method="POST")
-                      button.btn.btn-cancel(type="submit", title="Cancel")
+                      button.btn.btn-cancel(type="submit", title="Hủy")
                         i.bi.bi-x-circle
-                        | Cancel
-                  a.btn.btn-view(href=`/admin/orders/${order.id}/detail`, title="View")
+                        | Hủy
+                  a.btn.btn-view(href=`/admin/orders/${order.id}/detail`, title="Xem")
                     i.bi.bi-eye
-                    | View
+                    | Xem

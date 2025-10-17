@@ -5,53 +5,53 @@ block content
     // =============================
     // 💰 REVENUE REPORT SECTION
     // =============================
-    h2.welcome(style="font-weight:800;font-size:22px;") Revenue Report
-    p(style="color:#6b7280;margin-bottom:20px;") View sales and revenue statistics for your store.
+    h2.welcome(style="font-weight:800;font-size:22px;") Báo cáo doanh thu
+    p(style="color:#6b7280;margin-bottom:20px;") Xem thống kê bán hàng và doanh thu cho cửa hàng của bạn.
 
     if errorRevenue
       .alert(style="background:#fde8e8;color:#b42318;padding:10px 16px;border-radius:10px;margin-bottom:20px;")
         = errorRevenue
 
     form(method="get", action="/admin/reports/revenue", style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;")
-      label(for="from") From:
+      label(for="from") Từ:
       input#from(type="date", name="from", value=from style="padding:6px 8px;border:1px solid #ccc;border-radius:8px;")
-      label(for="to") To:
+      label(for="to") Đến:
       input#to(type="date", name="to", value=to style="padding:6px 8px;border:1px solid #ccc;border-radius:8px;")
-      label(for="status") Status:
+      label(for="status") Trạng thái:
       select#status(name="status", style="padding:6px 8px;border:1px solid #ccc;border-radius:8px;")
-        option(value="All" selected=(status==="All")) All
-        option(value="processing" selected=(status==="processing")) Processing (Paid / Shipped)
-        option(value="completed" selected=(status==="completed")) Completed
-        option(value="cancelled" selected=(status==="cancelled")) Cancelled
+        option(value="All" selected=(status==="All")) Tất cả
+        option(value="processing" selected=(status==="processing")) Đang xử lý (Đã thanh toán / Đã giao)
+        option(value="completed" selected=(status==="completed")) Hoàn tất
+        option(value="cancelled" selected=(status==="cancelled")) Đã hủy
       button.btn-dark(type="submit" style="padding:10px 20px;font-size:16px;border-radius:25px;background:#333;color:#fff;border:none;cursor:pointer;")
-        | Filter
+        | Lọc
       if orders.length
-        a.btn(href=`/admin/reports/revenue/export?from=${from}&to=${to}&status=${status}`, style="background:#ff6a21;color:#fff;padding:8px 14px;border-radius:8px;margin-left:auto;") ⬇ Export Excel
+        a.btn(href=`/admin/reports/revenue/export?from=${from}&to=${to}&status=${status}`, style="background:#ff6a21;color:#fff;padding:8px 14px;border-radius:8px;margin-left:auto;") ⬇ Xuất Excel
 
     if orders && orders.length
       .kpi-row(style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:24px;align-items:stretch;")
         .kpi-card(style="background:#fff4ee;padding:20px 24px;border-radius:20px;display:flex;flex-direction:column;justify-content:center;height:120px;")
-          h4(style="margin:0 0 8px;color:#ff6a21;font-weight:600;") Total Revenue
+          h4(style="margin:0 0 8px;color:#ff6a21;font-weight:600;") Tổng doanh thu
           h2(style="margin:0;font-weight:800;font-size:22px;color:#111;") #{totalRevenue.toLocaleString('vi-VN')} đ
 
         .kpi-card(style="background:#e8f8f4;padding:20px 24px;border-radius:20px;display:flex;flex-direction:column;justify-content:center;height:120px;")
-          h4(style="margin:0 0 8px;color:#1f7a47;font-weight:600;") Completed Orders
+          h4(style="margin:0 0 8px;color:#1f7a47;font-weight:600;") Đơn hàng hoàn tất
           h2(style="margin:0;font-weight:800;font-size:22px;color:#111;") #{completed}
 
         .kpi-card(style="background:#f9fafb;padding:20px 24px;border-radius:20px;display:flex;flex-direction:column;justify-content:center;height:120px;")
-          h4(style="margin:0 0 8px;color:#555;font-weight:600;") Processing Orders
+          h4(style="margin:0 0 8px;color:#555;font-weight:600;") Đơn hàng đang xử lý
           h2(style="margin:0;font-weight:800;font-size:22px;color:#111;") #{processing}
 
       // === Revenue Table ===
       table(style="width:100%;border-collapse:collapse;background:#fff;border-radius:16px;box-shadow:0 8px 24px rgba(16,24,40,0.06);overflow:hidden;")
         thead(style="background:#f9fafb;color:#555;")
           tr
-            th(style="padding:12px;text-align:left;") Order ID
-            th(style="text-align:center") Date
-            th(style="text-align:center") Customer
+            th(style="padding:12px;text-align:left;") Mã đơn hàng
+            th(style="text-align:center") Ngày
+            th(style="text-align:center") Khách hàng
             th(style="text-align:center") Email
-            th(style="text-align:center") Total
-            th(style="text-align:center") Status
+            th(style="text-align:center") Tổng
+            th(style="text-align:center") Trạng thái
         tbody
           each o in orders
             tr(style="border-top:1px solid #eee;")
@@ -67,47 +67,47 @@ block content
                 else if ['paid','shipped'].includes(o.status)
                   span(style="background:#fff8e6;color:#b47a00;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;") Processing
                 else if o.status === 'cancelled'
-                  span(style="background:#fde8e8;color:#b42318;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;") Cancelled
+                  span(style="background:#fde8e8;color:#b42318;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;") Đã hủy
                 else
                   span(style="background:#f3f4f6;color:#555;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;") #{o.status}
     else
       .empty(style="text-align:center;padding:40px;background:#fff;border-radius:16px;color:#888;box-shadow:0 4px 12px rgba(0,0,0,0.04);margin-bottom:30px;")
-        p(style="margin:0;font-size:15px;") No orders found.
+        p(style="margin:0;font-size:15px;") Không có đơn hàng.
 
     // =============================
     // 📦 INVENTORY REPORT SECTION
     // =============================
-    h2.welcome(style="font-weight:800;font-size:22px;margin-top:40px;") Inventory Report
-    p(style="color:#6b7280;margin-bottom:20px;") Track stock changes and sold quantities by time range, with category filtering.
+    h2.welcome(style="font-weight:800;font-size:22px;margin-top:40px;") Báo cáo tồn kho
+    p(style="color:#6b7280;margin-bottom:20px;") Theo dõi biến động tồn kho và số lượng bán theo thời gian, có lọc theo danh mục.
 
     if errorInventory
       .alert(style="background:#fde8e8;color:#b42318;padding:10px 16px;border-radius:10px;margin-bottom:20px;")
         = errorInventory
 
     form(method="get", action="/admin/reports/inventory", style="display:flex;gap:10px;align-items:center;margin-bottom:20px;flex-wrap:wrap;")
-      label(for="fromInv") From:
+      label(for="fromInv") Từ:
       input#fromInv(type="date", name="from", value=fromInv style="padding:6px 8px;border:1px solid #ccc;border-radius:8px;")
-      label(for="toInv") To:
+      label(for="toInv") Đến:
       input#toInv(type="date", name="to", value=toInv style="padding:6px 8px;border:1px solid #ccc;border-radius:8px;")
-      label(for="cat") Category:
+      label(for="cat") Danh mục:
       select#cat(name="cat", style="padding:6px 8px;border:1px solid #ccc;border-radius:8px;")
-        option(value="All" selected=(catId==="All")) All
+        option(value="All" selected=(catId==="All")) Tất cả
         if categories
           each c in categories
             option(value=c.id selected=(catId===c.id))= c.title
       button.btn-dark(type="submit" style="padding:10px 20px;font-size:16px;border-radius:25px;background:#333;color:#fff;border:none;cursor:pointer;")
-        | Filter
+        | Lọc
 
     // === Inventory KPI ===
     .kpi-row(style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:24px;align-items:stretch;")
       .kpi-card(style="background:#fff4ee;padding:20px 24px;border-radius:20px;")
-          h4(style="color:#ff6a21;font-weight:600;") Total Product Types
+          h4(style="color:#ff6a21;font-weight:600;") Tổng số loại sản phẩm
           h2(style="font-weight:800;font-size:22px;") #{totalProductTypes}
       .kpi-card(style="background:#e8f8f4;padding:20px 24px;border-radius:20px;")
-          h4(style="color:#1f7a47;font-weight:600;") Total Stock Remaining
+          h4(style="color:#1f7a47;font-weight:600;") Tổng tồn kho còn lại
           h2(style="font-weight:800;font-size:22px;") #{totalStockRemaining}
       .kpi-card(style="background:#f9fafb;padding:20px 24px;border-radius:20px;")
-          h4(style="color:#555;font-weight:600;") Total Sold
+          h4(style="color:#555;font-weight:600;") Tổng đã bán
           h2(style="font-weight:800;font-size:22px;") #{totalSold}
 
     // === Inventory Table ===
@@ -115,12 +115,12 @@ block content
       table(style="width:100%;border-collapse:collapse;background:#fff;border-radius:16px;box-shadow:0 8px 24px rgba(16,24,40,0.06);overflow:hidden;")
         thead(style="background:#f9fafb;color:#555;")
           tr
-            th(style="padding:12px;text-align:left;") Product ID
-            th(style="text-align:center") Name
-            th(style="text-align:center") Category
-            th(style="text-align:center") Stock Remaining
-            th(style="text-align:center") Sold
-            th(style="text-align:center") Created At
+            th(style="padding:12px;text-align:left;") Mã SP
+            th(style="text-align:center") Tên
+            th(style="text-align:center") Danh mục
+            th(style="text-align:center") Tồn còn lại
+            th(style="text-align:center") Đã bán
+            th(style="text-align:center") Tạo lúc
         tbody
           each r in movements
             tr(style="border-top:1px solid #eee;")
@@ -132,7 +132,7 @@ block content
               td(style="text-align:center")= new Date(r.createdAt).toLocaleDateString("vi-VN")
     else
       .empty(style="text-align:center;padding:40px;background:#fff;border-radius:16px;color:#888;")
-        p No product data found for this filter.
+        p Không có dữ liệu sản phẩm cho bộ lọc này.
 
 block scripts
   script.

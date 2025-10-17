@@ -3,7 +3,7 @@ extends ../../layouts/default
 include ../../mixins/icons
 
 //- Hint mixin dùng kèm icon-hint (xuất hiện 1 lần, cạnh tiêu đề Variants)
-mixin hint(title='Help', items=[])
+mixin hint(title='Trợ giúp', items=[])
   .hint-wrap
     button.hint(type="button" data-hint title=title aria-expanded="false")
       +icon-hint(18)
@@ -136,16 +136,16 @@ block content
         .card.sec
           details.panel(open)
             summary
-              span Thumbnail
+              span Ảnh đại diện
               svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
                 path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
             .panel-body
               .thumb-uploader
                 .field(style="width:100%")
-                  label.label(for="thumbnailUrl") Thumbnail URL (tùy chọn)
+                  label.label(for="thumbnailUrl") URL ảnh đại diện (tùy chọn)
                   input.input#thumbnailUrl(type="url" name="thumbnailUrl" placeholder="https://...jpg" value=p.thumbnail)
                   span.help Nếu nhập URL thì dùng URL này (bỏ qua file).
-                img#thumbPrev.thumb-preview(src=(p.thumbnail || 'https://placehold.co/360x360?text=Thumbnail') alt="preview")
+                img#thumbPrev.thumb-preview(src=(p.thumbnail || 'https://placehold.co/360x360?text=Thumbnail') alt="xem trước")
                 .filebox(style="margin-top:8px")
                   input(type="file" name="thumbnail" accept="image/*" onchange="handleThumb(this)")
                   span.fake Chọn ảnh từ máy…
@@ -167,7 +167,7 @@ block content
 
           details.panel
             summary
-              span Current Variants (readonly)
+              span Biến thể hiện có (chỉ đọc)
               svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
                 path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
             .panel-body
@@ -182,7 +182,7 @@ block content
                       span.v-swatch(style=swStyle)
                       .v-meta
                         .name #{(v.colors && v.colors.name) || v.color}
-                        .sub Stock: #{v.stock} · Images: #{imgCount}
+                        .sub Tồn kho: #{v.stock} · Ảnh: #{imgCount}
               else
                 p.help Chưa có biến thể hoặc không thể tải danh sách.
 
@@ -197,7 +197,7 @@ block content
               .row
                 .field
                   label.label(for="title") Tên sản phẩm *
-                  input.input#title(type="text" name="title" required placeholder="Items Name" value=p.title)
+                  input.input#title(type="text" name="title" required placeholder="Tên sản phẩm" value=p.title)
                 .field
                   label.label(for="categoryId") Danh mục sản phẩm *
                   .select-wrap
@@ -221,7 +221,7 @@ block content
               .row
                 .field(style="grid-column:1/-1")
                   label.label(for="description") Mô tả
-                  textarea.textarea#description(name="description" rows="4" placeholder="Short description about the product")= p.description
+                  textarea.textarea#description(name="description" rows="4" placeholder="Mô tả ngắn về sản phẩm")= p.description
 
           // ===== VARIANTS (edit inline + add new) =====
           details.panel(open)
@@ -229,7 +229,7 @@ block content
               .summary-wrap
                 span Biến thể (chỉnh sửa & thêm)
                 +hint(
-                  'Images mode',
+                  'Chế độ ảnh',
                   [
                     { boldBefore: 'Append:', text: 'Ảnh mới sẽ được cộng thêm vào ảnh cũ.' },
                     { boldBefore: 'Replace:', text: 'Ảnh mới sẽ thay thế toàn bộ ảnh cũ.' }
@@ -265,9 +265,9 @@ block content
                               else
                                 input.input(style="margin-top:8px" type="text" name=`variants[${i}][colorHexLegacy]` placeholder="#HEX (optional)")
                               if (v.swatchUrlLegacy || (v.colors && v.colors.swatchUrl))
-                                input.input(style="margin-top:8px" type="url" name=`variants[${i}][swatchUrlLegacy]` placeholder="Swatch URL (optional)" value=(v.swatchUrlLegacy || (v.colors && v.colors.swatchUrl) || ''))
+                                input.input(style="margin-top:8px" type="url" name=`variants[${i}][swatchUrlLegacy]` placeholder="URL mẫu màu (tùy chọn)" value=(v.swatchUrlLegacy || (v.colors && v.colors.swatchUrl) || ''))
                               else
-                                input.input(style="margin-top:8px" type="url" name=`variants[${i}][swatchUrlLegacy]` placeholder="Swatch URL (optional)")
+                                input.input(style="margin-top:8px" type="url" name=`variants[${i}][swatchUrlLegacy]` placeholder="URL mẫu màu (tùy chọn)"
                           td
                             input.input(type="number" name=`variants[${i}][stock]` min="0" step="1" value=v.stock)
                           td

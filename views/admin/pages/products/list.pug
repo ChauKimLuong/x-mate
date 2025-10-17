@@ -49,7 +49,7 @@ block content
             type="button"
             style="padding:6px 10px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;cursor:pointer;min-width:140px;display:inline-flex;align-items:center;justify-content:space-between;gap:6px"
           )
-            span #{filterLabel || 'This Month'}
+            span #{filterLabel || 'Tháng này'}
             span ▾
           .menu#filterMenu(style="position:absolute;right:0;top:110%;min-width:180px;background:#fff;border:1px solid #e5e7eb;border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.06);padding:8px;display:none;z-index:30")
             a(href="/admin/products?range=today" style=`display:block;padding:8px 10px;border-radius:8px;margin:2px 0;${range==='Hôm nay'?'background:#f6f7fb;':''}`) Hôm nay
@@ -63,7 +63,7 @@ block content
       thead
         tr
           th.sel(style="padding:14px 16px; border-bottom:1px solid #eef0f5")
-            input#ckAll(type="checkbox" title="Select all")
+            input#ckAll(type="checkbox" title="Chọn tất cả")
           th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Tên sản phẩm & Size
           th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Giá
           th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Tồn kho
@@ -103,49 +103,49 @@ block content
 
             td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
               .actions(style="display:flex; gap:8px; align-items:center")
-                a(href=`/admin/products/${p.id}` title="View" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e5e7eb;border-radius:10px;background:#fff")
+                a(href=`/admin/products/${p.id}` title="Xem" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e5e7eb;border-radius:10px;background:#fff")
                   +ic_eye()
-                a(href=`/admin/products/${p.id}/edit` title="Edit" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
+                a(href=`/admin/products/${p.id}/edit` title="Sửa" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
                   +ic_edit()
                 form.delete-form(method="post" action=`/admin/products/${p.id}/delete`)
                   button.btn-icon.btn-danger(
                     type="submit"
-                    aria-label="Delete product"
-                    data-confirm="Delete this product?"
+                    aria-label="Xóa sản phẩm"
+                    data-confirm="Xóa sản phẩm này?"
                     style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5;cursor:pointer"
                   )
                     +ic_trash()
 
-    //- ===== Pagination =====
-    - const totalPages = Math.max(1, Math.ceil((pagination?.total || 0) / (pagination?.take || 10)));
-    - const cur = pagination?.page || 1;
-    - const take = pagination?.take || 10;
-    - const q = `&take=${take}&range=${range || 'month'}`;
+  //- ===== Pagination =====
+  - const totalPages = Math.max(1, Math.ceil((pagination?.total || 0) / (pagination?.take || 10)));
+  - const cur = pagination?.page || 1;
+  - const take = pagination?.take || 10;
+  - const q = `&take=${take}&range=${range || 'month'}`;
+  - const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
-    if !allMode && totalPages > 1
-      nav.pager-wrap(aria-label="Pagination")
-        .pager
-          // Prev
-          - const prev = Math.max(1, cur - 1);
-          if cur > 1
-            a(href=`?page=${prev}${q}`) Previous
+  if !allMode && totalPages > 1
+    nav.pager-wrap(aria-label="Pagination")
+      .pager
+        // Prev
+        - const prev = Math.max(1, cur - 1);
+        if cur > 1
+          a(href=`?page=${prev}${q}`) Trước
+        else
+          span.disabled Trước
+
+        // Numbers
+        each i in pages
+          if i === cur
+            span.active= i
           else
-            span.disabled Previous
+            a(href=`?page=${i}${q}`)= i
 
-          // Numbers
-          - for (let i = 1; i <= totalPages; i++) {
-            if i === cur
-              span.active= i
-            else
-              a(href=`?page=${i}${q}`)= i
-          - }
-
-          // Next
-          - const next = Math.min(totalPages, cur + 1);
-          if cur < totalPages
-            a(href=`?page=${next}${q}`) Next
-          else
-            span.disabled Next
+        // Next
+        - const next = Math.min(totalPages, cur + 1);
+        if cur < totalPages
+          a(href=`?page=${next}${q}`) Sau
+        else
+          span.disabled Sau
 
 block scripts
   script.
@@ -166,7 +166,7 @@ block scripts
       document.addEventListener('click', function (e) {
         const del = e.target.closest('form.delete-form button[type="submit"]');
         if (!del) return;
-        const msg = del.getAttribute('data-confirm') || 'Are you sure?';
+        const msg = del.getAttribute('data-confirm') || 'Bạn có chắc không?';
         if (!confirm(msg)) e.preventDefault();
       });
 

@@ -115,18 +115,18 @@ block content
   if !product
     .pv-wrap
       .pv-topbar
-        a.btn(href="/admin/products") Back to list
+        a.btn(href="/admin/products") Quay lại danh sách
       .pv-card
         .pv-info
-          h1 Product not found
+          h1 Không tìm thấy sản phẩm
   else
     .pv-wrap
       .pv-topbar
-        a.btn(href="/admin/products") Back to list
+        a.btn(href="/admin/products") Quay lại danh sách
         .pv-actions
-          a.btn.btn--primary(href=`/admin/products/${product.id}/edit`) Edit
-          form(method="post" action=`/admin/products/${product.id}/delete` onsubmit="return confirm('Delete (soft) this product?')")
-            button.btn.btn--danger(type="submit") Delete (soft)
+          a.btn.btn--primary(href=`/admin/products/${product.id}/edit`) Sửa
+          form(method="post" action=`/admin/products/${product.id}/delete` onsubmit="return confirm('Xóa (mềm) sản phẩm này?')")
+            button.btn.btn--danger(type="submit") Xóa (mềm)
 
       .pv-card
         // ===== Left: Gallery =====
@@ -142,7 +142,7 @@ block content
         // ===== Right: Info =====
         .pv-info
           .pv-cat
-            span Category:
+            span Danh mục:
             strong #{product.categoryTitle}
           h1= product.title
 
@@ -152,14 +152,14 @@ block content
               span.pv-badge -#{product.discount}%
 
           .pv-meta
-            .pv-chip Stock left: #[strong #{product.stockLeft}]
-            .pv-chip Variants: #[strong #{product.variantCount}]
+            .pv-chip Còn lại: #[strong #{product.stockLeft}]
+            .pv-chip Biến thể: #[strong #{product.variantCount}]
 
           // Sizes (above Description)
           if product.size && product.size.length
             .pv-sec
               .pv-sec__hd
-                .pv-sec__ttl Sizes
+                .pv-sec__ttl Kích cỡ
               .pv-sizes
                 each s in product.size
                   span.pv-sizechip= s
@@ -168,15 +168,15 @@ block content
           if product.description
             .pv-sec
               .pv-sec__hd
-                .pv-sec__ttl Description
-              .pv-desc!= product.description
+              .pv-sec__ttl Mô tả
+            .pv-desc!= product.description
             .pv-sec
                 .pv-sec__hd
-                .pv-sec__ttl Status
+                .pv-sec__ttl Trạng thái
                 if product.status === 'inactive'
-                    span.pv-badge.pv-badge--muted Inactive
+                    span.pv-badge.pv-badge--muted Không hoạt động
                 else
-                    span.pv-badge.pv-badge--ok Active
+                    span.pv-badge.pv-badge--ok Hoạt động
 
 
       // ===== Variants =====
@@ -184,14 +184,14 @@ block content
       if pv && pv.length
         .pv-sec.pv-wrap
           .pv-sec__hd
-            .pv-sec__ttl Variants
+            .pv-sec__ttl Biến thể
           table.pv-tbl
             thead
               tr
-                th(style="width:32%") Color
-                th(style="width:12%") Stock
-                th(style="width:14%") Swatch
-                th Images
+                th(style="width:32%") Màu
+                th(style="width:12%") Tồn kho
+                th(style="width:14%") Mẫu màu
+                th Ảnh
             tbody
               each v in pv
                 tr.pv-row

@@ -15,12 +15,12 @@ block content
         .ico-bg.peach
           +ic_bag()
         .meta
-          .label Total Orders
+          .label Tổng đơn hàng
           .value #{pretty(KP.totalOrders)}
         .delta
           if DL.totalOrders >= 0
             span.up ▲ #{DL.totalOrders}% 
-            span.muted vs Last Month
+            span.muted so với tháng trước
           else
             span.down ▼ #{Math.abs(DL.totalOrders)}%
             span.muted vs Last Month
@@ -29,12 +29,12 @@ block content
         .ico-bg.peach
           +ic_lock()
         .meta
-          .label Deals
+          .label Giao dịch
           .value #{pretty(KP.deals)}
         .delta
           if DL.deals >= 0
             span.up ▲ #{DL.deals}% 
-            span.muted vs Last Month
+            span.muted so với tháng trước
           else
             span.down ▼ #{Math.abs(DL.deals)}%
             span.muted vs Last Month
@@ -43,12 +43,12 @@ block content
         .ico-bg.peach
           +ic_userAdd()
         .meta
-          .label New Leads
+          .label Khách hàng tiềm năng mới
           .value #{pretty(KP.newLeads)}
         .delta
           if DL.newLeads >= 0
             span.up ▲ #{DL.newLeads}% 
-            span.muted vs Last Month
+            span.muted so với tháng trước
           else
             span.down ▼ #{Math.abs(DL.newLeads)}%
             span.muted vs Last Month
@@ -57,12 +57,12 @@ block content
         .ico-bg.peach
           +ic_coin()
         .meta
-          .label Booked Revenue
+          .label Doanh thu ghi nhận
           .value #{pretty(KP.bookedRev / 1000)}k đ
         .delta
           if DL.bookedRev >= 0
             span.up ▲ #{DL.bookedRev}% 
-            span.muted vs Last Month
+            span.muted so với tháng trước
           else
             span.down ▼ #{Math.abs(DL.bookedRev)}%
             span.muted vs Last Month
@@ -72,7 +72,7 @@ block content
       // Card 1: Performance Overview
       .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px;display:flex;flex-direction:column")
         .perf-hd(style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px")
-          .ttl Performance Overview
+          .ttl Tổng quan hiệu suất
           .seg
             button(class=(period === "ALL" ? "on" : "") onclick="location.href='?period=ALL'") ALL
             button(class=(period === "1M" ? "on" : "") onclick="location.href='?period=1M'") 1M
@@ -83,17 +83,17 @@ block content
 
       // Card 2: Daily Revenue
       .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
-        h3(style="margin:0 0 8px;font-size:14px") Daily Revenue (30 days)
+        h3(style="margin:0 0 8px;font-size:14px") Doanh thu theo ngày (30 ngày)
         canvas#revenueLineChart(height="160")
 
       // Card 3: Revenue by Category
       .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
-        h3(style="margin:0 0 8px;font-size:14px") Revenue by Category
+        h3(style="margin:0 0 8px;font-size:14px") Doanh thu theo danh mục
         canvas#categoryBarChart(height="160")
 
       // Card 4: Top Products
       .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
-        h3(style="margin:0 0 8px;font-size:14px") Top Products (Qty)
+        h3(style="margin:0 0 8px;font-size:14px") Sản phẩm bán chạy (SL)
         canvas#topProductsBarChart(height="160")
 
 block scripts

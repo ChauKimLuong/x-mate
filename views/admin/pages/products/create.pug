@@ -242,16 +242,16 @@ block content
         .card.sec
           details.panel(open)
             summary
-              span Thumbnail
+              span Ảnh đại diện
               svg.chev(viewBox="0 0 24 24" fill="none" stroke="currentColor")
                 path(d="M6 9l6 6 6-6" stroke-width="2" stroke-linecap="round" stroke-linejoin="round")
             .panel-body
               .thumb-uploader
                 .field(style="width:100%")
-                  label.label(for="thumbnailUrl") Thumbnail URL (tùy chọn)
+                  label.label(for="thumbnailUrl") URL ảnh đại diện (tùy chọn)
                   input.input#thumbnailUrl(type="url" name="thumbnailUrl" placeholder="https://...jpg")
                   span.help Nếu nhập URL thì dùng URL này (bỏ qua file).
-                img#thumbPrev.thumb-preview(src="https://placehold.co/360x360?text=Thumbnail" alt="preview")
+                img#thumbPrev.thumb-preview(src="https://placehold.co/360x360?text=Thumbnail" alt="xem trước")
                 .filebox(style="margin-top:8px")
                   input(type="file" name="thumbnail" accept="image/*" onchange="handleThumb(this)")
                   span.fake Chọn ảnh từ máy…
@@ -279,7 +279,7 @@ block content
               .row
                 .field
                   label.label(for="title") Tên sản phẩm *
-                  input.input#title(type="text" name="title" required placeholder="Items Name")
+                  input.input#title(type="text" name="title" required placeholder="Tên sản phẩm")
                 .field
                   label.label(for="categoryId") Danh mục sản phẩm *
                   .select-wrap
@@ -362,7 +362,7 @@ block content
                 label.label Chế độ
                 .swatch-row
                   button.mode-chip#vm_mode_hex(type="button" data-mode="hex" aria-pressed="true") HEX
-                  button.mode-chip#vm_mode_img(type="button" data-mode="img" aria-pressed="false") Image
+                  button.mode-chip#vm_mode_img(type="button" data-mode="img" aria-pressed="false") Ảnh
                   span.swatch#vm_swatch(title="Preview")
                 span.help Chỉ để preview và lưu legacy nếu không có colorId.
             .row#vm_hex_box
@@ -370,15 +370,15 @@ block content
                 label.label(for="vm_hex") HEX (ví dụ: #A67B5B)
                 input.input#vm_hex(type="text" placeholder="#A67B5B" maxlength="7" pattern="#?[0-9a-fA-F]{3,6}")
               .field
-                label.label(for="vm_picker") Color picker
+                label.label(for="vm_picker") Bảng chọn màu
                 input.picker#vm_picker(type="color" value="#a67b5b")
             .row#vm_img_box(style="display:none")
               .field
-                label.label(for="vm_swatchUrl") Swatch URL
+                label.label(for="vm_swatchUrl") URL mẫu màu
                 input.input#vm_swatchUrl(type="url" placeholder="https://...png")
                 span.help Nếu có URL hợp lệ sẽ preview và lưu legacy URL.
               .field
-                label.label Upload Swatch Image
+                label.label Tải ảnh mẫu màu
                 .filebox
                   input#vm_swatchFile(type="file" accept="image/*")
                   span.fake Chọn ảnh…
@@ -386,11 +386,11 @@ block content
 
       .row
         .field
-          label.label(for="vm_urls") Image URLs (mỗi dòng 1 URL)
+          label.label(for="vm_urls") URL ảnh (mỗi dòng 1 URL)
           textarea.textarea#vm_urls(rows="4" placeholder="https://...jpg\nhttps://...png")
           span.help Ảnh hiển thị của variant (khác ảnh swatch).
         .field
-          label.label Upload Images
+          label.label Tải ảnh
           .filebox
             input#vm_files(type="file" accept="image/*" multiple)
             span.fake Chọn ảnh…
@@ -701,7 +701,7 @@ block scripts
           '</td>'+
           '<td><div>'+stock+'</div></td>'+
           '<td><div>'+imagesCount+' file(s)/url(s)</div></td>'+
-          '<td><button type="button" class="btn del" data-row="'+i+'">Delete</button></td>';
+          '<td><button type="button" class="btn del" data-row="'+i+'">Xóa</button></td>';
 
         vtblBody.appendChild(tr);
 

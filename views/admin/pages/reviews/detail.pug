@@ -18,28 +18,28 @@ block content
     }
 
   .review-detail
-    h3(style="margin-bottom:1rem") Review Details
+    h3(style="margin-bottom:1rem") Chi tiết đánh giá
     .card
       .flex(style="display:flex;align-items:center;gap:16px")
-        img(src=review.thumbnail, alt="Product image", style="width:100px;height:100px;border-radius:12px;object-fit:cover")
+        img(src=review.thumbnail, alt="Ảnh sản phẩm", style="width:100px;height:100px;border-radius:12px;object-fit:cover")
         .info
           h4= review.productTitle
-          p(style="margin:4px 0;color:#555") Rating: #{'★'.repeat(review.rating)}
-          p(style="margin:4px 0;color:#777") Submitted at: #{review.createdAt.toLocaleString()}
+          p(style="margin:4px 0;color:#555") Đánh giá: #{'★'.repeat(review.rating)}
+          p(style="margin:4px 0;color:#777") Gửi lúc: #{review.createdAt.toLocaleString()}
       hr
       p(style="margin-top:1rem;font-size:15px")= review.content
 
     .card
-      h4(style="margin-bottom:1rem") Admin Replies
+      h4(style="margin-bottom:1rem") Phản hồi của quản trị
       if review.replies.length
         each rep in review.replies
           .reply
             p(style="margin:0;color:#111") #{rep.content}
             small(style="color:#666") #{rep.created_at.toLocaleString()}
       else
-        p(style="color:#999") No replies yet.
+        p(style="color:#999") Chưa có phản hồi.
 
       form(action="/admin/reviews/reply", method="POST", style="margin-top:1rem")
         input(type="hidden", name="reviewId", value=review.id)
-        textarea(name="content", placeholder="Enter your reply...", style="width:100%;min-height:80px;padding:8px;border-radius:8px;border:1px solid #ddd;margin-bottom:10px")
-        button.btn-send(type="submit") Send Reply
+        textarea(name="content", placeholder="Nhập phản hồi...", style="width:100%;min-height:80px;padding:8px;border-radius:8px;border:1px solid #ddd;margin-bottom:10px")
+        button.btn-send(type="submit") Gửi phản hồi

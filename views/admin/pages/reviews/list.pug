@@ -25,32 +25,32 @@ block content
     }
 
   .review-wrapper
-    h3.page-title(style="margin-bottom:1rem") Product Reviews
+    h3.page-title(style="margin-bottom:1rem") Đánh giá sản phẩm
     .review-card
       if reviews.length
         table
           thead
             tr
-              th Image
-              th Product
-              th Reviewer
-              th Rating
-              th Content
-              th Replies
-              th Date
-              th Action
+              th Ảnh
+              th Sản phẩm
+              th Người đánh giá
+              th Đánh giá
+              th Nội dung
+              th Phản hồi
+              th Ngày
+              th Thao tác
           tbody
             each r in reviews
               tr
                 td
-                  img.product-thumb(src=r.thumbnail, alt="Product Image")
+                  img.product-thumb(src=r.thumbnail, alt="Ảnh sản phẩm")
                 td= r.productTitle
                 td= r.customerName
                 td #{'★'.repeat(r.rating)}
                 td= r.content
-                td #{r.replyCount} replies
+                td #{r.replyCount} phản hồi
                 td= r.createdAt.toLocaleString()
                 td
-                  a.btn-view(href=`/admin/reviews/${r.id}/detail`) View details
+                  a.btn-view(href=`/admin/reviews/${r.id}/detail`) Xem chi tiết
       else
-        p No reviews found.
+        p Không có đánh giá.

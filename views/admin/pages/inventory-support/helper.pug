@@ -40,22 +40,22 @@ block head
 
 block content
   +sessionModal()
-  h2(style="margin:0 0 16px") INVENTORY SUPPORT
+  h2(style="margin:0 0 16px") HỖ TRỢ TỒN KHO
 
   // Tabs
   .tabs(role="tablist")
-    button.tab( role="tab" aria-selected="true" aria-controls="p-low"   id="t-low") Low-Stock / Reorder
-    button.tab( role="tab" aria-selected="false" aria-controls="p-stock" id="t-stock") Stocktake
-    button.tab( role="tab" aria-selected="false" aria-controls="p-bulk"  id="t-bulk") Bulk Adjust
-    button.tab( role="tab" aria-selected="false" aria-controls="p-code"  id="t-code") Barcode / QR
-    button.tab( role="tab" aria-selected="false" aria-controls="p-diag"  id="t-diag") Diagnostics
+    button.tab( role="tab" aria-selected="true" aria-controls="p-low"   id="t-low") Tồn thấp / Đặt hàng
+    button.tab( role="tab" aria-selected="false" aria-controls="p-stock" id="t-stock") Kiểm kê
+    button.tab( role="tab" aria-selected="false" aria-controls="p-bulk"  id="t-bulk") Điều chỉnh hàng loạt
+    button.tab( role="tab" aria-selected="false" aria-controls="p-code"  id="t-code") Mã vạch / QR
+    button.tab( role="tab" aria-selected="false" aria-controls="p-diag"  id="t-diag") Chẩn đoán
 
   // Panel: Low-Stock / Reorder
   .panel.active#p-low
     .card(style="padding:16px")
       .hstack(style="justify-content:space-between;margin-bottom:8px")
         .hstack
-          .lbl(style="font-weight:700") Low-Stock (Top N)
+          .lbl(style="font-weight:700") Tồn thấp (Top N)
           span.badge #{(lowStock && lowStock.length) || 0} items
           button.btn.hint(type="button" data-tt-title="Low-Stock" data-tt-body="On hand = tổng stock các biến thể. RP mặc định 10. Suggest = max(0, RP - On hand).")
             +icon-hint(16)
@@ -65,7 +65,7 @@ block content
           button.btn.primary#btnDraftPO(type="button")
             span.ico
               +icon-download(18)
-            | Create Draft PO
+            | Tạo phiếu đặt hàng nháp
           button.btn.hint(type="button" data-tt-title="Create Draft PO" data-tt-body="Xuất CSV gợi ý đặt hàng: productId,title,onHand,reorderPoint,suggestQty.")
             +icon-hint(16)
 
@@ -78,10 +78,10 @@ block content
             col(style="width:17%")
           thead
             tr
-              th Product
-              th(style="text-align:right") Reorder Point
+              th Sản phẩm
+              th(style="text-align:right") Điểm đặt hàng lại
               th(style="text-align:right") On hand
-              th(style="text-align:right") Suggest
+              th(style="text-align:right") Đề xuất
           tbody
             each r in lowStock
               - const rp = r.reorderPoint || 10
@@ -92,7 +92,7 @@ block content
                 td.num= r.stock
                 td.num= need
       else
-        .empty#lowEmpty No low-stock items.
+        .empty#lowEmpty Không có mặt hàng tồn thấp.
 
   // Panel: Stocktake
   .panel#p-stock
@@ -102,23 +102,23 @@ block content
         form(method="post" action="/admin/inventory-support/quick-count")
           .hstack(style="gap:12px;flex-wrap:wrap")
             input(type="text" name="productId" placeholder="productId" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
-            input(type="text" name="variantId" placeholder="variantId (optional)" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
+            input(type="text" name="variantId" placeholder="variantId (tùy chọn)" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
             input(type="number" name="counted" placeholder="counted (số đếm thực tế)" required min="0" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;width:200px")
-            button.btn.primary(type="submit") Post
+            button.btn.primary(type="submit") Ghi nhận
         p.muted(style="margin:8px 0 0") Không cần CSV. Hệ thống tạo movement & đặt tồn của variant = counted.
 
       // Create session
       .card(style="padding:16px")
-        h3(style="margin:0 0 10px") Create Stocktake Session
-        form(method="post" action="/admin/inventory-support/stocktake")
-          .hstack(style="gap:12px;flex-wrap:wrap")
-            input(type="text" name="name" placeholder="Session name" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
-            select(name="scope" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px")
-              option(value="all") All products
-              option(value="active") Active only
-              option(value="low") Low-stock only
-            button.btn.primary(type="submit") Create
-        p.muted(style="margin:8px 0 0") Tạo session → tải CSV mẫu → nhập cột counted → upload → Post.
+        h3(style="margin:0 0 10px") Tạo phiên kiểm kê
+          form(method="post" action="/admin/inventory-support/stocktake")
+            .hstack(style="gap:12px;flex-wrap:wrap")
+              input(type="text" name="name" placeholder="Tên phiên" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
+              select(name="scope" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px")
+                option(value="all") Tất cả sản phẩm
+                option(value="active") Chỉ hoạt động
+                option(value="low") Low-stock only
+              button.btn.primary(type="submit") Create
+          p.muted(style="margin:8px 0 0") Tạo session → tải CSV mẫu → nhập cột counted → tải lên → Ghi nhận.
 
     // Recent Sessions
     .card(style="padding:16px; margin-top:16px")
@@ -127,10 +127,10 @@ block content
         table
           thead
             tr
-              th Name
-              th Status
-              th Created
-              th Action
+              th Tên
+              th Trạng thái
+              th Tạo lúc
+              th Thao tác
           tbody
             each s in sessions
               tr
@@ -140,7 +140,7 @@ block content
                 td= s.createdAt
                 td
                   .hstack(style="gap:8px;align-items:center;flex-wrap:wrap")
-                    a.btn.session-view(href=`/admin/inventory-support/stocktake/${s.id}` data-sid=s.id) View
+                    a.btn.session-view(href=`/admin/inventory-support/stocktake/${s.id}` data-sid=s.id) Xem
                     if s.status === 'draft' || s.status === 'reviewing'
                       a.btn.primary(href=`/admin/inventory-support/stocktake/${s.id}/download`)
                         span.ico
@@ -152,15 +152,15 @@ block content
                         button.btn(type="submit")
                           span.ico
                             +icon-upload(18)
-                          | Upload
+                          | Tải lên
                       form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/post`)
-                        button.btn(type="submit") Post
+                        button.btn(type="submit") Ghi nhận
                     if s.status !== 'posted'
                       form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/delete` onsubmit="return confirm('Xóa session này?');")
-                        button.btn.danger(type="submit") Delete
+                        button.btn.danger(type="submit") Xóa
 
       else
-        .empty No sessions.
+        .empty Không có phiên.
 
   // Panel: Bulk Adjust
   .panel#p-bulk
@@ -174,19 +174,19 @@ block content
           a.btn(href="/admin/inventory-support/template.csv")
             span.ico
               +icon-download(18)
-            | Template
+            | Mẫu
           button.btn.primary#btnOpenUpload(type="button")
             span.ico
               +icon-upload(18)
-            | Upload CSV
-      p.muted CSV columns: productId, variantId(optional), delta, reason(manualImport|manualAdjust|returnIn|returnOut), note(optional)
+            | Tải lên CSV
+      p.muted Các cột CSV: productId, variantId(tùy chọn), delta, reason(manualImport|manualAdjust|returnIn|returnOut), note(tùy chọn)
       if bulkPreview && bulkPreview.length
         table
           thead
             tr
-              th Product
-              th Variant
-              th.delta Delta
+              th Sản phẩm
+              th Biến thể
+              th.delta Chênh lệch
               th Reason
               th Note
           tbody
@@ -200,38 +200,38 @@ block content
         form(method="post" action="/admin/inventory-support/bulk-adjust/commit")
           button.btn.primary(type="submit") Commit changes
       else
-        .empty No preview yet. Use “Upload CSV” to preview.
+        .empty Chưa có bản xem trước. Dùng “Tải lên CSV” để xem.
 
     // Upload CSV Modal (chỉ mở từ tab Bulk)
     .modal-backdrop#upModal(style="display:none")
       .modal(role="dialog" aria-modal="true" aria-labelledby="upTitle")
-        .modal-hd#upTitle Upload CSV
+        .modal-hd#upTitle Tải lên CSV
         form(method="post" action="/admin/inventory-support/bulk-adjust/upload" enctype="multipart/form-data")
           .modal-bd
             input(type="file" name="file" accept=".csv" required)
             p.muted(style="margin:8px 0 0") File CSV sẽ được parse để preview trước khi commit.
           .modal-ft
-            button.btn(type="button" onclick="document.getElementById('upModal').style.display='none'") Cancel
-            button.btn.primary(type="submit") Upload
+            button.btn(type="button" onclick="document.getElementById('upModal').style.display='none'") Hủy
+            button.btn.primary(type="submit") Tải lên
 
   // Panel: Barcode / QR
   .panel#p-code
     .card(style="padding:16px")
       h3(style="margin:0 0 10px")
-        | Generate Barcode / QR
+        | Tạo Mã vạch / QR
         button.btn.hint(type="button" data-tt-title="Barcode / QR" data-tt-body="Sinh SVG barcode/QR để in nhãn. Có thể thay bằng thư viện chuẩn sau.")
           +icon-hint(16)
       form.hstack(method="get" action="/admin/inventory-support/barcode")
         input(type="text" name="productId" placeholder="productId" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:240px")
-        input(type="text" name="variantId" placeholder="variantId (optional)" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:240px")
+        input(type="text" name="variantId" placeholder="variantId (tùy chọn)" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:240px")
         select(name="type" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px")
           option(value="barcode") Barcode
-          option(value="qr") QR Code
-        button.btn.primary(type="submit") Generate
+          option(value="qr") Mã QR
+        button.btn.primary(type="submit") Tạo
       if barcodeUrl
         .hstack(style="margin-top:12px")
           img#codePreview(src=barcodeUrl alt="code" style="max-height:160px")
-          a.btn(href=barcodeUrl target="_blank") Open
+          a.btn(href=barcodeUrl target="_blank") Mở
 
   // Panel: Diagnostics
   .panel#p-diag
@@ -242,16 +242,16 @@ block content
           a.btn(href="/admin/inventory-support/export")
             span.ico
               +icon-download(18)
-            | Export CSV
+            | Xuất CSV
           a.btn(href="/admin/inventory-support/rebuild-onhand")
             span.ico
               +icon-rebuild(18)
-            | Rebuild OnHand
+            | Tính lại Tồn kho
     .grid2
       .card(style="padding:16px")
         h3(style="margin:0 0 10px")
-          | Negative Stock
-          button.btn.hint(type="button" data-tt-title="Negative Stock" data-tt-body="Biến thể có tồn âm. Kiểm tra luồng trừ kho & điều chỉnh.")
+          | Tồn âm
+          button.btn.hint(type="button" data-tt-title="Tồn âm" data-tt-body="Biến thể có tồn âm. Kiểm tra luồng trừ kho & điều chỉnh.")
             +icon-hint(16)
         if diagnostics && diagnostics.negative && diagnostics.negative.length
           table
@@ -259,7 +259,7 @@ block content
               tr
                 th VariantId
                 th ProductId
-                th Stock
+                th Tồn kho
             tbody
               each v in diagnostics.negative
                 tr
@@ -267,7 +267,7 @@ block content
                   td= v.productId
                   td.num= v.stock
         else
-          .empty No negative stock.
+          .empty Không có tồn âm.
       .card(style="padding:16px")
         h3(style="margin:0 0 10px")
           | Orphan Variants
@@ -283,7 +283,7 @@ block content
                 tr
                   td= v.id
         else
-          .empty No orphan variants.
+          .empty Không có biến thể mồ côi.
 
 append scripts
   script.
@@ -418,16 +418,16 @@ append scripts
             var rows = json.rows || [];
             if(!rows.length){
               if(table) table.remove();
-              if(empty) empty.textContent='No low-stock items.';
+              if(empty) empty.textContent='Không có mặt hàng tồn thấp.';
               else {
-                var div=document.createElement('div'); div.className='empty'; div.id='lowEmpty'; div.textContent='No low-stock items.';
+                var div=document.createElement('div'); div.className='empty'; div.id='lowEmpty'; div.textContent='Không có mặt hàng tồn thấp.';
                 var panel=document.getElementById('p-low'); panel && panel.querySelector('.card').appendChild(div);
               }
               return;
             }
             if(!table){
               var wrap = document.createElement('table'); wrap.id='lowTable';
-              wrap.innerHTML='<colgroup><col style="width:50%"><col style="width:16%"><col style="width:17%"><col style="width:17%"></colgroup><thead><tr><th>Product</th><th style="text-align:right">Reorder Point</th><th style="text-align:right">On hand</th><th style="text-align:right">Suggest</th></tr></thead><tbody></tbody>';
+              wrap.innerHTML='<colgroup><col style="width:50%"><col style="width:16%"><col style="width:17%"><col style="width:17%"></colgroup><thead><tr><th>Sản phẩm</th><th style="text-align:right">Điểm đặt hàng lại</th><th style="text-align:right">Tồn kho</th><th style="text-align:right">Đề xuất</th></tr></thead><tbody></tbody>';
               var panel=document.getElementById('p-low'); panel && panel.querySelector('.card').appendChild(wrap);
               table = wrap;
               var e = document.getElementById('lowEmpty'); if(e) e.remove();
@@ -445,7 +445,7 @@ append scripts
                 + '</tr>';
             }).join('');
           })
-          .catch(function(){ alert('Refresh failed'); });
+          .catch(function(){ alert('Làm mới thất bại'); });
       };
 
       function createDraftPO(){
@@ -456,7 +456,7 @@ append scripts
             var a=document.createElement('a'); a.href=url; a.download='reorder-draft.csv'; a.click();
             setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
           })
-          .catch(function(){ alert('Cannot create draft PO.'); });
+          .catch(function(){ alert('Không thể tạo file nháp PO.'); });
       }
       window.createDraftPO = createDraftPO;
     })();

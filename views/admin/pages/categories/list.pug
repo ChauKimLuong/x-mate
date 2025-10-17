@@ -14,26 +14,26 @@ block head
 block content
   - const rows = Array.isArray(categories) && categories.length ? categories : []
 
-  h2(style="margin:0 0 16px") CATEGORY LIST
+  h2(style="margin:0 0 16px") DANH SÁCH DANH MỤC
 
   .card(style="padding:0;border-radius:18px;box-shadow:0 8px 24px rgba(16,24,40,.06)")
     .perf-hd
-      .ttl All Categories
+      .ttl Tất cả danh mục
       .seg
-        button.btn.btn-dark(onclick="location.href='/admin/categories/create'" style="background:#E6612A") Add Category
+        button.btn.btn-dark(onclick="location.href='/admin/categories/create'" style="background:#E6612A") Thêm danh mục
 
     table(style="width:100%; border-collapse:separate; border-spacing:0")
       thead
         tr
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Category
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Position
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Status
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Featured
-          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Action
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Danh mục
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Vị trí
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Trạng thái
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Nổi bật
+          th(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5") Thao tác
       tbody
         if !rows.length
           tr
-            td(colspan="5" style="padding:18px;text-align:center;color:#6b7280") No categories
+            td(colspan="5" style="padding:18px;text-align:center;color:#6b7280") Không có danh mục
         else
           each c in rows
             tr
@@ -46,16 +46,16 @@ block content
 
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= c.position
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= c.status
-              td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= c.isFeatured ? 'Yes' : 'No'
+              td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= c.isFeatured ? 'Có' : 'Không'
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
                 .actions(style="display:flex; gap:8px; align-items:center")
-                  a(href=`/admin/categories/${c.id}/edit` title="Edit" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
+                  a(href=`/admin/categories/${c.id}/edit` title="Sửa" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
                     +ic_edit()
                   form.delete-form(method="post" action=`/admin/categories/${c.id}/delete`)
                     button.btn-icon.btn-danger(
                       type="submit"
-                      aria-label="Delete category"
-                      data-confirm="Delete this category?"
+                      aria-label="Xóa danh mục"
+                      data-confirm="Xóa danh mục này?"
                       style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5;cursor:pointer"
                     )
                       +ic_trash()
@@ -68,9 +68,9 @@ block content
       .pager
         - const prev = Math.max(1, cur - 1);
         if cur > 1
-          a(href=`?page=${prev}&take=${take}`) Previous
+          a(href=`?page=${prev}&take=${take}`) Trước
         else
-          span.disabled Previous
+          span.disabled Trước
 
         - for (let i = 1; i <= totalPages; i++) {
           if i === cur
@@ -81,9 +81,9 @@ block content
 
         - const next = Math.min(totalPages, cur + 1);
         if cur < totalPages
-          a(href=`?page=${next}&take=${take}`) Next
+          a(href=`?page=${next}&take=${take}`) Sau
         else
-          span.disabled Next
+          span.disabled Sau
 
 block scripts
   script.
@@ -91,7 +91,7 @@ block scripts
       document.addEventListener('click', function (e) {
         var del = e.target.closest && e.target.closest('form.delete-form button[type="submit"]');
         if (!del) return;
-        var msg = del.getAttribute('data-confirm') || 'Are you sure?';
+        var msg = del.getAttribute('data-confirm') || 'Bạn có chắc không?';
         if (!confirm(msg)) e.preventDefault();
       });
     })();
