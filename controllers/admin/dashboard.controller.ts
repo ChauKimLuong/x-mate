@@ -137,6 +137,87 @@ export const dashboard = async (req: Request, res: Response) => {
     const seriesAdded = monthly.map((m) => m.added);
     const seriesCompleted = monthly.map((m) => m.completed);
 
+    // 7b) Additional datasets for richer dashboard
+    // Daily order status counts (last 30 days)
+    const dayStart = new Date();
+    dayStart.setHours(0, 0, 0, 0);
+    dayStart.setDate(dayStart.getDate() - 29);
+
+    // Daily revenue (completed) last 30 days
+    const revenueDailyRaw = await prisma.$queryRawUnsafe<
+      { d: string; revenue: number }[]
+    >(`
+      SELECT CAST(o."created_at" AS DATE) AS d,
+             COALESCE(SUM(o."grand_total"), 0)::float AS revenue
+      FROM "orders" o
+      WHERE o."status" = 'completed' AND o."created_at" >= '${dayStart.toISOString()}'
+      GROUP BY d
+      ORDER BY d ASC
+    `);
+
+    const dayKeys: string[] = [];
+    for (let i = 0; i < 30; i++) {
+      const d = new Date(dayStart);
+      d.setDate(dayStart.getDate() + i);
+      dayKeys.push(d.toISOString().slice(0, 10));
+    }
+    const fmtDay = (iso: string) => {
+      const d = new Date(iso + 'T00:00:00');
+      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
+    };
+    // Normalize date key from DB (Date or string) to 'YYYY-MM-DD'
+    const revMap = new Map<string, number>();
+    for (const r of revenueDailyRaw) {
+      const key = typeof (r as any).d === 'string'
+        ? String((r as any).d).slice(0, 10)
+        : new Date((r as any).d).toISOString().slice(0, 10);
+      revMap.set(key, Math.round(Number((r as any).revenue || 0)));
+    }
+    const revenueDaily = {
+      labels: dayKeys.map(fmtDay),
+      values: dayKeys.map((k) => revMap.get(k) || 0),
+    };
+
+    // Revenue by category (top 6)
+    const catRevRaw = await prisma.$queryRawUnsafe<
+      { category: string; revenue: number }[]
+    >(`
+      SELECT c."title" AS category,
+             COALESCE(SUM((oi."price" * oi."quantity")::numeric), 0)::float AS revenue
+      FROM "order_items" oi
+      JOIN "orders" o ON o."id" = oi."order_id"
+      JOIN "products" p ON p."id" = oi."product_id"
+      JOIN "categories" c ON c."id" = p."categoryId"
+      WHERE o."status" = 'completed' AND o."created_at" >= '${start.toISOString()}'
+      GROUP BY c."title"
+      ORDER BY revenue DESC
+      LIMIT 6
+    `);
+    const catRevenue = {
+      labels: catRevRaw.map(r => r.category || 'Uncategorized'),
+      values: catRevRaw.map(r => Math.round(Number(r.revenue || 0))),
+    };
+
+    // (Removed) Payment method distribution per request
+
+    // Top 5 products by quantity sold
+    const topProductsRaw = await prisma.$queryRawUnsafe<
+      { title: string; qty: number }[]
+    >(`
+      SELECT p."title" AS title, COALESCE(SUM(oi."quantity"),0)::int AS qty
+      FROM "order_items" oi
+      JOIN "orders" o ON o."id" = oi."order_id"
+      JOIN "products" p ON p."id" = oi."product_id"
+      WHERE o."created_at" >= '${start.toISOString()}'
+      GROUP BY p."title"
+      ORDER BY qty DESC
+      LIMIT 5
+    `);
+    const topProducts = {
+      labels: topProductsRaw.map(r => r.title || '-'),
+      values: topProductsRaw.map(r => r.qty || 0),
+    };
+
     // 8️⃣ Render ra trang dashboard
     res.render("admin/pages/dashboard/index", {
       title: "Dashboard",
@@ -148,6 +229,9 @@ export const dashboard = async (req: Request, res: Response) => {
       seriesCompleted,
       kpis: { totalOrders, deals, newLeads, bookedRev },
       deltas,
+      revenueDaily,
+      catRevenue,
+      topProducts,
     });
   } catch (err) {
     console.error("❌ Error loading dashboard:", err);

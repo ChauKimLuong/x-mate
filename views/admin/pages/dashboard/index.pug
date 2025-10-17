@@ -67,23 +67,34 @@ block content
             span.down ▼ #{Math.abs(DL.bookedRev)}%
             span.muted vs Last Month
 
-    // Biểu đồ bên phải
-    .perf-card
-      .perf-hd
-        .ttl Performance Overview
-        .seg
-          button(class=(period === "ALL" ? "on" : "") onclick="location.href='?period=ALL'") ALL
-          button(class=(period === "1M" ? "on" : "") onclick="location.href='?period=1M'") 1M
-          button(class=(period === "6M" ? "on" : "") onclick="location.href='?period=6M'") 6M
-          button(class=(period === "1Y" ? "on" : "") onclick="location.href='?period=1Y'") 1Y
-      .perf-bd
-        canvas#perfChart(height="140")
-      .legend
-        .dot.orange
-        span Booked Revenue
-        .gap
-        .dot.green
-        span Completed Orders
+    // Grid 4 charts (equal parts)
+    .perf-grid(style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px")
+      // Card 1: Performance Overview
+      .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px;display:flex;flex-direction:column")
+        .perf-hd(style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px")
+          .ttl Performance Overview
+          .seg
+            button(class=(period === "ALL" ? "on" : "") onclick="location.href='?period=ALL'") ALL
+            button(class=(period === "1M" ? "on" : "") onclick="location.href='?period=1M'") 1M
+            button(class=(period === "6M" ? "on" : "") onclick="location.href='?period=6M'") 6M
+            button(class=(period === "1Y" ? "on" : "") onclick="location.href='?period=1Y'") 1Y
+        .perf-bd(style="flex:1")
+          canvas#perfChart(height="160")
+
+      // Card 2: Daily Revenue
+      .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
+        h3(style="margin:0 0 8px;font-size:14px") Daily Revenue (30 days)
+        canvas#revenueLineChart(height="160")
+
+      // Card 3: Revenue by Category
+      .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
+        h3(style="margin:0 0 8px;font-size:14px") Revenue by Category
+        canvas#categoryBarChart(height="160")
+
+      // Card 4: Top Products
+      .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
+        h3(style="margin:0 0 8px;font-size:14px") Top Products (Qty)
+        canvas#topProductsBarChart(height="160")
 
 block scripts
   script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js")
@@ -94,4 +105,7 @@ block scripts
       added: !{JSON.stringify(seriesAdded)},
       completed: !{JSON.stringify(seriesCompleted)}
     };
+    window.__revenueDaily = !{JSON.stringify(revenueDaily || { labels: [], values: [] })};
+    window.__catRevenue  = !{JSON.stringify(catRevenue || { labels: [], values: [] })};
+    window.__topProducts = !{JSON.stringify(topProducts || { labels: [], values: [] })};
   script(src="/js/admin/admin-dashboard.js")

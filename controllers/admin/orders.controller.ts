@@ -28,7 +28,7 @@ export class OrdersController {
       const viewOrders = orders.map((o) => ({
         id: o.id,
         customerName: o.shipping_full_name,
-        total: Number(o.grand_total).toLocaleString("vi-VN"),
+        total: Number(o.grand_total || 0),
         status: o.status,
         thumbnail: o.order_items?.[0]?.products?.thumbnail || null
       }));
