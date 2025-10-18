@@ -259,3 +259,149 @@ export const search = async (req: Request, res: Response) => {
         });
     }
 };
+
+
+export const sale = async (req: Request, res: Response) => {
+    try {
+        const [products, categories] = await Promise.all([
+            prisma.products.findMany({
+                where: {
+                    deleted: false,
+                    discount: {
+                        gte: 50,
+                    },
+                },
+                include: {
+                    productVariants: true,
+                    categories: true,
+                },
+                orderBy: {
+                    discount: "desc",
+                },
+            }),
+            prisma.categories.findMany({
+                where: { status: { equals: "active"} },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    parentId: true,
+                    description: true,
+                },
+            }),
+        ]);
+
+        const viewProducts = products.map((product) => buildProductCardData(product as any));
+        const primaryCategories = buildPrimaryNav(categories);
+
+        res.locals.primaryCategories = primaryCategories;
+        res.locals.searchQuery = "";
+
+        res.render("client/pages/home/index", {
+            products: viewProducts,
+            isSearch: false,
+            searchQuery: "",
+            searchTotal: viewProducts.length,
+            primaryCategories,
+            summaryHeading: "Ưu đãi sốc",
+            summaryHighlight: "Giảm từ 50%",
+            summaryMeta: `${viewProducts.length} sản phẩm`,
+        });
+    } catch (error) {
+        console.error("SALE PAGE ERROR:", error);
+        const fallbackCategories = Array.isArray(res.locals.primaryCategories)
+            ? res.locals.primaryCategories
+            : [];
+        res.status(500).render("client/pages/home/index", {
+            products: [],
+            isSearch: false,
+            searchQuery: "",
+            searchTotal: 0,
+            error: "Không thể tải danh sách ưu đãi.",
+            primaryCategories: fallbackCategories,
+            summaryHeading: "Ưu đãi sốc",
+            summaryHighlight: "Giảm từ 50%",
+            summaryMeta: "0 sản phẩm",
+        });
+    }
+};
+
+export const theThao = async (req: Request, res: Response) => {
+    try {
+        const [products, categories] = await Promise.all([
+            prisma.products.findMany({
+                where: {
+                    deleted: false,
+                    OR: [
+                        {
+                            slug: {
+                                contains: "the-thao",
+                                mode: "insensitive",
+                            },
+                        },
+                        {
+                            categories: {
+                                is: {
+                                    slug: {
+                                        contains: "the-thao",
+                                        mode: "insensitive",
+                                    },
+                                },
+                            },
+                        },
+                    ],
+                },
+                include: {
+                    productVariants: true,
+                    categories: true,
+                },
+                orderBy: {
+                    updatedAt: "desc",
+                },
+            }),
+            prisma.categories.findMany({
+                where: { status: { equals: "active" } },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    parentId: true,
+                    description: true,
+                },
+            }),
+        ]);
+
+        const viewProducts = products.map((product) => buildProductCardData(product as any));
+        const primaryCategories = buildPrimaryNav(categories);
+
+        res.locals.primaryCategories = primaryCategories;
+        res.locals.searchQuery = "";
+
+        res.render("client/pages/home/index", {
+            products: viewProducts,
+            isSearch: false,
+            searchQuery: "",
+            searchTotal: viewProducts.length,
+            primaryCategories,
+            summaryHeading: "Bộ sưu tập thể thao",
+            summaryHighlight: "Phong cách năng động",
+            summaryMeta: `${viewProducts.length} sản phẩm`,
+        });
+    } catch (error) {
+        console.error("SPORT PAGE ERROR:", error);
+        const fallbackCategories = Array.isArray(res.locals.primaryCategories)
+            ? res.locals.primaryCategories
+            : [];
+        res.status(500).render("client/pages/home/index", {
+            products: [],
+            isSearch: false,
+            searchQuery: "",
+            searchTotal: 0,
+            error: "Không thể tải danh mục thể thao.",
+            primaryCategories: fallbackCategories,
+            summaryHeading: "Bộ sưu tập thể thao",
+            summaryHighlight: "Phong cách năng động",
+            summaryMeta: "0 sản phẩm",
+        });
+    }
+};
