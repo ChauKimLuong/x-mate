@@ -4,18 +4,16 @@ import { Request, Response } from "express";
 const prisma = new PrismaClient();
 
 export const ReviewsController = {
-  // 📄 Danh sách review
+  // Danh sách review
   async list(req: Request, res: Response) {
     try {
       const reviews = await prisma.product_reviews.findMany({
         include: {
-          order_items: {
+          // Quan hệ đúng trên model product_reviews là order_item_ref (1-1 tới order_items)
+          order_item_ref: {
             include: {
               products: {
-                select: {
-                  title: true,
-                  thumbnail: true,
-                },
+                select: { title: true, thumbnail: true },
               },
             },
           },
@@ -26,9 +24,8 @@ export const ReviewsController = {
 
       const formatted = reviews.map((r) => ({
         id: r.id,
-        productTitle: r.order_items?.products?.title || "Sản phẩm không xác định",
-        thumbnail:
-          r.order_items?.products?.thumbnail || "/img/default-product.jpg",
+        productTitle: r.order_item_ref?.products?.title || "Sản phẩm không xác định",
+        thumbnail: r.order_item_ref?.products?.thumbnail || "/img/default-product.jpg",
         customerName: r.token_user || "Người dùng ẩn danh",
         rating: r.rating,
         content: r.content,
@@ -36,28 +33,28 @@ export const ReviewsController = {
         createdAt: r.created_at,
       }));
 
-      res.render("admin/pages/reviews/list", { title: "Reviews List", active: "reviews", reviews: formatted });
+      res.render("admin/pages/reviews/list", {
+        title: "Reviews List",
+        active: "reviews",
+        reviews: formatted,
+      });
     } catch (err) {
       console.error(err);
       res.status(500).send("Lỗi khi tải danh sách đánh giá");
     }
   },
 
-  // 🔍 Chi tiết review
+  // Chi tiết review
   async detail(req: Request, res: Response) {
     try {
       const id = req.params.id;
       const review = await prisma.product_reviews.findUnique({
         where: { id },
         include: {
-          order_items: {
+          order_item_ref: {
             include: {
               products: {
-                select: {
-                  title: true,
-                  thumbnail: true,
-                  price: true,
-                },
+                select: { title: true, thumbnail: true, price: true },
               },
             },
           },
@@ -69,28 +66,31 @@ export const ReviewsController = {
 
       const viewModel = {
         id: review.id,
-        productTitle: review.order_items?.products?.title || "Không xác định",
-        thumbnail:
-          review.order_items?.products?.thumbnail || "/img/default-product.jpg",
+        productTitle: review.order_item_ref?.products?.title || "Không xác định",
+        thumbnail: review.order_item_ref?.products?.thumbnail || "/img/default-product.jpg",
         rating: review.rating,
         content: review.content,
         replies: review.review_replies || [],
         createdAt: review.created_at,
       };
 
-      res.render("admin/pages/reviews/detail", { title: "Reviews Detail", active: "reviews", review: viewModel });
+      res.render("admin/pages/reviews/detail", {
+        title: "Reviews Detail",
+        active: "reviews",
+        review: viewModel,
+      });
     } catch (err) {
       console.error(err);
       res.status(500).send("Lỗi khi tải chi tiết đánh giá");
     }
   },
 
-  // 💬 Gửi phản hồi
+  // Gửi phản hồi
   async reply(req: Request, res: Response) {
     try {
-      const { reviewId, content } = req.body;
+      const { reviewId, content } = req.body as { reviewId: string; content: string };
 
-      if (!reviewId || !content.trim()) {
+      if (!reviewId || !content?.trim()) {
         return res.status(400).send("Thiếu nội dung phản hồi");
       }
 
@@ -98,7 +98,7 @@ export const ReviewsController = {
         data: {
           review_id: reviewId,
           author: "admin",
-          content,
+          content: content.trim(),
         },
       });
 
@@ -109,3 +109,4 @@ export const ReviewsController = {
     }
   },
 };
+

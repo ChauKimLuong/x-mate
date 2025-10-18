@@ -770,15 +770,50 @@ export async function barcodeImage(req: Request, res: Response) {
     let label = variantId ? `${productId}-${variantId}` : `${productId}`;
     if (String(type) === "qr") {
       try {
-        const row = await prisma.products.findUnique({ where: { id: String(productId) }, select: { slug: true } });
-        const base = String((req.query as any).base || "").trim();
+        // Accept either ID or slug from the input; also allow explicit ?slug=...
+        const qSlug = String((req.query as any).slug || "").trim();
+        const qPid = String(productId || "").trim();
+        let slug: string | null = null;
+        if (qSlug) {
+          slug = qSlug;
+        } else {
+          const byId = await prisma.products.findUnique({ where: { id: qPid }, select: { slug: true } });
+          slug = byId?.slug || null;
+          if (!slug) {
+            const bySlug = await prisma.products.findFirst({ where: { slug: qPid }, select: { slug: true } });
+            slug = bySlug?.slug || null;
+          }
+        }
+
+        // Determine origin (base URL). Priority: ?base=... > env > forwarded host > req host
+        const rawBase = String(
+          (req.query as any).base ||
+          process.env.PUBLIC_BASE_URL ||
+          process.env.APP_URL ||
+          ""
+        ).trim();
         const xfProto = (req.headers["x-forwarded-proto"] as string) || "";
         const xfHost = (req.headers["x-forwarded-host"] as string) || "";
         const proto = (xfProto || req.protocol || "http").split(",")[0];
         const host = (xfHost || req.get("host") || "").split(",")[0];
-        const origin = base || (host ? `${proto}://${host}` : "");
-        if (row?.slug && origin) {
-          label = `${origin}/product/detail/${row.slug}`;
+
+        function normalizeOrigin(input: string): string {
+          const s = (input || "").replace(/\/$/, "");
+          try {
+            // If scheme is missing, URL will throw; handle gracefully
+            const hasScheme = /^https?:\/\//i.test(s);
+            const u = new URL(hasScheme ? s : `${proto}://${s}`);
+            return `${u.protocol}//${u.host}`; // strip path/query if any
+          } catch {
+            return s;
+          }
+        }
+
+        const origin = normalizeOrigin(rawBase || (host ? `${proto}://${host}` : ""));
+
+        if (slug && origin) {
+          // Use URL to join to avoid double slashes
+          label = new URL(`/product/detail/${slug}`, origin).toString();
         }
       } catch {}
     }

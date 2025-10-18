@@ -106,6 +106,9 @@ html(lang="vi")
         .menu-promotions,
         .menu-reports,
         .menu-users { display: none !important; }
+        /* also hide their submenus entirely for staff */
+        #submenu-products,
+        #submenu-categories { display: none !important; }
 
     .shell
       // ============ SIDEBAR ============
@@ -253,7 +256,10 @@ html(lang="vi")
         // khôi phục trạng thái
         try{
           var arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+          var isStaff = document.body && document.body.classList.contains('role-staff');
           arr.forEach(function(id){
+            // Skip restricted submenus for staff
+            if(isStaff && (id === 'submenu-products' || id === 'submenu-categories')) return;
             var btn = document.querySelector('.item.has-children[data-target="#'+id+'"]');
             var sub = document.getElementById(id);
             setOpen(btn, sub, true);
