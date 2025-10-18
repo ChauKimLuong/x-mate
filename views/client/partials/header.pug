@@ -4,12 +4,12 @@ header.site-header
     .container
       ul.top-links
         li
-          a(href="/ve-chung-toi") Ve X-MATE
+          a(href="/ve-chung-toi") Về X-MATE
         li
           a(href="/cxp") CXP
       ul.top-links.top-links--right
         li
-          a(href="/coolclub") Coolclub
+          a(href="/coolclub") X-Club
         li
           a(href="/blog") Blog
         li
@@ -44,7 +44,7 @@ header.site-header
             var groupTitle  = (group && typeof group.title === 'string') ? group.title : (groupSlug || 'Danh mục');
             var childCount  = (group && Array.isArray(group.children)) ? group.children.length : 0;
           .primary-nav__group(class=hasChildren ? 'has-dropdown' : '')
-            a.primary-nav__item(href='/categories/' + groupSlug)= groupTitle
+            a.primary-nav__item(href='/category/' + groupSlug)= groupTitle
 
             if hasChildren
               ul.primary-nav__dropdown(role="menu" class=(childCount && childCount <= 6 ? 'is-row' : ''))
@@ -54,7 +54,7 @@ header.site-header
                     var columnTitle = (column && typeof column.title === 'string') ? column.title : (columnSlug || 'Danh mục');
                     var items = (column && Array.isArray(column.items)) ? column.items : [];
                   li.primary-nav__column
-                    a.primary-nav__column-title(href='/categories/' + columnSlug, role="menuitem")
+                    a.primary-nav__column-title(href='/category/' + columnSlug, role="menuitem")
                       span= columnTitle
                       span.primary-nav__column-arrow → 
                     if items.length
@@ -64,7 +64,7 @@ header.site-header
                             var itemSlug  = (item && typeof item.slug  === 'string') ? item.slug  : '';
                             var itemTitle = (item && typeof item.title === 'string') ? item.title : (itemSlug || 'Sản phẩm');
                           li
-                            a(href='/categories/' + itemSlug, role="menuitem")= itemTitle
+                            a(href='/category/' + itemSlug, role="menuitem")= itemTitle
                     //- else
                     //-   span.primary-nav__column-empty Tất cả sản phẩm
 
