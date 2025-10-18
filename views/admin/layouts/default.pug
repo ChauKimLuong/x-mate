@@ -90,10 +90,22 @@ html(lang="vi")
     // Chart.js (Dashboard)
     script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js")
 
-  body
+  body(class=((typeof admin !== 'undefined' && admin && admin.role && String(admin.role).toLowerCase()==='staff') ? 'role-staff' : 'role-admin'))
     include ../mixins/icons
 
     - const is = (k) => (active===k);
+    - const __role = (typeof admin !== 'undefined' && admin && admin.role) ? String(admin.role).toLowerCase() : '';
+    - const __isStaff = __role === 'staff';
+    - const __isAdmin = __role === 'admin';
+    if __isStaff
+      style.
+        .menu-overview,
+        .menu-products,
+        .menu-categories,
+        /* allow inventory support for staff */
+        .menu-promotions,
+        .menu-reports,
+        .menu-users { display: none !important; }
 
     .shell
       // ============ SIDEBAR ============
@@ -106,14 +118,14 @@ html(lang="vi")
             span.txt X-Mate
         nav.menu
           // Dashboard
-          a.item(class=is('overview')?'active':'', href="/admin")
+          a.item.menu-overview(class=is('overview')?'active':'', href="/admin")
             span.ico
               +icon-dashboard(20)
             span.lbl Tổng quan
 
           // Products (toggle)
           - const openProducts = active && active.startsWith('products');
-          button.item.has-children(type="button", aria-expanded=openProducts?'true':'false', data-target="#submenu-products", class=openProducts?'active':'')
+          button.item.menu-products.has-children(type="button", aria-expanded=openProducts?'true':'false', data-target="#submenu-products", class=openProducts?'active':'')
             span.ico
               +icon-products(20)
             span.lbl Sản Phẩm
@@ -135,7 +147,7 @@ html(lang="vi")
 
           // Categories (toggle)
           - const openCategories = active && active.startsWith('categories');
-          button.item.has-children(type="button", aria-expanded=openCategories?'true':'false', data-target="#submenu-categories", class=openCategories?'active':'')
+          button.item.menu-categories.has-children(type="button", aria-expanded=openCategories?'true':'false', data-target="#submenu-categories", class=openCategories?'active':'')
             span.ico
               +icon-categories(20)
             span.lbl Danh mục
@@ -155,7 +167,7 @@ html(lang="vi")
             span.lbl Quản lý tồn kho
 
           // Inventory Support
-          a.item(class=is('inventory-support')?'active':'', href="/admin/inventory-support")
+          a.item.menu-inv-support(class=is('inventory-support')?'active':'', href="/admin/inventory-support")
             span.ico
               +icon-inv-support(20)
             span.lbl Hỗ trợ tồn kho
@@ -167,13 +179,13 @@ html(lang="vi")
             span.lbl Đơn hàng
 
           // Promotions
-          a.item(class=is('promotions')?'active':'', href="/admin/promotions")
+          a.item.menu-promotions(class=is('promotions')?'active':'', href="/admin/promotions")
             span.ico
               +icon-promotions(20)
             span.lbl Khuyến mãi
 
           // Reports
-          a.item(class=is('reports')?'active':'', href="/admin/reports/revenue")
+          a.item.menu-reports(class=is('reports')?'active':'', href="/admin/reports/revenue")
             span.ico
               +icon-reports(20)
             span.lbl Báo cáo
@@ -185,7 +197,7 @@ html(lang="vi")
             span.lbl Reviews
 
           // User
-          a.item(class=is('users')?'active':'', href="/admin/users")
+          a.item.menu-users(class=is('users')?'active':'', href="/admin/users")
             span.ico
               +icon-users(20)
             span.lbl Quản lý người dùng

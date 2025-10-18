@@ -21,8 +21,9 @@ block content
             label Giới tính
             select(name="gender")
               option(value="") Chọn giới tính
-              option(value="nam" selected=form.gender==='nam') Male
-              option(value="nữ" selected=form.gender==='nữ') Female
+              - const _g = (form && form.gender && String(form.gender).toLowerCase()) || ''
+              option(value="Nam" selected=(_g==='nam' || _g==='male' || form.gender==='Nam')) Nam
+              option(value="Nữ" selected=(_g==='nữ' || _g==='nu' || _g==='female' || form.gender==='Nữ')) Nữ
 
           .right
             label Vai trò

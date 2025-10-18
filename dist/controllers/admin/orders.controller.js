@@ -39,7 +39,7 @@ class OrdersController {
                         thumbnail: ((_c = (_b = (_a = o.order_items) === null || _a === void 0 ? void 0 : _a[0]) === null || _b === void 0 ? void 0 : _b.products) === null || _c === void 0 ? void 0 : _c.thumbnail) || null
                     });
                 });
-                res.render("admin/pages/orders/list", { orders: viewOrders });
+                res.render("admin/pages/orders/list", { title: "Order", active: "orders", orders: viewOrders });
             }
             catch (error) {
                 console.error("Lỗi khi tải danh sách đơn hàng:", error);
@@ -61,7 +61,7 @@ class OrdersController {
                 });
                 if (!order)
                     return res.status(404).send("Không tìm thấy đơn hàng");
-                res.render("admin/pages/orders/detail", { order });
+                res.render("admin/pages/orders/detail", { title: "Order", active: "orders", order });
             }
             catch (error) {
                 console.error("Lỗi khi xem chi tiết đơn hàng:", error);

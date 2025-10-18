@@ -62,7 +62,11 @@ block content
             a(href="/admin/inventory?range=month" style="display:block;padding:8px 10px;border-radius:8px;margin:2px 0") Tháng này
             a(href="/admin/inventory?range=year"  style="display:block;padding:8px 10px;border-radius:8px;margin:2px 0") Năm nay
 
-    table(style="width:100%; border-collapse:separate; border-spacing:0")
+    // Hide actions column for staff via body role class
+    style.
+      body.role-staff .inv-main thead tr th:last-child{ display:none }
+      body.role-staff .inv-main tbody tr td:last-child:not([colspan]){ display:none }
+    table.inv-main(style="width:100%; border-collapse:separate; border-spacing:0")
       thead
         tr
           th.sel(style="text-align:left; padding:14px 16px; border-bottom:1px solid #eef0f5")
@@ -75,7 +79,7 @@ block content
           each r in rows
             tr(data-id=r.productId)
               td.sel(style="padding:14px 16px; border-top:1px solid #f2f3f7")
-                input.row-ck(type="checkbox" name="select[]" value=r.productId title=`Select ${r.title}`)
+                input.row-ck(type="checkbox" name="select[]" value=r.productId title=('Select ' + r.title))
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= r.productId
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= r.title
               td.num(style="padding:14px 16px; border-top:1px solid #f2f3f7") #{r.onHand}
@@ -84,9 +88,9 @@ block content
               td.num(style="padding:14px 16px; border-top:1px solid #f2f3f7")= helpers.money(r.revenue || 0)
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
                 .actions(style="display:flex; gap:8px; align-items:center")
-                  a(href=`/admin/products/${r.productId}` title="Xem" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e5e7eb;border-radius:10px;background:#fff")
+                  a(href=('/admin/products/' + r.productId) title="Xem" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e5e7eb;border-radius:10px;background:#fff")
                     +ic_eye(18)
-                  a(href=`/admin/products/${r.productId}/edit` title="Sửa" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
+                  a(href=('/admin/products/' + r.productId + '/edit') title="Sửa" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
                     +ic_edit(18)
         else
           tr

@@ -52,13 +52,13 @@ function getRange(range) {
     if (String(range).toLowerCase() === 'all') {
         const s = new Date(0);
         const e = new Date(now.getFullYear() + 1, 0, 1);
-        return { s, e, label: 'All Products' };
+        return { s, e, label: 'Tất cả' };
     }
     if (range === "today") {
         const s = startOfDay(now);
         const e = new Date(s);
         e.setDate(e.getDate() + 1);
-        return { s, e, label: "Today" };
+        return { s, e, label: "Hôm nay" };
     }
     if (range === "week") {
         const d = new Date(now);
@@ -67,16 +67,16 @@ function getRange(range) {
         s.setDate(s.getDate() - (day - 1));
         const e = new Date(s);
         e.setDate(e.getDate() + 7);
-        return { s, e, label: "This Week" };
+        return { s, e, label: "Tuần này" };
     }
     if (range === "year") {
         const s = new Date(now.getFullYear(), 0, 1);
         const e = new Date(now.getFullYear() + 1, 0, 1);
-        return { s, e, label: "This Year" };
+        return { s, e, label: "Năm nay" };
     }
     const s = new Date(now.getFullYear(), now.getMonth(), 1);
     const e = new Date(now.getFullYear(), now.getMonth() + 1, 1);
-    return { s, e, label: "This Month" };
+    return { s, e, label: "Tháng này" };
 }
 function saveFileToPublic(file_1) {
     return __awaiter(this, arguments, void 0, function* (file, destDir = "public/uploads") {
@@ -97,9 +97,14 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const skip = allMode ? undefined : (page - 1) * take;
     const range = String(req.query.range || "month");
     const { s, e, label } = getRange(range);
+    const keyword = String(req.query.q || '').trim();
     const createdFilter = { createdAt: { gte: s, lt: e } };
+    const where = Object.assign({ deleted: false }, createdFilter);
+    if (keyword) {
+        where.title = { contains: keyword, mode: 'insensitive' };
+    }
     const findOpts = {
-        where: Object.assign({ deleted: false }, createdFilter),
+        where,
         include: {
             categories: { select: { title: true } },
             productVariants: {
@@ -115,7 +120,7 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     }
     const [rows, total] = yield Promise.all([
         database_1.default.products.findMany(findOpts),
-        database_1.default.products.count({ where: Object.assign({ deleted: false }, createdFilter) }),
+        database_1.default.products.count({ where }),
     ]);
     const products = rows.map((p) => {
         var _a;
@@ -147,6 +152,7 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
         filterLabel: label,
         range,
         allMode,
+        keyword,
     });
 });
 exports.getProducts = getProducts;
@@ -640,11 +646,12 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
         }
         const current = yield database_1.default.productVariants.findMany({
             where: { productId: id },
-            select: { id: true, images: true },
+            select: { id: true, images: true, stock: true },
         });
         const currentImgMap = new Map(current.map((v) => [v.id, Array.isArray(v.images) ? v.images : []]));
+        const currentStockMap = new Map(current.map((v) => [v.id, Number.isFinite(Number(v.stock)) ? Number(v.stock) : 0]));
         yield database_1.default.$transaction((tx) => __awaiter(void 0, void 0, void 0, function* () {
-            var _a;
+            var _a, _b, _c;
             yield tx.products.update({
                 where: { id },
                 data: Object.assign(Object.assign({ title,
@@ -667,7 +674,9 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                     colorHexLegacy = "";
                     swatchUrlLegacy = "";
                 }
-                const newCandidateImages = [...(v.urls || []), ...(v._uploadedUrls || [])];
+                const rawIncoming = [...(v.urls || []), ...(v._uploadedUrls || [])]
+                    .map((u) => (typeof u === 'string' ? u.trim() : ''))
+                    .filter(Boolean);
                 const mode = v.imagesMode || "append";
                 if (v.id) {
                     if (v._delete) {
@@ -686,33 +695,65 @@ const updateProduct = (req, res) => __awaiter(void 0, void 0, void 0, function* 
                         data.stock = v.stock;
                     data.colorHexLegacy = colorHexLegacy || null;
                     data.swatchUrlLegacy = swatchUrlLegacy || null;
-                    if (newCandidateImages.length > 0) {
+                    if (rawIncoming.length > 0) {
                         if (mode === "append") {
                             const existing = currentImgMap.get(v.id) || [];
-                            data.images = [...existing, ...newCandidateImages];
+                            const existSet = new Set(existing);
+                            const uniqIncoming = Array.from(new Set(rawIncoming)).filter((u) => !existSet.has(u));
+                            if (uniqIncoming.length > 0) {
+                                data.images = [...existing, ...uniqIncoming];
+                            }
                         }
                         else {
-                            data.images = newCandidateImages;
+                            data.images = Array.from(new Set(rawIncoming));
                         }
                     }
                     yield tx.productVariants.update({ where: { id: v.id }, data });
+                    if (data.stock !== undefined) {
+                        const prev = (_a = currentStockMap.get(v.id)) !== null && _a !== void 0 ? _a : 0;
+                        const next = (_b = Number(data.stock)) !== null && _b !== void 0 ? _b : prev;
+                        const delta = next - prev;
+                        if (delta !== 0) {
+                            yield tx.inventoryMovements.create({
+                                data: {
+                                    productId: id,
+                                    variantId: v.id,
+                                    delta,
+                                    reason: "manualAdjust",
+                                    note: "adminEdit",
+                                },
+                            });
+                        }
+                    }
                 }
                 else {
                     const colorName = (v.color || "").trim();
                     if (!colorName)
                         continue;
-                    const stockVal = (_a = toIntStrict(v.stock)) !== null && _a !== void 0 ? _a : 0;
+                    const stockVal = (_c = toIntStrict(v.stock)) !== null && _c !== void 0 ? _c : 0;
+                    const newVariantId = (0, crypto_1.randomUUID)();
                     yield tx.productVariants.create({
                         data: {
-                            id: (0, crypto_1.randomUUID)(),
+                            id: newVariantId,
                             productId: id,
                             color: colorName,
                             stock: stockVal,
-                            images: newCandidateImages,
+                            images: Array.from(new Set(rawIncoming)),
                             colorHexLegacy: colorHexLegacy || null,
                             swatchUrlLegacy: swatchUrlLegacy || null,
                         },
                     });
+                    if (stockVal !== 0) {
+                        yield tx.inventoryMovements.create({
+                            data: {
+                                productId: id,
+                                variantId: newVariantId,
+                                delta: stockVal,
+                                reason: "manualAdjust",
+                                note: "adminEdit:newVariant",
+                            },
+                        });
+                    }
                 }
             }
         }));

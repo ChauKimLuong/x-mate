@@ -14,9 +14,9 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.toggleStatus = exports.softDeleteCategory = exports.updateCategory = exports.editCategoryForm = exports.createCategory = exports.showCreateCategory = exports.getCategories = void 0;
 const database_1 = __importDefault(require("../../config/database"));
+const crypto_1 = require("crypto");
 const path_1 = __importDefault(require("path"));
 const promises_1 = __importDefault(require("fs/promises"));
-const crypto_1 = require("crypto");
 const val = (v) => (typeof v === "string" ? v.trim() : v);
 const slugify = (s) => (s || "")
     .toLowerCase()
@@ -55,8 +55,13 @@ const getCategories = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     const page = Math.max(1, Number(req.query.page) || 1);
     const take = allMode ? undefined : Math.min(50, Number(req.query.take) || 10);
     const skip = allMode ? undefined : (page - 1) * take;
+    const keyword = String(req.query.q || '').trim();
+    const where = { deleted: false };
+    if (keyword) {
+        where.title = { contains: keyword, mode: 'insensitive' };
+    }
     const findOpts = {
-        where: { deleted: false },
+        where,
         orderBy: [{ position: 'asc' }, { createdAt: 'desc' }],
     };
     if (!allMode) {
@@ -65,7 +70,7 @@ const getCategories = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }
     const [rows, total] = yield Promise.all([
         database_1.default.categories.findMany(findOpts),
-        database_1.default.categories.count({ where: { deleted: false } }),
+        database_1.default.categories.count({ where }),
     ]);
     const categories = rows.map((c) => ({
         id: c.id,
@@ -78,10 +83,11 @@ const getCategories = (req, res) => __awaiter(void 0, void 0, void 0, function* 
     }));
     res.render("admin/pages/categories/list", {
         title: "Category List",
-        active: "categories",
+        active: "categories:list",
         categories,
         pagination: { page, take: (allMode ? total : take || 10), total },
         allMode,
+        keyword,
     });
 });
 exports.getCategories = getCategories;
@@ -91,7 +97,7 @@ const showCreateCategory = (_req, res) => __awaiter(void 0, void 0, void 0, func
         select: { id: true, title: true },
         orderBy: { title: 'asc' },
     });
-    res.render("admin/pages/categories/create", { title: "Create Category", active: "categories", parents });
+    res.render("admin/pages/categories/create", { title: "Create Category", active: "categories:create", parents });
 });
 exports.showCreateCategory = showCreateCategory;
 const createCategory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
@@ -149,7 +155,7 @@ const editCategoryForm = (req, res) => __awaiter(void 0, void 0, void 0, functio
         select: { id: true, title: true },
         orderBy: { title: 'asc' },
     });
-    res.render("admin/pages/categories/edit", { title: "Edit Category", active: "categories", row, parents });
+    res.render("admin/pages/categories/edit", { title: "Edit Category", active: "categories:list", row, parents });
 });
 exports.editCategoryForm = editCategoryForm;
 const updateCategory = (req, res) => __awaiter(void 0, void 0, void 0, function* () {

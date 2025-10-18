@@ -45,7 +45,7 @@ exports.ReviewsController = {
                         createdAt: r.created_at,
                     });
                 });
-                res.render("admin/pages/reviews/list", { reviews: formatted });
+                res.render("admin/pages/reviews/list", { title: "Reviews List", active: "reviews", reviews: formatted });
             }
             catch (err) {
                 console.error(err);
@@ -86,7 +86,7 @@ exports.ReviewsController = {
                     replies: review.review_replies || [],
                     createdAt: review.created_at,
                 };
-                res.render("admin/pages/reviews/detail", { review: viewModel });
+                res.render("admin/pages/reviews/detail", { title: "Reviews Detail", active: "reviews", review: viewModel });
             }
             catch (err) {
                 console.error(err);

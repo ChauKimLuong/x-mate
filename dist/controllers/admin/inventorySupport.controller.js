@@ -684,7 +684,7 @@ function bulkCommit(req, res) {
 function barcode(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const { productId, variantId, type } = req.query;
+            const { productId, variantId, type, base } = req.query;
             if (!productId)
                 return res.status(400).send("productId required");
             const q = new URLSearchParams();
@@ -692,6 +692,8 @@ function barcode(req, res) {
             if (variantId)
                 q.set("variantId", String(variantId));
             q.set("type", String(type || "barcode"));
+            if (base)
+                q.set("base", String(base));
             const codeUrl = `/admin/inventory-support/barcode.svg?${q.toString()}`;
             const sessions = (yield readSessions()).slice(0, 10);
             const negative = yield database_1.default.productVariants.findMany({
@@ -723,7 +725,22 @@ function barcodeImage(req, res) {
                 res.status(400).type("text/plain").send("productId required");
                 return;
             }
-            const label = variantId ? `${productId}-${variantId}` : `${productId}`;
+            let label = variantId ? `${productId}-${variantId}` : `${productId}`;
+            if (String(type) === "qr") {
+                try {
+                    const row = yield database_1.default.products.findUnique({ where: { id: String(productId) }, select: { slug: true } });
+                    const base = String(req.query.base || "").trim();
+                    const xfProto = req.headers["x-forwarded-proto"] || "";
+                    const xfHost = req.headers["x-forwarded-host"] || "";
+                    const proto = (xfProto || req.protocol || "http").split(",")[0];
+                    const host = (xfHost || req.get("host") || "").split(",")[0];
+                    const origin = base || (host ? `${proto}://${host}` : "");
+                    if ((row === null || row === void 0 ? void 0 : row.slug) && origin) {
+                        label = `${origin}/product/detail/${row.slug}`;
+                    }
+                }
+                catch (_a) { }
+            }
             if (String(type) === "qr") {
                 const svg = yield qrcode_1.default.toString(label, {
                     type: "svg",
@@ -875,7 +892,7 @@ function rebuildOnHand(req, res) {
                     const sum = Number(row.sum || 0);
                     yield tx.productVariants.update({
                         where: { id: variantId },
-                        data: { stock: sum },
+                        data: { stock: Math.max(0, sum) },
                     });
                 }
             }));

@@ -11,6 +11,7 @@ import usersRouter from "./users.route";
 import authRouter from "./auth.route";
 import categoriesRouter from "./categories.route";
 import { requireAdmin } from "../../middlewares/adminAuth";
+import { onlyAdmin } from "../../middlewares/roleGuard";
 const r = Router();
 
 r.use("/", authRouter);
@@ -19,16 +20,25 @@ r.use("/", authRouter);
 r.use(requireAdmin);
 
 // Dashboard routes
-r.get("/", (req, res) => res.redirect("/admin/dashboard"));
-r.get("/dashboard", dashboard);
-r.use("/promotions", promotionsRouter);
-r.use("/reports", reportsRouter);
-r.use("/users", usersRouter);
+// Default landing: staff -> orders, admin -> dashboard
+r.get("/", (req, res) => {
+  const role = (req.session as any)?.admin?.role;
+  if (role === "staff") return res.redirect("/admin/orders");
+  return res.redirect("/admin/dashboard");
+});
 
-r.use("/categories", categoriesRouter);
-r.use("/products", productsRouter);
-r.use("/inventory", inventoryRouter);
+// Admin-only sections
+r.get("/dashboard", onlyAdmin, dashboard);
+r.use("/promotions", onlyAdmin, promotionsRouter);
+r.use("/reports", onlyAdmin, reportsRouter);
+r.use("/users", onlyAdmin, usersRouter);
+r.use("/categories", onlyAdmin, categoriesRouter);
+r.use("/products", onlyAdmin, productsRouter);
+// Inventory Support: allow staff access
 r.use("/inventory-support", inventorySupportRouter);
+
+// Staff-allowed sections
+r.use("/inventory", inventoryRouter);
 r.use("/reviews", reviewsRouter);
 r.use("/orders", ordersRouter);
 export default r;
