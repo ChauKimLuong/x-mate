@@ -1,0 +1,158 @@
+extends ../../layouts/default.pug
+
+block title
+  title X-Mate • Thanh toán
+
+block extra_css
+  link(rel="stylesheet" href="/css/checkout.css")
+
+block content
+  form#checkoutForm.checkout-form.checkout-page(method="post" action="/checkout")
+    main.container.page
+      if error
+        .alert.alert-danger= error
+
+      .grid
+        section.card
+          - const selectedAddress = checkout && checkout.address ? checkout.address : null;
+          .shipping-form
+            .shipping-form__header
+              h2.shipping-form__title Thông tin vận chuyển
+              if addresses && addresses.length
+                button.shipping-form__picker(type="button", data-address-picker-open)
+                  span
+                    | Chọn từ sổ địa chỉ
+              else
+                span.shipping-form__hint Bạn chưa có địa chỉ nào. Vui lòng điền thông tin bên dưới.
+            .shipping-form__grid
+              if selectedAddress
+                .shipping-selected
+                  span.shipping-selected__label Địa chỉ đang sử dụng:
+                  span.shipping-selected__value #{selectedAddress.line1}, #{selectedAddress.ward}, #{selectedAddress.district}, #{selectedAddress.city}
+              .shipping-row
+                .shipping-field
+                  label.shipping-field__label(for="shippingFullName") Họ tên
+                  input#shippingFullName.shipping-input(type="text" name="fullName" placeholder="Nhập họ tên của bạn" data-field="fullName" value=selectedAddress ? selectedAddress.fullName : "")
+                .shipping-field
+                  label.shipping-field__label(for="shippingPhone") Số điện thoại
+                  input#shippingPhone.shipping-input(type="tel" name="phone" placeholder="Nhập số điện thoại" data-field="phone" value=selectedAddress ? selectedAddress.phone : "")
+              .shipping-field
+                label.shipping-field__label(for="shippingAddress1") Địa chỉ (trước số nhà)
+                input#shippingAddress1.shipping-input(type="text" name="line1" placeholder="Nhập địa chỉ (số nhà, đường)" data-field="line1" value=selectedAddress ? selectedAddress.line1 : "")
+              .shipping-field.shipping-field--triple
+                label.shipping-field__label Địa bàn hành chính
+                .shipping-triple-row
+                  input.shipping-input(type="text" name="city" placeholder="Tỉnh/Thành phố" data-field="city" value=selectedAddress ? selectedAddress.city : "")
+                  input.shipping-input(type="text" name="district" placeholder="Quận/Huyện" data-field="district" value=selectedAddress ? selectedAddress.district : "")
+                  input.shipping-input(type="text" name="ward" placeholder="Xã/Phường" data-field="ward" value=selectedAddress ? selectedAddress.ward : "")
+              .shipping-field
+                label.shipping-field__label(for="shippingNote") Ghi chú
+                textarea#shippingNote.shipping-input.shipping-input--textarea(name="note" placeholder="Nhập ghi chú cho đơn hàng (không bắt buộc)" data-field="note")
+
+          - const couponApplied = checkout && checkout.coupon ? checkout.coupon : null;
+          .coupon-summary
+            .coupon-summary__title Voucher
+            if couponApplied
+              .coupon-summary__pill
+                span.coupon-summary__code= couponApplied.code
+                if couponApplied.label
+                  span.coupon-summary__label= couponApplied.label
+            else
+              .coupon-summary__empty Chưa áp dụng
+
+        if addresses && addresses.length
+          .address-picker-overlay.hidden(data-address-picker-overlay)
+          .address-picker.hidden(data-address-picker-modal)
+            .address-picker__panel
+              .address-picker__header
+                h3 Địa chỉ đã lưu
+                button(type="button", data-address-picker-close) Đóng
+              .address-picker__list
+                each addr in addresses
+                  .address-picker__item
+                    .address-picker__info
+                      .address-picker__name #{addr.fullName}
+                      .address-picker__phone #{addr.phone}
+                      .address-picker__line #{addr.line1}
+                      .address-picker__line #{addr.ward}, #{addr.district}, #{addr.city}
+                    button.address-picker__use(
+                      type="button",
+                      data-address-pick,
+                      data-id=addr.id,
+                      data-full-name=addr.fullName,
+                      data-phone=addr.phone,
+                      data-line1=addr.line1,
+                      data-city=addr.city,
+                      data-district=addr.district,
+                      data-ward=addr.ward
+                    ) Sử dụng địa chỉ này
+
+        aside.card.summary#summary
+          h3 Chi tiết đơn hàng
+          if checkout && checkout.items && checkout.items.length
+            #items.checkout-items(style="margin-bottom:8px")
+              each item in checkout.items
+                .cart-line-summary
+                  span #{item.title} x#{item.quantity}
+                  b= item.lineTotalText
+          else
+            p.muted Giỏ hàng của bạn đang trống.
+          - const totals = checkout && checkout.totals ? checkout.totals : null;
+          ul.sum-list
+            li
+              span Tạm tính
+              b#p-sub= totals ? totals.subtotalText : "0 ₫"
+            li
+              span Giảm giá
+              b#p-discount= totals ? totals.discountText : "0 ₫"
+            li
+              span Phí vận chuyển
+              b#p-ship= totals ? totals.shippingText : "0 ₫"
+          .grand
+            span Tổng cộng
+            b#p-total= totals ? totals.totalText : "0 ₫"
+
+          h3.payment Hình thức thanh toán
+            section.paylist
+              label.payitem
+                input(type="radio", name="paymentMethod", value="COD", checked=true)
+                .content
+                  img.pay-logo(src="https://mcdn.coolmate.me/image/October2024/mceclip2_42.png" alt="COD")
+                  .info
+                    .title Thanh toán khi nhận hàng
+                    .sub Trả tiền mặt
+              //- label.payitem
+              //-   input(type="radio", name="paymentMethod", value="VIETQR")
+              //-   .content
+              //-     img.pay-logo(src="/images/payment-vietqr.png" alt="VietQR")
+              //-     .info
+              //-       .title Chuyển khoản VietQR
+              //-       .sub Tự động điền nội dung
+
+    hr.spacer
+
+    .dock
+      .container.dock-in
+        .dock-left
+          .dock-meta
+            span.dock-title Phương thức:
+            span#dockPayChip.pay-chip COD
+            span.dock-voucher.muted 
+              | Voucher: 
+              span#dockCoupon chưa áp dụng
+        .dock-right
+          .dock-total
+            .muted Tổng cộng
+            .big#dockTotal= totals ? totals.totalText : "0 ₫"
+          button#btnPlace.btn.primary(type="submit") ĐẶT HÀNG
+
+    .spacer(style="height:80px")
+block extra_js
+  script.
+    window.__CHECKOUT_STATE = !{JSON.stringify(checkout || { items: [], totals: {} })};
+  script.
+    window.__CHECKOUT_ADDRESSES = !{JSON.stringify(addresses || [])};
+  script(src="/js/checkout.js", defer)
+
+
+

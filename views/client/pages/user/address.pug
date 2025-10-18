@@ -1,0 +1,128 @@
+extends ../../layouts/default.pug
+include ../../mixins/user-sidebar.pug
+
+block title
+    title Sổ địa chỉ
+
+block extra_css
+    link(rel="stylesheet" href="/css/components/user.css")
+
+block content
+    .account-page
+        +accountSidebar('addresses')
+
+        main.account-main
+            .white-surface
+                .surface-header
+                    h1.surface-title Địa chỉ của tôi
+                    // Nút mở modal (không điều hướng)
+                    button.btn-pill(type="button" data-open-address-modal)
+                        i +
+                        |  Thêm địa chỉ mới
+
+                h4.address-header Sổ địa chỉ
+
+                if !addresses || !addresses.length
+                    .empty-state Bạn chưa có địa chỉ nào!
+                else
+                    .address-list
+                        each a in addresses
+                            .address-card
+                                .address-card__header
+                                    .address-card__heading
+                                        div.address-card__name #{a.fullName}
+                                        if a.isDefault
+                                            span.address-badge Mặc định
+                                    if a.isDefault
+                                        button.address-card__action(
+                                            type="button"
+                                            data-edit-address
+                                            data-address-id=a.id
+                                            data-full-name=a.fullName
+                                            data-phone=a.phone
+                                            data-line1=a.line1
+                                            data-city=a.city
+                                            data-district=a.district
+                                            data-ward=a.ward
+                                            data-is-default=(a.isDefault ? 'true' : 'false')
+                                        ) Cập nhật
+                                    else
+                                        .address-card__actions
+                                            button.address-card__action(
+                                                type="button"
+                                                data-edit-address
+                                                data-address-id=a.id
+                                                data-full-name=a.fullName
+                                                data-phone=a.phone
+                                                data-line1=a.line1
+                                                data-city=a.city
+                                                data-district=a.district
+                                                data-ward=a.ward
+                                                data-is-default=(a.isDefault ? 'true' : 'false')
+                                            ) Cập nhật
+                                            form(action=`/user/address/delete/${a.id}` method="POST")
+                                                button.address-card__action.address-card__action--danger(type="submit") Xóa
+
+                                .address-card__details
+                                    div.address-card__meta #{a.phone}
+                                    div.address-card__line #{a.line1}
+                                    if a.line2
+                                        div.address-card__line #{a.line2}
+                                    div.address-card__line #{a.ward}, #{a.district}, #{a.city}
+                                if !a.isDefault
+                                    .address-card__footer
+                                        form(action=`/user/address/default/${a.id}`, method="POST")
+                                            button.address-card__button(type="submit") Đặt làm mặc định
+
+
+    // ===== Modal thêm địa chỉ =====
+    // Bên mặc định, JS sẽ bật/tắt bằng class .is-open
+    .address-overlay.hidden(data-address-overlay)
+    .address-modal.hidden(role="dialog" aria-modal="true" data-address-modal)
+        button.address-modal__close(type="button" aria-label="Đóng" data-close-address-modal) ×
+        h2.address-modal__title Thêm Địa Chỉ
+        form.address-form(
+            action="/user/address"
+            method="POST"
+            data-address-form
+            data-update-action="/user/address/update"
+        )
+            input(type="hidden" name="id" data-address-id-field)
+            .form-group.form-group--inline
+                label(for="full_name") Họ tên
+                input#full_name(type="text" name="full_name" required placeholder="Nhập họ tên")
+
+            .form-group.form-group--inline
+                label(for="phone") Số điện thoại
+                input#phone(type="text" name="phone" required placeholder="Nhập số điện thoại")
+
+
+
+            .form-group
+                label(for="province") Tỉnh / Thành phố
+                select#province(name="city" required)
+                    option(value="" disabled selected) -- Chọn Tỉnh / Thành phố --
+
+            .form-group
+                label(for="district") Quận / Huyện
+                select#district(name="district" required)
+                    option(value="" disabled selected) -- Chọn Quận / Huyện --
+
+            .form-group
+                label(for="ward") Xã / Phường
+                select#ward(name="ward" required)
+                    option(value="" disabled selected) -- Chọn Xã / Phường --
+            .form-group
+                label(for="line1") Địa chỉ (số nhà, đường)
+                input#line1(type="text" name="line1" placeholder="Ví dụ: 123 đường A...")
+
+            .form-check
+                input#is_default(type="checkbox" name="isDefault")
+                label(for="is_default") Đặt làm địa chỉ mặc định
+
+            .actions
+                button(type="button" class="btn btn--ghost" data-close-address-modal) Đóng
+                button(type="submit" class="btn btn--primary") Lưu
+
+block extra_js
+    script(type="module" src="/js/address.js")

@@ -1,0 +1,42 @@
+extends ../../layouts/default
+include ../../mixins/product-card.pug
+
+block title
+    if parent
+        title= `${parent.title} | X-Mate`
+    else
+        title Danh mục
+
+block extra_css
+    link(rel="stylesheet", href="/css/category.css") 
+
+block content
+    if !parent
+        .container
+            p.muted Danh mục không tồn tại.
+    else
+        .container
+
+            header.category-head
+                //- h1= parent.title
+
+            if children && children.length
+                section.child-cats
+                    ul.child-grid
+                        each c in children
+                            li.child-card
+                                a(href=`/category/${c.slug}`)
+                                    .thumb(style=`background-image:url('${c.thumbnail || "/images/placeholder-cat.jpg"}')`)
+                                    h3= c.title
+
+    .products
+        if products && products.length
+            each p in products
+                +productCard(p)
+        else
+            p.muted Chưa có sản phẩm trong danh mục này.
+
+block extra_js
+    script(src="/js/header.js")
+    script(src="/js/alerts.js")
+    script(src="/js/category.js")

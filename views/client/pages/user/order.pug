@@ -1,0 +1,79 @@
+extends ../../layouts/default.pug
+include ../../mixins/user-sidebar.pug
+
+block title
+  title X-Mate • Lịch sử đơn hàng
+
+block extra_css
+  link(rel="stylesheet" href="/css/components/user.css")
+
+block content
+  -
+    const viewOrders = Array.isArray(orders) ? orders : [];
+  .account-page
+    +accountSidebar('orders')
+
+    main.account-main
+      .white-surface
+        .surface-header
+          h1.surface-title Lịch sử đơn hàng
+
+        if !viewOrders.length
+          .empty-state Bạn chưa có đơn hàng nào.
+        else
+          .order-history
+            each order in viewOrders
+              article.order-card
+                .order-card__header
+                  .order-card__title
+                    span.order-card__code= order.shortCode
+                    span.status-chip(class=order.statusClass)= order.statusLabel
+                  .order-card__meta
+                    span.order-card__meta-item Ngày đặt: #{order.createdAtText || 'Chưa cập nhật'}
+                    span.order-card__meta-item Thanh toán: #{order.paymentLabel}
+                    span.order-card__meta-item #{order.quantityTotal} sản phẩm
+
+                if order.items && order.items.length
+                  ul.order-card__items
+                    each item in order.items
+                      li.order-item
+                        img.order-item__thumb(src=item.thumbnail, alt=item.title)
+                        .order-item__body
+                          if item.slug
+                            a.order-item__title(href=`/product/detail/${item.slug}`)= item.title
+                          else
+                            span.order-item__title= item.title
+                          if item.color || item.size
+                            .order-item__meta
+                              if item.color
+                                span.order-item__meta-chip Màu: #{item.color}
+                              if item.size
+                                span.order-item__meta-chip Size: #{item.size}
+                          .order-item__pricing
+                            span.order-item__price= item.priceText
+                            span.order-item__quantity x#{item.quantity}
+                            span.order-item__line= item.lineTotalText
+                else
+                  .order-card__empty Chưa có sản phẩm cho đơn hàng này.
+
+                .order-card__footer
+                  .order-card__shipping
+                    strong Giao tới
+                    span.order-card__recipient= order.shipping.recipient || 'Chưa cập nhật'
+                    span.order-card__address= order.shipping.address || 'Chưa cập nhật'
+                    if order.note
+                      span.order-card__note Ghi chú: #{order.note}
+                  .order-card__totals
+                    .order-card__summary-row
+                      span Tạm tính
+                      span= order.totals.subtotalText
+                    if order.hasDiscount
+                      .order-card__summary-row
+                        span Giảm giá
+                        span.order-card__discount - #{order.totals.discountText}
+                    .order-card__summary-row
+                      span Phí vận chuyển
+                      span= order.totals.shippingText
+                    .order-card__summary-row.is-total
+                      span Tổng cộng
+                      span= order.totals.totalText

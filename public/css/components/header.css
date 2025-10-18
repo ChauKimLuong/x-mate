@@ -1,6 +1,8 @@
 ﻿header.site-header {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
   z-index: 1000;
   background: transparent;
   color: #1a1a1a;
@@ -154,6 +156,121 @@
   position: relative;
   transition: color 0.2s ease;
   white-space: nowrap;
+}
+
+.primary-nav__group {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.primary-nav__group.has-dropdown > .primary-nav__item::after {
+  content: "";
+  position: absolute;
+  left: 50%;
+  bottom: -8px;
+  width: 0;
+  height: 0;
+  border-left: 6px solid transparent;
+  border-right: 6px solid transparent;
+  border-top: 6px solid transparent;
+  transition: border-top-color 0.2s ease;
+  transform: translateX(-50%);
+}
+
+.primary-nav__group.has-dropdown:hover > .primary-nav__item::after {
+  border-top-color: rgba(17, 24, 39, 0.45);
+}
+
+
+.primary-nav__dropdown {
+  position: absolute;
+  top: calc(100% + 12px);
+  left: 50%;
+  transform: translateX(-50%);
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 18px 40px rgba(15, 23, 42, 0.16);
+  border: 1px solid rgba(15, 23, 42, 0.08);
+  padding: 24px 28px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 18px 32px;
+  min-width: 420px;
+  opacity: 0;
+  visibility: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease, transform 0.2s ease;
+  transform-origin: top center;
+  z-index: 999999;
+}
+
+.primary-nav__dropdown li {
+  list-style: none;
+}
+
+.primary-nav__column {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.primary-nav__column-title {
+  display: inline-flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #0f172a;
+}
+
+.primary-nav__column-arrow {
+  margin-left: 8px;
+  font-size: 14px;
+  opacity: 0.4;
+}
+
+.primary-nav__column-title:hover {
+  color: #1d4ed8;
+}
+
+.primary-nav__column-list {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 0;
+}
+
+.primary-nav__column-list a {
+  display: block;
+  font-size: 15px;              /* chữ nhỏ hơn */
+  font-weight: 500;
+  color: #1f2937;
+  letter-spacing: 0.02em;
+  text-transform: capitalize;
+  line-height: 1.6;
+   padding-left: 8px; 
+}
+
+.primary-nav__column-list a:hover {
+  color: #053eeb;
+}
+
+.primary-nav__column-empty {
+  font-size: 12px;
+  color: #94a3b8;
+}
+
+.primary-nav__group.has-dropdown:hover .primary-nav__dropdown,
+.primary-nav__group.has-dropdown:focus-within .primary-nav__dropdown,
+.primary-nav__dropdown:hover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
 }
 
 .site-header .primary-nav__item:hover,
@@ -372,11 +489,48 @@ body.has-scrolled .site-header .main-bar {
 }
 
 
+/* 1) KHÔNG ép flex ở :hover nữa — giữ nguyên hiển thị */
+.primary-nav__group.has-dropdown:hover .primary-nav__dropdown,
+.primary-nav__group.has-dropdown:focus-within .primary-nav__dropdown,
+.primary-nav__dropdown:hover {
+  opacity: 1;
+  visibility: visible;
+  pointer-events: auto;
+  transform: translate(-50%, 0);
+  /* ❌ đừng để display:flex; flex-direction:row; ở đây */
+}
 
+/* 2) Hàng ngang khi có .is-row */
+.primary-nav__dropdown.is-row{
+  display: flex !important;      /* chỉ áp dụng khi .is-row */
+  grid-template-columns: none;   /* vô hiệu grid */
+  align-items: flex-start;
+  flex-wrap: nowrap;             /* một hàng; muốn tự xuống => wrap */
+  gap: 0 28px;
+  padding: 22px 26px;
+  min-width: 600px;              /* để dropdown đủ rộng (tùy chỉnh) */
+}
 
+/* mỗi cột rộng cố định, không co dưới min */
+.primary-nav__dropdown.is-row .primary-nav__column{
+  flex: 0 0 200px;               /* 180–220px tùy em */
+  min-width: 180px;
+}
 
+/* tiêu đề không xuống dòng */
+.primary-nav__column-title{
+  white-space: nowrap;
+}
 
+/* (tuỳ chọn) item cũng không xuống dòng nếu tên ngắn */
+.primary-nav__dropdown.is-row .primary-nav__column-list a{
+  white-space: nowrap;
+}
 
-
+/* (tuỳ chọn) đường phân cách giữa cột */
+.primary-nav__dropdown.is-row .primary-nav__column + .primary-nav__column{
+  border-left: 1px solid rgba(15,23,42,0.08);
+  padding-left: 24px;
+}
 
 

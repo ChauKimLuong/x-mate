@@ -1,50 +1,30 @@
-﻿mixin productCard(p)
-    - const productId = p?.id || p?._id || '';
-    - const prismaVariants = Array.isArray(p?.productVariants) ? p.productVariants : [];
-    - const legacyVariants = Array.isArray(p?.variants) ? p.variants : [];
-    - const variantImages = [...legacyVariants, ...prismaVariants].flatMap(v => v?.images || []);
-    - const baseImages = Array.isArray(p?.images) ? p.images : [];
-    - const allImages = [p?.thumbnail, ...variantImages, ...baseImages].filter(Boolean);
-    - const thumb = allImages[0] || '/images/placeholder.jpg';
-    - const hoverThumb = allImages[1] || thumb;
-    - const sizeList = (Array.isArray(p?.sizes) && p.sizes.length) ? p.sizes : ((Array.isArray(p?.size) && p.size.length) ? p.size : null);
-    - const sizes = sizeList || ['S','M','L','XL','2XL','3XL'];
-        // ===== SWATCHES: Ưu tiên bảng colors, fallback legacy =====
-    - const swatchMap = new Map();
-    - for (const pv of prismaVariants) {
-    -   const label = (pv?.colors?.name || pv?.color || '').trim();
-    -   if (!label) continue;
-    -   const hex = (pv?.colors?.hex || pv?.colorHexLegacy || '').trim();
-    -   const img = (pv?.colors?.swatchUrl || pv?.swatchUrlLegacy || '').trim();
-    -   const colorId = pv?.colorId || null;
-    -   if (!swatchMap.has(label)) swatchMap.set(label, { label, hex, img, colorId });
-    - }
-    - // fallback từ legacy variants nếu chưa có
-    - for (const lv of legacyVariants) {
-    -   const label = (lv?.color || '').trim();
-    -   if (!label || swatchMap.has(label)) continue;
-    -   const hex = (lv?.colorHexLegacy || '').trim();
-    -   const img = (lv?.swatchUrlLegacy || '').trim();
-    -   swatchMap.set(label, { label, hex, img, colorId: null });
-    - }
-    - const swatches = Array.from(swatchMap.values()).slice(0, 5);
-    - const activeColor = swatches[0]?.label;
+mixin productCard(p)
+    - const productId = p?.id || ''
+    - const productSlug = p?.slug || ''
+    - const productTitle = p?.title || 'Sản phẩm'
+    - const thumbnail = p?.thumbnail || '/images/placeholder.jpg'
+    - const hoverThumbnail = p?.hoverThumbnail || thumbnail
+    - const sizes = Array.isArray(p?.sizes) ? p.sizes : []
+    - const colors = Array.isArray(p?.colors) ? p.colors : []
+    - const finalPriceText = p?.finalPriceText || ''
+    - const originalPriceText = p?.originalPriceText || null
+    - const hasDiscount = Boolean(p?.hasDiscount)
+    - const discountPercent = typeof p?.discountPercent === 'number' ? p.discountPercent : 0
+    - const priceForCart = typeof p?.priceForCart === 'number' ? p.priceForCart : 0
 
-    - const rawPrice = typeof p?.price === 'number' ? p.price : null;
-    - const discountValue = typeof p?.discount === 'number' && p.discount > 0 ? p.discount : 0;
-    - const computedFinal = rawPrice !== null ? Math.round(rawPrice * (100 - discountValue) / 100) : null;
-    - const formatVnd = (value) => typeof value === 'number' ? value.toLocaleString('vi-VN') + 'đ' : null;
-    - const finalPriceText = p?.finalPriceText || (typeof p?.finalPrice === 'number' ? formatVnd(p.finalPrice) : (computedFinal !== null ? formatVnd(computedFinal) : null));
-    - const originalPriceText = p?.priceText || formatVnd(rawPrice);
-    - const hasDiscount = discountValue > 0;
-
-    .product-card
+    .product-card(
+        data-product-id=productId
+        data-product-slug=productSlug
+        data-product-title=productTitle
+        data-product-price=priceForCart
+        data-product-image=thumbnail
+    )
         .thumb-wrap
             .thumb-ratio
-                a.product-link(href=`/product/detail/${p.slug}` aria-label=p.title)
-                    img.product-thumb(src=thumb alt=p.title loading="lazy")
-                    if hoverThumb && hoverThumb !== thumb
-                        img.product-thumb.product-thumb--hover(src=hoverThumb alt=p.title loading="lazy")
+                a.product-link(href=`/product/detail/${productSlug}` aria-label=productTitle)
+                    img.product-thumb(src=thumbnail alt=productTitle loading="lazy")
+                    if hoverThumbnail && hoverThumbnail !== thumbnail
+                        img.product-thumb.product-thumb--hover(src=hoverThumbnail alt=productTitle loading="lazy")
             if sizes && sizes.length
                 .quick-add(tabindex="0")
                     .quick-add__title
@@ -54,25 +34,21 @@
                         each s in sizes
                             button.quick-add__btn(type="button" data-size=s)= s
 
-        if swatches && swatches.length
+        if colors && colors.length
             .swatches
-                each sw in swatches
-                    - const isActive = (sw.label === activeColor) ? ' is-active' : '';
-                    - const styleHex = sw.hex ? `background-color:${sw.hex}` : '';
-                    - const styleImg = (!sw.hex && sw.img) ? `background-image:url('${sw.img.replace(/'/g,"&#39;")}')` : '';
-                    - const styleAttr = [styleHex, styleImg].filter(Boolean).join(';');
-                    button.swatch(class=isActive type="button" style=styleAttr data-color-id=sw.colorId title=sw.label)
-                        span.visually-hidden= sw.label
-
+                each color, idx in colors
+                    - const act = idx === 0 ? ' is-active' : ''
+                    - const swatchName = color?.name || 'Màu khác'
+                    - const swatchHex = color?.hex || '#1f2937'
+                    button.swatch(class=act type="button" data-color-name=swatchName data-color-hex=swatchHex style=`--swatch:${swatchHex}`)
+                        span.visually-hidden= swatchName
 
         .info
-            a.title(href=`/product/detail/${p.slug}`)= p.title
+            a.title(href=`/product/detail/${productSlug}`)= productTitle
             .price-row
                 if finalPriceText
                     span.final= finalPriceText
-                else if originalPriceText
-                    span.final= originalPriceText
-                if hasDiscount
-                    span.discount-pill -#{discountValue}%
+                if hasDiscount && discountPercent
+                    span.discount-pill -#{discountPercent}%
                 if hasDiscount && originalPriceText
                     span.old= originalPriceText

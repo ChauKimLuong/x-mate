@@ -1,0 +1,71 @@
+/* ====== PHẦN TIÊU ĐỀ DANH MỤC ====== */
+header.category-head {
+  text-align: center;
+  margin: 32px 0 24px;
+  padding: 0 1rem;
+}
+header.category-head h1 {
+  font-size: 32px;
+  font-weight: 800;
+  color: #fff;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+header.category-head .lead {
+  color: #94a3b8;
+  font-size: 16px;
+  margin-top: 6px;
+}
+
+/* ====== LƯỚI DANH MỤC CON ====== */
+.child-cats {
+  margin-bottom: 40px;
+}
+
+.child-grid {
+  list-style: none;
+  padding: 0;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 1.5rem;
+  max-width: 1180px;
+  max-height: 800px;
+}
+
+.child-card {
+  text-align: center;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.child-card a {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.child-card .thumb {
+  width: 100%;
+  height: 100%;
+  aspect-ratio: 4/3;
+  background: #f3f4f6 center/cover no-repeat;
+  border-radius: 16px;
+  margin-bottom: 10px;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+.child-card h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #e5e7eb;
+  margin: 0;
+}
+.child-card:hover {
+  transform: translateY(-4px);
+}
+.child-card:hover .thumb {
+  transform: scale(1.03);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.2);
+}
+.child-card:hover h3 {
+  color: #38bdf8; /* xanh cyan highlight */
+}
+
+
