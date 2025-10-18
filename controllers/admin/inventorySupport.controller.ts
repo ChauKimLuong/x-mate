@@ -1,4 +1,4 @@
-// controllers/admin/inventorySupport.controller.ts
+﻿// controllers/admin/inventorySupport.controller.ts
 import { Request, Response } from "express";
 import prisma from "../../config/database";
 import fs from "fs";
@@ -81,7 +81,7 @@ function getRange(range?: string) {
 const fmtMoney = (n: number) =>
   `$${(Number(n) || 0).toLocaleString(undefined, { minimumFractionDigits: 0 })}`;
 
-// super-naive CSV parser (no quotes support) — đủ dùng cho template của mình
+// super-naive CSV parser (no quotes support) â€” Ä‘á»§ dÃ¹ng cho template cá»§a mÃ¬nh
 function parseCsvSimple(text: string): string[][] {
   return text
     .split(/\r?\n/)
@@ -112,7 +112,7 @@ export async function page(req: Request, res: Response) {
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
       .slice(0, 10);
 
-    // low-stock: top 10 theo onHand (dùng cột stock hiện tại)
+    // low-stock: top 10 theo onHand (dÃ¹ng cá»™t stock hiá»‡n táº¡i)
     const products = await prisma.products.findMany({
       where: { deleted: false, status: "active" },
       select: {
@@ -135,7 +135,7 @@ export async function page(req: Request, res: Response) {
       where: { stock: { lt: 0 } },
       select: { id: true, productId: true, stock: true },
     });
-    // Orphan (variants without product) — trong Prisma đã có relation bắt buộc; phòng hờ:
+    // Orphan (variants without product) â€” trong Prisma Ä‘Ã£ cÃ³ relation báº¯t buá»™c; phÃ²ng há»:
     const orphan: { id: string }[] = [];
 
     res.render("admin/pages/inventory-support/helper", {
@@ -195,13 +195,13 @@ export async function reorderDraftCsv(req: Request, res: Response) {
       },
     });
 
-    // Khai báo kiểu rõ ràng để TS hiểu
+    // Khai bÃ¡o kiá»ƒu rÃµ rÃ ng Ä‘á»ƒ TS hiá»ƒu
     const rows: (string | number)[][] = [
       ["productId", "title", "onHand", "reorderPoint", "suggestQty"],
     ];
 
     products.forEach((p) => {
-      // Nếu productVariants rỗng -> onHand = 0
+      // Náº¿u productVariants rá»—ng -> onHand = 0
       const onHand = p.productVariants.reduce((sum, v) => sum + (v.stock ?? 0), 0);
       const rp = 10; // reorder point
       const suggest = Math.max(0, rp - onHand);
@@ -251,7 +251,7 @@ export async function viewStocktake(req: Request, res: Response) {
   try {
     const { sid } = req.params;
 
-    // 1) Danh sách sessions (để table "Recent Sessions" vẫn còn)
+    // 1) Danh sÃ¡ch sessions (Ä‘á»ƒ table "Recent Sessions" váº«n cÃ²n)
     const sessions = (await readSessions())
       .sort((a, b) => (a.createdAt < b.createdAt ? 1 : -1))
       .slice(0, 10);
@@ -259,7 +259,7 @@ export async function viewStocktake(req: Request, res: Response) {
     const s = sessions.find((x) => x.id === sid);
     if (!s) return res.status(404).send("Session not found");
 
-    // 2) Chuẩn bị rows hiển thị tùy trạng thái
+    // 2) Chuáº©n bá»‹ rows hiá»ƒn thá»‹ tÃ¹y tráº¡ng thÃ¡i
     let rows:
       | { title: string; variantId: string | null; systemOnHand: number | string; counted: number | string; delta: number | string }[]
       = [];
@@ -293,7 +293,7 @@ export async function viewStocktake(req: Request, res: Response) {
       }));
     }
 
-    // 3) Low-stock + diagnostics như trang page()
+    // 3) Low-stock + diagnostics nhÆ° trang page()
     const products = await prisma.products.findMany({
       where: { deleted: false, status: "active" },
       select: {
@@ -316,7 +316,7 @@ export async function viewStocktake(req: Request, res: Response) {
       select: { id: true, productId: true, stock: true },
     });
 
-    // 4) Render helper với sessionDetail
+    // 4) Render helper vá»›i sessionDetail
     res.render("admin/pages/inventory-support/helper", {
       title: "Inventory Support",
       active: "inventory-support",
@@ -346,7 +346,7 @@ export async function downloadStocktake(req: Request, res: Response) {
     const s = sessions.find((x) => x.id === sid);
     if (!s) return res.status(404).send("Session not found");
 
-    // Lấy danh sách variants + product liên kết
+    // Láº¥y danh sÃ¡ch variants + product liÃªn káº¿t
     const variants = await prisma.productVariants.findMany({
       select: {
         id: true,
@@ -362,7 +362,7 @@ export async function downloadStocktake(req: Request, res: Response) {
       },
     });
 
-    // Chuẩn bị dữ liệu CSV
+    // Chuáº©n bá»‹ dá»¯ liá»‡u CSV
     const rows: (string | number)[][] = [
       ["variantId", "productId", "title", "systemOnHand", "counted"],
     ];
@@ -371,13 +371,13 @@ export async function downloadStocktake(req: Request, res: Response) {
       const prod = v.products;
       if (!prod) continue;
 
-      // Nếu scope = "active" → bỏ qua sản phẩm đã xóa hoặc không active
+      // Náº¿u scope = "active" â†’ bá» qua sáº£n pháº©m Ä‘Ã£ xÃ³a hoáº·c khÃ´ng active
       if (s.scope === "active" && (prod.deleted || prod.status !== "active"))
         continue;
 
       const on = v.stock ?? 0;
 
-      // Nếu scope = "low" → chỉ lấy sản phẩm có tồn <= reorder point
+      // Náº¿u scope = "low" â†’ chá»‰ láº¥y sáº£n pháº©m cÃ³ tá»“n <= reorder point
       if (s.scope === "low") {
         const rp = 10;
         if (on > rp) continue;
@@ -386,7 +386,7 @@ export async function downloadStocktake(req: Request, res: Response) {
       rows.push([v.id, prod.id, prod.title, on, ""]);
     }
 
-    // Xuất CSV
+    // Xuáº¥t CSV
     const csv = toCsv(rows);
     res.setHeader("Content-Type", "text/csv");
     res.setHeader(
@@ -401,7 +401,7 @@ export async function downloadStocktake(req: Request, res: Response) {
 }
 
 
-// Upload stocktake CSV → preview (session moves to reviewing)
+// Upload stocktake CSV â†’ preview (session moves to reviewing)
 export async function uploadStocktakeCsv(req: Request, res: Response) {
   try {
     const { sid } = req.params;
@@ -467,7 +467,7 @@ export async function postStocktake(req: Request, res: Response) {
       return res.status(400).send("No lines to post. Please upload CSV first.");
     }
 
-    // snapshot trước khi ghi DB để hiển thị lại System/Counted sau khi posted
+    // snapshot trÆ°á»›c khi ghi DB Ä‘á»ƒ hiá»ƒn thá»‹ láº¡i System/Counted sau khi posted
     const snapshot = s.lines.map(l => ({ ...l }));
 
     await prisma.$transaction(async (tx) => {
@@ -493,7 +493,7 @@ export async function postStocktake(req: Request, res: Response) {
     });
 
     s.status = "posted";
-    (s as any).postedLines = snapshot; // giữ System/Counted/Delta
+    (s as any).postedLines = snapshot; // giá»¯ System/Counted/Delta
     s.lines = [];
     await writeSessions(sessions);
 
@@ -512,8 +512,8 @@ export async function deleteStocktake(req: Request, res: Response) {
     const idx = sessions.findIndex((x) => x.id === sid);
     if (idx === -1) return res.status(404).send("Session not found");
 
-    // Lưu ý: việc xóa này chỉ xóa metadata trong file JSON của stocktake,
-    // không ảnh hưởng các movement đã POST trước đó.
+    // LÆ°u Ã½: viá»‡c xÃ³a nÃ y chá»‰ xÃ³a metadata trong file JSON cá»§a stocktake,
+    // khÃ´ng áº£nh hÆ°á»Ÿng cÃ¡c movement Ä‘Ã£ POST trÆ°á»›c Ä‘Ã³.
     sessions.splice(idx, 1);
     await writeSessions(sessions);
 
@@ -631,7 +631,7 @@ export async function quickCount(req: Request, res: Response) {
       return res.status(400).send("productId & counted are required");
     }
 
-    // Lấy variant: ưu tiên variantId, nếu không có thì lấy variant đầu tiên của product
+    // Láº¥y variant: Æ°u tiÃªn variantId, náº¿u khÃ´ng cÃ³ thÃ¬ láº¥y variant Ä‘áº§u tiÃªn cá»§a product
     const variant =
       variantId
         ? await prisma.productVariants.findUnique({ where: { id: variantId } })
@@ -643,7 +643,7 @@ export async function quickCount(req: Request, res: Response) {
     const delta = targetCount - sys;
 
     await prisma.$transaction(async (tx) => {
-      // movement để trace
+      // movement Ä‘á»ƒ trace
       await tx.inventoryMovements.create({
         data: {
           productId,
@@ -653,7 +653,7 @@ export async function quickCount(req: Request, res: Response) {
           note: "quickCount",
         },
       });
-      // đặt tồn = counted
+      // Ä‘áº·t tá»“n = counted
       await tx.productVariants.update({
         where: { id: variant.id },
         data: { stock: targetCount },
@@ -693,7 +693,7 @@ export async function bulkCommit(req: Request, res: Response) {
             data: { stock: { increment: r.delta } },
           });
         } else {
-          // no variantId → distribute to the first variant (fallback) or skip
+          // no variantId â†’ distribute to the first variant (fallback) or skip
           const first = await tx.productVariants.findFirst({
             where: { productId: r.productId },
             select: { id: true },
@@ -719,18 +719,19 @@ export async function bulkCommit(req: Request, res: Response) {
 /** ========= Barcode / QR ========= */
 export async function barcode(req: Request, res: Response) {
   try {
-    const { productId, variantId, type } = req.query as any;
+    const { productId, variantId, type, base } = req.query as any;
     if (!productId) return res.status(400).send("productId required");
 
-    // Build URL tới ảnh SVG
+    // Build URL tá»›i áº£nh SVG
     const q = new URLSearchParams();
     q.set("productId", String(productId));
     if (variantId) q.set("variantId", String(variantId));
     q.set("type", String(type || "barcode"));
+    if (base) q.set("base", String(base));
 
     const codeUrl = `/admin/inventory-support/barcode.svg?${q.toString()}`;
 
-    // Lấy dữ liệu phụ để render trang
+    // Láº¥y dá»¯ liá»‡u phá»¥ Ä‘á»ƒ render trang
     const sessions = (await readSessions()).slice(0, 10);
     const negative = await prisma.productVariants.findMany({
       where: { stock: { lt: 0 } },
@@ -744,7 +745,7 @@ export async function barcode(req: Request, res: Response) {
       sessions,
       bulkPreview: bulkPreviewCache,
       diagnostics: { negative, orphan: [] },
-      barcodeUrl: codeUrl, // <- đổi: trỏ sang endpoint ảnh SVG
+      barcodeUrl: codeUrl, // <- Ä‘á»•i: trá» sang endpoint áº£nh SVG
       helpers: { money: fmtMoney },
     });
   } catch (e) {
@@ -754,7 +755,7 @@ export async function barcode(req: Request, res: Response) {
 }
 
 /**
- * Trả về ẢNH SVG (Content-Type: image/svg+xml)
+ * Tráº£ vá» áº¢NH SVG (Content-Type: image/svg+xml)
  *   GET /admin/inventory-support/barcode.svg?productId=...&variantId=...&type=barcode|qr
  */
 export async function barcodeImage(req: Request, res: Response) {
@@ -765,10 +766,25 @@ export async function barcodeImage(req: Request, res: Response) {
       return;
     }
 
-    const label = variantId ? `${productId}-${variantId}` : `${productId}`;
+    // Prefer deep-link URL for QR so scanners open product detail directly
+    let label = variantId ? `${productId}-${variantId}` : `${productId}`;
+    if (String(type) === "qr") {
+      try {
+        const row = await prisma.products.findUnique({ where: { id: String(productId) }, select: { slug: true } });
+        const base = String((req.query as any).base || "").trim();
+        const xfProto = (req.headers["x-forwarded-proto"] as string) || "";
+        const xfHost = (req.headers["x-forwarded-host"] as string) || "";
+        const proto = (xfProto || req.protocol || "http").split(",")[0];
+        const host = (xfHost || req.get("host") || "").split(",")[0];
+        const origin = base || (host ? `${proto}://${host}` : "");
+        if (row?.slug && origin) {
+          label = `${origin}/product/detail/${row.slug}`;
+        }
+      } catch {}
+    }
 
     if (String(type) === "qr") {
-      // ✅ QR chuẩn (SVG)
+      // âœ… QR chuáº©n (SVG)
       const svg = await QRCode.toString(label, {
         type: "svg",
         errorCorrectionLevel: "M",
@@ -780,25 +796,25 @@ export async function barcodeImage(req: Request, res: Response) {
       return;
     }
 
-    // ✅ Barcode chuẩn bằng bwip-js (PNG)
-    // symbology mặc định: code128 — dễ dùng cho text chữ+số
-    // Nếu bạn muốn EAN-13: truyền ?symbology=ean13 và đảm bảo 12 chữ số (bwip sẽ tự tính checksum)
+    // âœ… Barcode chuáº©n báº±ng bwip-js (PNG)
+    // symbology máº·c Ä‘á»‹nh: code128 â€” dá»… dÃ¹ng cho text chá»¯+sá»‘
+    // Náº¿u báº¡n muá»‘n EAN-13: truyá»n ?symbology=ean13 vÃ  Ä‘áº£m báº£o 12 chá»¯ sá»‘ (bwip sáº½ tá»± tÃ­nh checksum)
     const bcid = String(symbology || "code128"); // e.g., 'code128', 'ean13', 'code39'...
-    // Một số lưu ý:
-    // - ean13 chỉ chấp nhận số; phải đủ 12 chữ số, checksum tự sinh.
-    // - code39/code128 cho phép chữ+số nhưng code39 có alphabet hạn chế hơn.
+    // Má»™t sá»‘ lÆ°u Ã½:
+    // - ean13 chá»‰ cháº¥p nháº­n sá»‘; pháº£i Ä‘á»§ 12 chá»¯ sá»‘, checksum tá»± sinh.
+    // - code39/code128 cho phÃ©p chá»¯+sá»‘ nhÆ°ng code39 cÃ³ alphabet háº¡n cháº¿ hÆ¡n.
 
     const png = await bwipjs.toBuffer({
       bcid,               // barcode type
-      text: label,        // nội dung mã
-      scale: 3,           // độ dày vạch (pixel)
-      height: 12,         // chiều cao (mm)
-      includetext: true,  // in text dưới barcode
+      text: label,        // ná»™i dung mÃ£
+      scale: 3,           // Ä‘á»™ dÃ y váº¡ch (pixel)
+      height: 12,         // chiá»u cao (mm)
+      includetext: true,  // in text dÆ°á»›i barcode
       textxalign: 'center',
-      textsize: 10,       // cỡ chữ dưới mã
-      paddingwidth: 10,   // quiet zone trái/phải
-      paddingheight: 10,  // quiet zone trên/dưới
-      backgroundcolor: 'FFFFFF', // nền trắng
+      textsize: 10,       // cá»¡ chá»¯ dÆ°á»›i mÃ£
+      paddingwidth: 10,   // quiet zone trÃ¡i/pháº£i
+      paddingheight: 10,  // quiet zone trÃªn/dÆ°á»›i
+      backgroundcolor: 'FFFFFF', // ná»n tráº¯ng
     });
 
     res.setHeader("Content-Type", "image/png");
@@ -924,8 +940,8 @@ export async function diagnostics(req: Request, res: Response) {
 }
 
 /** ========= Rebuild OnHand from movements =========
- * Tính lại stock = SUM(delta) theo variantId từ bảng inventoryMovements.
- * CẢNH BÁO: Nếu bạn cũng cập nhật stock từ nơi khác, hãy cân nhắc trước khi chạy.
+ * TÃ­nh láº¡i stock = SUM(delta) theo variantId tá»« báº£ng inventoryMovements.
+ * Cáº¢NH BÃO: Náº¿u báº¡n cÅ©ng cáº­p nháº­t stock tá»« nÆ¡i khÃ¡c, hÃ£y cÃ¢n nháº¯c trÆ°á»›c khi cháº¡y.
  */
 export async function rebuildOnHand(req: Request, res: Response) {
   try {
@@ -941,11 +957,11 @@ export async function rebuildOnHand(req: Request, res: Response) {
     await prisma.$transaction(async (tx) => {
       for (const row of sums) {
         const variantId = (row as any).variantid ?? (row as any).variantId ?? null;
-        if (!variantId) continue; // skip null variants (không biết variant để set)
+        if (!variantId) continue; 
         const sum = Number((row as any).sum || 0);
         await tx.productVariants.update({
           where: { id: variantId },
-          data: { stock: sum },
+          data: { stock: Math.max(0, sum) },
         });
       }
     });
@@ -983,3 +999,4 @@ export async function lookup(req: Request, res: Response) {
     res.status(500).json({ ok: false });
   }
 }
+

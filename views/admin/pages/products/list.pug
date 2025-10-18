@@ -41,6 +41,14 @@ block content
     .perf-hd
       .ttl SẢN PHẨM
       .seg
+        //- Search (left of add button)
+        form#searchForm(method="get" action="/admin/products" style="display:inline-flex;align-items:center;gap:8px;margin-right:8px")
+          input(type="hidden" name="range" value=range)
+          if !allMode
+            input(type="hidden" name="take" value=(pagination && pagination.take ? pagination.take : 10))
+          input(type="text" name="q" placeholder="Tìm theo tên..." value=keyword style="height:36px;padding:6px 10px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;min-width:220px")
+          button(type="submit" aria-label="Tìm kiếm" title="Tìm kiếm" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer")
+            +ic_search(18)
         button.btn.btn-dark(onclick="location.href='/admin/products/create'" style="background:#E6612A") Thêm sản phẩm
 
         //- Dropdown filter ranges
@@ -120,7 +128,8 @@ block content
   - const totalPages = Math.max(1, Math.ceil((pagination?.total || 0) / (pagination?.take || 10)));
   - const cur = pagination?.page || 1;
   - const take = pagination?.take || 10;
-  - const q = `&take=${take}&range=${range || 'month'}`;
+  - const listQuery = `&take=${take}&range=${range || 'month'}` + (keyword ? `&q=${encodeURIComponent(keyword)}` : '');
+  - const q = listQuery;
   - const pages = Array.from({ length: totalPages }, (_, i) => i + 1);
 
   if !allMode && totalPages > 1

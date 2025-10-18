@@ -91,11 +91,16 @@ export const getProducts = async (req: Request, res: Response) => {
   const skip = allMode ? undefined : (page - 1) * (take as number);
   const range = String(req.query.range || "month");
   const { s, e, label } = getRange(range);
+  const keyword = String(req.query.q || '').trim();
 
   const createdFilter = { createdAt: { gte: s, lt: e } };
+  const where: any = { deleted: false, ...createdFilter };
+  if (keyword) {
+    where.title = { contains: keyword, mode: 'insensitive' } as any;
+  }
 
   const findOpts: any = {
-    where: { deleted: false, ...createdFilter },
+    where,
     include: {
       categories: { select: { title: true } },
       productVariants: {
@@ -109,7 +114,7 @@ export const getProducts = async (req: Request, res: Response) => {
 
   const [rows, total] = await Promise.all([
     prisma.products.findMany(findOpts),
-    prisma.products.count({ where: { deleted: false, ...createdFilter } }),
+    prisma.products.count({ where }),
   ]);
 
   const products = rows.map((p) => {
@@ -150,6 +155,7 @@ export const getProducts = async (req: Request, res: Response) => {
     filterLabel: label,
     range,
     allMode,
+    keyword,
   });
 };
 
@@ -726,9 +732,10 @@ export const updateProduct = async (req: Request, res: Response) => {
     // 3) Lấy ảnh hiện tại của variants để hỗ trợ append
     const current = await prisma.productVariants.findMany({
       where: { productId: id },
-      select: { id: true, images: true },
+      select: { id: true, images: true, stock: true },
     });
     const currentImgMap = new Map(current.map((v) => [v.id, Array.isArray(v.images) ? v.images : []]));
+    const currentStockMap = new Map(current.map((v) => [v.id, Number.isFinite(Number(v.stock)) ? Number(v.stock) : 0]));
 
     // 4) Transaction: chỉ query DB
     await prisma.$transaction(async (tx) => {
@@ -764,7 +771,10 @@ export const updateProduct = async (req: Request, res: Response) => {
           swatchUrlLegacy = "";
         }
 
-        const newCandidateImages = [...(v.urls || []), ...(v._uploadedUrls || [])];
+        // Normalize incoming image URLs (dedupe + trim)
+        const rawIncoming = [...(v.urls || []), ...(v._uploadedUrls || [])]
+          .map((u) => (typeof u === 'string' ? u.trim() : ''))
+          .filter(Boolean);
         const mode: "append" | "replace" = v.imagesMode || "append";
 
         if (v.id) {
@@ -784,33 +794,69 @@ export const updateProduct = async (req: Request, res: Response) => {
           data.colorHexLegacy = colorHexLegacy || null;
           data.swatchUrlLegacy = swatchUrlLegacy || null;
 
-          if (newCandidateImages.length > 0) {
+          if (rawIncoming.length > 0) {
             if (mode === "append") {
               const existing = currentImgMap.get(v.id) || [];
-              data.images = [...existing, ...newCandidateImages];
+              const existSet = new Set(existing);
+              const uniqIncoming = Array.from(new Set(rawIncoming)).filter((u) => !existSet.has(u));
+              if (uniqIncoming.length > 0) {
+                data.images = [...existing, ...uniqIncoming];
+              }
             } else {
-              data.images = newCandidateImages;
+              // replace with unique list
+              data.images = Array.from(new Set(rawIncoming));
             }
           }
 
           await tx.productVariants.update({ where: { id: v.id }, data });
+
+          // Log inventory movement if stock changed
+          if (data.stock !== undefined) {
+            const prev = currentStockMap.get(v.id) ?? 0;
+            const next = Number(data.stock) ?? prev;
+            const delta = next - prev;
+            if (delta !== 0) {
+              await tx.inventoryMovements.create({
+                data: {
+                  productId: id,
+                  variantId: v.id,
+                  delta,
+                  reason: "manualAdjust",
+                  note: "adminEdit",
+                },
+              });
+            }
+          }
         } else {
           // create new
           const colorName = (v.color || "").trim();
           if (!colorName) continue;
           const stockVal = toIntStrict(v.stock) ?? 0;
-
+          const newVariantId = randomUUID();
           await tx.productVariants.create({
             data: {
-              id: randomUUID(),
+              id: newVariantId,
               productId: id,
               color: colorName,
               stock: stockVal,
-              images: newCandidateImages,
+              images: Array.from(new Set(rawIncoming)),
               colorHexLegacy: colorHexLegacy || null,
               swatchUrlLegacy: swatchUrlLegacy || null,
             },
           });
+
+          // Initial stock movement (so rebuild-onhand stays consistent)
+          if (stockVal !== 0) {
+            await tx.inventoryMovements.create({
+              data: {
+                productId: id,
+                variantId: newVariantId,
+                delta: stockVal,
+                reason: "manualAdjust",
+                note: "adminEdit:newVariant",
+              },
+            });
+          }
         }
       }
     });

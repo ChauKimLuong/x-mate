@@ -45,16 +45,22 @@ export const getCategories = async (req: Request, res: Response) => {
   const page = Math.max(1, Number(req.query.page) || 1);
   const take = allMode ? undefined : Math.min(50, Number(req.query.take) || 10);
   const skip = allMode ? undefined : (page - 1) * (take as number);
+  const keyword = String(req.query.q || '').trim();
+
+  const where: any = { deleted: false };
+  if (keyword) {
+    where.title = { contains: keyword, mode: 'insensitive' } as any;
+  }
 
   const findOpts: any = {
-    where: { deleted: false },
+    where,
     orderBy: [ { position: 'asc' as const }, { createdAt: 'desc' as const } ],
   };
   if (!allMode) { findOpts.skip = skip; findOpts.take = take; }
 
   const [rows, total] = await Promise.all([
     prisma.categories.findMany(findOpts),
-    prisma.categories.count({ where: { deleted: false } }),
+    prisma.categories.count({ where }),
   ]);
 
   const categories = rows.map((c) => ({
@@ -73,6 +79,7 @@ export const getCategories = async (req: Request, res: Response) => {
     categories,
     pagination: { page, take: (allMode ? total : (take as number) || 10), total },
     allMode,
+    keyword,
   });
 };
 

@@ -1,4 +1,4 @@
-extends ../../layouts/default
+﻿extends ../../layouts/default
 include ../../mixins/icons
 
 block head
@@ -20,6 +20,13 @@ block content
     .perf-hd
       .ttl Tất cả danh mục
       .seg
+        //- Search (left of add button)
+        form#searchForm(method="get" action="/admin/categories" style="display:inline-flex;align-items:center;gap:8px;margin-right:8px")
+          if !allMode
+            input(type="hidden" name="take" value=(pagination && pagination.take ? pagination.take : 10))
+          input(type="text" name="q" placeholder="Tìm theo tên..." value=keyword style="height:36px;padding:6px 10px;border:1px solid #e5e7eb;background:#fff;border-radius:10px;min-width:220px")
+          button(type="submit" aria-label="Tìm kiếm" title="Tìm kiếm" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #e5e7eb;border-radius:10px;background:#fff;cursor:pointer")
+            +ic_search(18)
         button.btn.btn-dark(onclick="location.href='/admin/categories/create'" style="background:#E6612A") Thêm danh mục
 
     table(style="width:100%; border-collapse:separate; border-spacing:0")
@@ -33,7 +40,7 @@ block content
       tbody
         if !rows.length
           tr
-            td(colspan="5" style="padding:18px;text-align:center;color:#6b7280") Không có danh mục
+            td(colspan="5" style="padding:18px;text-align:center;color:#6b7280") KhÃ´ng cÃ³ danh má»¥c
         else
           each c in rows
             tr
@@ -49,7 +56,7 @@ block content
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= c.isFeatured ? 'Có' : 'Không'
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
                 .actions(style="display:flex; gap:8px; align-items:center")
-                  a(href=`/admin/categories/${c.id}/edit` title="Sửa" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
+                  a(href=`/admin/categories/${c.id}/edit` title="Sá»­a" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
                     +ic_edit()
                   form.delete-form(method="post" action=`/admin/categories/${c.id}/delete`)
                     button.btn-icon.btn-danger(
@@ -63,12 +70,13 @@ block content
   - const totalPages = Math.max(1, Math.ceil((pagination?.total || 0) / (pagination?.take || 10)));
   - const cur = pagination?.page || 1;
   - const take = pagination?.take || 10;
+  - const listQuery = `&take=${take}` + (keyword ? `&q=${encodeURIComponent(keyword)}` : '');
   if !allMode && totalPages > 1
     nav.pager-wrap(aria-label="Pagination")
       .pager
         - const prev = Math.max(1, cur - 1);
         if cur > 1
-          a(href=`?page=${prev}&take=${take}`) Trước
+          a(href=`?page=${prev}${listQuery}`) Trước
         else
           span.disabled Trước
 
@@ -76,12 +84,12 @@ block content
           if i === cur
             span.active= i
           else
-            a(href=`?page=${i}&take=${take}`)= i
+            a(href=`?page=${i}${listQuery}`)= i
         - }
 
         - const next = Math.min(totalPages, cur + 1);
         if cur < totalPages
-          a(href=`?page=${next}&take=${take}`) Sau
+          a(href=`?page=${next}${listQuery}`) Sau
         else
           span.disabled Sau
 
@@ -91,7 +99,7 @@ block scripts
       document.addEventListener('click', function (e) {
         var del = e.target.closest && e.target.closest('form.delete-form button[type="submit"]');
         if (!del) return;
-        var msg = del.getAttribute('data-confirm') || 'Bạn có chắc không?';
+        var msg = del.getAttribute('data-confirm') || 'Báº¡n cÃ³ cháº¯c khÃ´ng?';
         if (!confirm(msg)) e.preventDefault();
       });
     })();
