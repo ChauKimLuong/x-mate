@@ -11,6 +11,7 @@ connectDB();
 
 import clientRoutes from "./routes/client/index.route";
 import cartQuantityMiddleware from "./middlewares/client/cartQuantity.middleware";
+import navCategoriesMiddleware from "./middlewares/client/navCategories.middleware";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -33,6 +34,7 @@ app.use(
 );
 app.use(flash());
 
+app.use(navCategoriesMiddleware);
 app.use(cartQuantityMiddleware);
 
 clientRoutes(app);

@@ -1,6 +1,7 @@
 //@ts-nocheck
 import { Request, Response } from "express";
 import prisma from "../../config/database";
+import { buildPrimaryNav } from "../../utils/category-nav";
 
 const DEFAULT_SIZES = ["S", "M", "L", "XL", "2XL", "3XL"];
 
@@ -152,24 +153,39 @@ const buildProductCardData = (
 
 export const index = async (req: Request, res: Response) => {
     try {
-        const products = await prisma.products.findMany({
-            include: {
-                productVariants: true,
-                categories: true,
-            },
-        });
+        const [products, categories] = await Promise.all([
+            prisma.products.findMany({
+                include: {
+                    productVariants: true,
+                    categories: true,
+                },
+            }),
+            prisma.categories.findMany({
+                where: { status: "active" },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    parentId: true,
+                },
+            }),
+        ]);
 
         const viewProducts = products.map((product) =>
             buildProductCardData(product as any)
         );
 
+        const primaryCategories = buildPrimaryNav(categories);
+
         res.locals.searchQuery = "";
+        res.locals.primaryCategories = primaryCategories;
 
         res.render("client/pages/home/index", {
             products: viewProducts,
             isSearch: false,
             searchQuery: "",
             searchTotal: viewProducts.length,
+            primaryCategories,
         });
     } catch (error) {
         console.error("ERROR:", error);
@@ -186,41 +202,60 @@ export const search = async (req: Request, res: Response) => {
     }
 
     try {
-        const products = await prisma.products.findMany({
-            where: {
-                deleted: false,
-                title: {
-                    contains: query,
-                    mode: "insensitive",
+        const [products, categories] = await Promise.all([
+            prisma.products.findMany({
+                where: {
+                    deleted: false,
+                    title: {
+                        contains: query,
+                        mode: "insensitive",
+                    },
                 },
-            },
-            include: {
-                productVariants: true,
-                categories: true,
-            },
-        });
+                include: {
+                    productVariants: true,
+                    categories: true,
+                },
+            }),
+            prisma.categories.findMany({
+                where: { status: "active" },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    parentId: true,
+                },
+            }),
+        ]);
 
         const viewProducts = products.map((product) =>
             buildProductCardData(product as any)
         );
 
+        const primaryCategories = buildPrimaryNav(categories);
+
         res.locals.searchQuery = query;
+        res.locals.primaryCategories = primaryCategories;
 
         res.render("client/pages/home/index", {
             products: viewProducts,
             isSearch: true,
             searchQuery: query,
             searchTotal: viewProducts.length,
+            primaryCategories,
         });
     } catch (error) {
         console.error("SEARCH ERROR:", error);
         res.locals.searchQuery = query;
+        const fallbackCategories = Array.isArray(res.locals.primaryCategories)
+            ? res.locals.primaryCategories
+            : [];
         res.status(500).render("client/pages/home/index", {
             products: [],
             isSearch: true,
             searchQuery: query,
             searchTotal: 0,
             error: "Không thể tìm kiếm sản phẩm lúc này.",
+            primaryCategories: fallbackCategories,
         });
     }
 };
