@@ -10,7 +10,7 @@ import checkoutRoutes from './checkout.route';
 
 const clientRoutes = (app: Express): void => {
     app.use("/", homeRoutes);
-    app.use("/categories", categoryRoutes);
+    app.use("/category", categoryRoutes);
     app.use("/auth", authRoutes);
     app.use("/product", productRoutes);
     app.use("/user", userRoutes);

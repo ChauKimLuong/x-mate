@@ -7,8 +7,8 @@
   --border:#e7e9ee;
 }
 
-* {
-  font-size: 16px;
+.account-page > *{
+  font-size: 16px;  
 }
 /* ===== Layout 2 cột: sidebar + content ===== */
 .account-page{
@@ -27,6 +27,10 @@
   border-radius:16px;
   padding:8px;
   height:max-content;
+}
+
+main.account-main {
+  padding-top: 0px
 }
 .account-menu{ list-style:none; margin:0; padding:0; }
 .account-menu__item{ border-radius:12px; overflow:hidden; }

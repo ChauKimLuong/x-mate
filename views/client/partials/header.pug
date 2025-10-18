@@ -1,47 +1,100 @@
+//- header.pug
 header.site-header
   .top-strip
     .container
       ul.top-links
         li
-          a(href="/ve-chung-toi") Ve X-MATE
+          a(href="/ve-chung-toi") Về X-MATE
         li
           a(href="/cxp") CXP
       ul.top-links.top-links--right
         li
-          a(href="/coolclub") Coolclub
+          a(href="/coolclub") X-Club
         li
           a(href="/blog") Blog
         li
           a(href="/cskh") CSKH
         li
-          a(href="/auth/login") Dang nhap
+          a(href="/auth/login") Đăng nhập
+
   .main-bar
     .container
-      a.brand(href="/", aria-label="Trang chu X-Mate")
+      a.brand(href="/", aria-label="Trang chủ X-Mate")
         img(src="/images/logo1.png", alt="X-Mate", height="60")
+
+      //- Chuẩn hóa dữ liệu điều hướng
+      -
+        var navGroups = [];
+        if (Array.isArray(primaryCategories) && primaryCategories.length) {
+          navGroups = primaryCategories;
+        } else {
+          navGroups = [
+            { slug: 'nam', title: 'NAM', children: [] },
+            { slug: 'nu',  title: 'NỮ',  children: [] }
+          ];
+        }
+
       nav.primary-nav
         a.primary-nav__item.is-new(href="/hang-moi") NEW
-        a.primary-nav__item(href="/nam") NAM
-        a.primary-nav__item(href="/nu") NU
-        a.primary-nav__item(href="/the-thao") THE THAO
+
+        each group in navGroups
+          -
+            var hasChildren = !!(group && Array.isArray(group.children) && group.children.length);
+            var groupSlug   = (group && typeof group.slug  === 'string') ? group.slug  : '';
+            var groupTitle  = (group && typeof group.title === 'string') ? group.title : (groupSlug || 'Danh mục');
+            var childCount  = (group && Array.isArray(group.children)) ? group.children.length : 0;
+          .primary-nav__group(class=hasChildren ? 'has-dropdown' : '')
+            a.primary-nav__item(href='/category/' + groupSlug)= groupTitle
+
+            if hasChildren
+              ul.primary-nav__dropdown(role="menu" class=(childCount && childCount <= 6 ? 'is-row' : ''))
+                each column in group.children
+                  -
+                    var columnSlug  = (column && typeof column.slug  === 'string') ? column.slug  : '';
+                    var columnTitle = (column && typeof column.title === 'string') ? column.title : (columnSlug || 'Danh mục');
+                    var items = (column && Array.isArray(column.items)) ? column.items : [];
+                  li.primary-nav__column
+                    a.primary-nav__column-title(href='/category/' + columnSlug, role="menuitem")
+                      span= columnTitle
+                      span.primary-nav__column-arrow → 
+                    if items.length
+                      ul.primary-nav__column-list
+                        each item in items
+                          -
+                            var itemSlug  = (item && typeof item.slug  === 'string') ? item.slug  : '';
+                            var itemTitle = (item && typeof item.title === 'string') ? item.title : (itemSlug || 'Sản phẩm');
+                          li
+                            a(href='/category/' + itemSlug, role="menuitem")= itemTitle
+                    //- else
+                    //-   span.primary-nav__column-empty Tất cả sản phẩm
+
+        a.primary-nav__item(href="/the-thao") THỂ THAO
         a.primary-nav__item.is-sale(href="/sale")
           span.primary-nav__sale SALE
           span.primary-nav__sale-tag -50%
         a.primary-nav__item(href="/cs") C&S
+
       .header-actions
-        form.search-form(action="/search", method="get")
-          label.sr-only(for="header-search") Tim kiem san pham
-          - const currentSearchQuery = typeof searchQuery === 'string' ? searchQuery : ''
-          input#header-search(type="search", name="q", placeholder="Tim kiem...", value=currentSearchQuery)
-          button(type="submit", aria-label="Tim kiem")
+        form.search-form(action="/search", method="get", role="search")
+          label.sr-only(for="header-search") Tìm kiếm sản phẩm
+          -
+            var currentSearchQuery = (typeof searchQuery === 'string' && searchQuery) ? searchQuery : '';
+          input#header-search(type="search", name="q", placeholder="Tìm kiếm...", value=currentSearchQuery, autocomplete="off")
+          button(type="submit", aria-label="Tìm kiếm")
             span.icon.icon--search
-        a.action-link(href="/user/info", aria-label="Tai khoan")
+
+        a.action-link(href="/user/info", aria-label="Tài khoản")
           span.fa-solid.fa-user
-        a.action-link.cart(href="/cart", aria-label="Gio hang")
+
+        a.action-link.cart(href="/cart", aria-label="Giỏ hàng")
           span.fa-solid.fa-cart-shopping
-          span.cart__badge= typeof cartQuantity === "number" ? cartQuantity : 0
-  //- .promo-strip
-  //-   .container
-  //-     p.promo-strip__message
-  //-       | [KHACH HANG MOI] NHAP COOLNEW GIAM 50K CHO DON TU 299K
-  //-       a(href="/khuyen-mai")  KHAM PHA
+          -
+            var _qty = (typeof cartQuantity === 'number' && isFinite(cartQuantity)) ? cartQuantity : 0;
+          if _qty > 0
+            span.cart__badge= _qty
+
+//- .promo-strip
+//-   .container
+//-     p.promo-strip__message
+//-       | [KHÁCH HÀNG MỚI] Nhập COOLNEW giảm 50K cho đơn từ 299K
+//-       a(href="/khuyen-mai") Khám phá
