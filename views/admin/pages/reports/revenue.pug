@@ -63,9 +63,9 @@ block content
               td(style="text-align:center;color:#ff6a21;font-weight:600;") #{o.total.toLocaleString('vi-VN')} đ
               td(style="text-align:center")
                 if o.status === 'completed'
-                  span(style="background:#e6f9ef;color:#1f7a47;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;") ✓ Completed
+                  span(style="background:#e6f9ef;color:#1f7a47;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;") Hoàn tất
                 else if ['paid','shipped'].includes(o.status)
-                  span(style="background:#fff8e6;color:#b47a00;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;") Processing
+                  span(style="background:#fff8e6;color:#b47a00;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;") Đang xử lý
                 else if o.status === 'cancelled'
                   span(style="background:#fde8e8;color:#b42318;padding:4px 10px;border-radius:8px;font-size:13px;font-weight:600;") Đã hủy
                 else

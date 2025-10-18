@@ -40,7 +40,7 @@ block content
       tbody
         if !rows.length
           tr
-            td(colspan="5" style="padding:18px;text-align:center;color:#6b7280") KhÃ´ng cÃ³ danh má»¥c
+            td(colspan="5" style="padding:18px;text-align:center;color:#6b7280") Không có danh mục
         else
           each c in rows
             tr
@@ -52,11 +52,11 @@ block content
                     .muted(style="color:#8c98a9; font-size:13px")= new Date(c.createdAt).toLocaleString()
 
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= c.position
-              td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= c.status
+              td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= (c.status && String(c.status).toLowerCase()==='active') ? 'Hoạt động' : 'Không hoạt động'
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")= c.isFeatured ? 'Có' : 'Không'
               td(style="padding:14px 16px; border-top:1px solid #f2f3f7")
                 .actions(style="display:flex; gap:8px; align-items:center")
-                  a(href=`/admin/categories/${c.id}/edit` title="Sá»­a" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
+                  a(href=`/admin/categories/${c.id}/edit` title="" style="display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:1px solid #ffe0e0;border-radius:10px;background:#fff5f5")
                     +ic_edit()
                   form.delete-form(method="post" action=`/admin/categories/${c.id}/delete`)
                     button.btn-icon.btn-danger(
@@ -99,7 +99,7 @@ block scripts
       document.addEventListener('click', function (e) {
         var del = e.target.closest && e.target.closest('form.delete-form button[type="submit"]');
         if (!del) return;
-        var msg = del.getAttribute('data-confirm') || 'Báº¡n cÃ³ cháº¯c khÃ´ng?';
+        var msg = del.getAttribute('data-confirm') || 'Bạn có chắc không?';
         if (!confirm(msg)) e.preventDefault();
       });
     })();
