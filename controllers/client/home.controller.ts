@@ -45,7 +45,7 @@ const buildProductCardData = (
 ) => {
     const productId = product?.id ?? "";
     const productSlug = product?.slug ?? "";
-    const productTitle = product?.title ?? "Sản phẩm";
+    const productTitle = product?.title ?? "S???n ph??cm";
 
     const prismaVariants = Array.isArray(product.productVariants)
         ? product.productVariants
@@ -88,36 +88,77 @@ const buildProductCardData = (
     );
     const resolvedSizes = sizes.length ? sizes : DEFAULT_SIZES;
 
-    const colorMap = new Map<string, { name: string; hex: string }>();
-    const recordColor = (nameRaw?: string | null, hexRaw?: string | null) => {
+    const colorMap = new Map<
+        string,
+        { name: string; hex: string | null; swatchUrl: string | null }
+    >();
+    const recordColor = (
+        nameRaw?: string | null,
+        hexRaw?: string | null,
+        swatchRaw?: string | null
+    ) => {
         const name = nameRaw?.trim() ?? "";
-        const hexCandidate = hexRaw?.trim() ?? "";
+        const hexCandidate = typeof hexRaw === "string" ? hexRaw.trim() : "";
+        const swatchCandidate =
+            typeof swatchRaw === "string" ? swatchRaw.trim() : "";
         let hex = "";
         if (hexCandidate && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hexCandidate)) {
             hex = hexCandidate;
         } else if (name.startsWith("#") && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(name)) {
             hex = name;
         }
-        const key = (name || hex || "default").toLowerCase();
+        const swatchUrl = hex ? "" : swatchCandidate;
+        const key = (name || hex || swatchUrl || "default").toLowerCase();
         if (!colorMap.has(key)) {
             colorMap.set(key, {
                 name: name || "Màu khác",
-                hex: hex || "#1f2937",
+                hex: hex || null,
+                swatchUrl: swatchUrl || null,
             });
         }
     };
 
     prismaVariants.forEach((variant: any) => {
+        const variantColor = (variant as any)?.colors ?? null;
         recordColor(
-            (variant as any)?.color ?? null,
-            (variant as any)?.colorHexLegacy ?? null
+            (variant as any)?.color ?? variantColor?.name ?? null,
+            (variant as any)?.colorHexLegacy ?? variantColor?.hex ?? null,
+            variantColor?.swatchUrl ?? (variant as any)?.swatchUrlLegacy ?? null
         );
     });
     legacyVariants.forEach((variant: any) => {
         recordColor(
             variant?.color ?? null,
-            variant?.colorHexLegacy ?? variant?.colorHex ?? null
+            variant?.colorHexLegacy ?? variant?.colorHex ?? null,
+            (variant as any)?.swatchUrlLegacy ?? null
         );
+    });
+
+    const colorField = Array.isArray(product?.colors) ? product.colors : [];
+    colorField.forEach((colorValue: any) => {
+        if (typeof colorValue === "string") {
+            const trimmed = colorValue.trim();
+            if (!trimmed) {
+                return;
+            }
+            if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
+                recordColor("", trimmed, null);
+            } else if (/^https?:\/\//i.test(trimmed)) {
+                recordColor("", null, trimmed);
+            } else {
+                recordColor(trimmed, null, null);
+            }
+        } else if (
+            colorValue &&
+            typeof colorValue === "object" &&
+            ("name" in colorValue || "hex" in colorValue || "swatchUrl" in colorValue)
+        ) {
+            recordColor(
+                (colorValue as any).name ?? null,
+                (colorValue as any).hex ?? null,
+                (colorValue as any).swatchUrl ?? null
+            );
+        }
     });
 
     const colors = Array.from(colorMap.values()).slice(0, 5);
@@ -156,7 +197,11 @@ export const index = async (req: Request, res: Response) => {
         const [products, categories] = await Promise.all([
             prisma.products.findMany({
                 include: {
-                    productVariants: true,
+                    productVariants: {
+                        include: {
+                            colors: true,
+                        },
+                    },
                     categories: true,
                 },
             }),
@@ -212,7 +257,11 @@ export const search = async (req: Request, res: Response) => {
                     },
                 },
                 include: {
-                    productVariants: true,
+                    productVariants: {
+                        include: {
+                            colors: true,
+                        },
+                    },
                     categories: true,
                 },
             }),
@@ -272,7 +321,11 @@ export const sale = async (req: Request, res: Response) => {
                     },
                 },
                 include: {
-                    productVariants: true,
+                    productVariants: {
+                        include: {
+                            colors: true,
+                        },
+                    },
                     categories: true,
                 },
                 orderBy: {
@@ -352,7 +405,11 @@ export const theThao = async (req: Request, res: Response) => {
                     ],
                 },
                 include: {
-                    productVariants: true,
+                    productVariants: {
+                        include: {
+                            colors: true,
+                        },
+                    },
                     categories: true,
                 },
                 orderBy: {
