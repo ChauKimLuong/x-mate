@@ -1,0 +1,233 @@
+extends ../../layouts/default
+
+block head
+  style.
+    /* ===== Layout khung chính ===== */
+    .pv-wrap{max-width:1280px;margin:20px auto;padding:0 16px}
+    .pv-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+    :root { --btn-h:42px; --btn-minw:130px; }
+
+    /* Buttons (scoped theo .pv-wrap để tránh bị rule cũ đè) */
+    .pv-wrap .btn{
+      display:inline-flex; align-items:center; justify-content:center; gap:8px;
+      height:var(--btn-h); min-width:var(--btn-minw);
+      padding:0 14px; border-radius:10px; border:1px solid #e5e7eb;
+      background:#fff; color:#111; cursor:pointer; text-decoration:none;
+      font-weight:600; line-height:1; transition:.15s ease;
+    }
+    .pv-wrap .btn--primary{ background:#f97316; border-color:#f97316; color:#fff; }
+    .pv-wrap .btn--primary:hover{ background:#ea580c; border-color:#ea580c; }
+    .pv-wrap .btn--danger{ background:#fff; border-color:#f97316; color:#f97316; }
+    .pv-wrap .btn--danger:hover{ background:#fff7ed; border-color:#ea580c; color:#ea580c; }
+
+    .pv-card{
+      display:grid;grid-template-columns:1fr 1fr;gap:22px;
+      background:#fff;border:1px solid #eef0f5;border-radius:16px;
+      box-shadow:0 6px 18px rgba(16,24,40,.06);padding:18px
+    }
+    @media (max-width: 900px){.pv-card{grid-template-columns:1fr}}
+
+    /* ===== Gallery ===== */
+    .pv-gal{ display:grid;gap:10px; grid-template-columns:75px 1fr; }
+    @media (max-width: 900px){.pv-gal{grid-template-columns:1fr}}
+    .pv-thumbs{ list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px;max-height:550px;overflow:auto }
+    .pv-thumbs li{ border:1px solid #e5e7eb;border-radius:8px;overflow:hidden;cursor:pointer;opacity:.9;transition:.15s }
+    .pv-thumbs li:hover{opacity:1}
+    .pv-thumbs li.is-active{border-color:#111;opacity:1}
+    .pv-thumbs img{display:block;width:100%;height:80px;object-fit:cover}
+    .pv-main{
+      border:1px solid #e5e7eb;border-radius:12px;overflow:hidden;
+      background:#fafafa;display:flex;align-items:center;justify-content:center;
+      min-height:520px;border-color:#e3e6ee;
+    }
+    .pv-main img{ width:100%;height:100%;max-height:640px;object-fit:cover }
+    @media (max-width:700px){
+      .pv-main{min-height:420px}
+      .pv-main img{max-height:520px}
+    }
+
+    /* ===== Info ===== */
+    .pv-info h1{margin:2px 0 6px;font-size:22px;line-height:1.35}
+    .pv-cat{display:inline-flex;align-items:center;gap:6px;color:#6b7280;font-size:16px;margin-bottom:2px}
+    .pv-price{display:flex;align-items:center;gap:10px;margin:8px 0 12px}
+    .pv-price .cur{font-size:24px;font-weight:800;color:#111}
+    .pv-badge{display:inline-flex;align-items:center;padding:2px 8px;border-radius:999px;font-size:15px;background:#fff1ee;color:#e11d48;border:1px solid #ffd7d7}
+    .pv-meta{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;margin:6px 0 12px}
+    .pv-chip{background:#f9fafb;border:1px solid #eef0f5;border-radius:8px;padding:9px 12px;font-size:15px}
+    .pv-sizes{display:flex;gap:8px;flex-wrap:wrap;margin:6px 0 12px}
+    .pv-sizechip{
+      display:inline-flex;align-items:center;justify-content:center;
+      min-width:36px;height:32px;padding:0 10px;
+      border:1px solid #e5e7eb;border-radius:8px;background:#fff;
+      font-size:12px;color:#111;
+    }
+    /* Badges (rectangular) */
+    .pv-badge{
+    display:inline-flex; align-items:center; justify-content:center;
+    height:26px; padding:0 10px; min-width:68px;
+    border:1px solid transparent; border-radius:8px;
+    font-weight:700; font-size:12px; line-height:1; letter-spacing:.02em;
+    user-select:none;
+    }
+
+    /* Active: xanh dịu */
+    .pv-badge--ok{
+    background:#ecfdf5;         /* green-50 */
+    color:#065f46;              /* green-800 */
+    border-color:#a7f3d0;       /* green-200 */
+    }
+
+    /* Inactive: xám dịu */
+    .pv-badge--muted{
+    background:#f3f4f6;         /* gray-100 */
+    color:#374151;              /* gray-700 */
+    border-color:#e5e7eb;       /* gray-200 */
+    }
+
+    /* ===== Sections ===== */
+    .pv-sec{margin-top:16px}
+    .pv-sec__hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:8px}
+    .pv-sec__ttl{font-weight:800;font-size:15px}
+    .pv-desc{color:#374151;font-size:15px;line-height:1.6}
+    /* Status badge */
+    .pv-status{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:4px 10px;border-radius:999px;font-weight:800;font-size:13px;
+    border:1px solid #e5e7eb;
+    }
+    .pv-status.is-active{background:#ecfdf5;color:#065f46;border-color:#a7f3d0}   /* xanh */
+    .pv-status.is-inactive{background:#f3f4f6;color:#6b7280;border-color:#e5e7eb} /* xám */
+
+    /* ===== Variants table ===== */
+    .pv-tbl{width:100%;border-collapse:separate;border-spacing:0 6px}
+    .pv-tbl th{ font-size:11px;text-transform:uppercase;letter-spacing:.04em;color:#6b7280;text-align:left;padding:6px 8px }
+    .pv-row{background:#fff;border:1px solid #eef0f5;border-radius:10px;overflow:hidden}
+    .pv-cell{padding:8px 10px;border-right:1px solid #f1f2f6;font-size:13px;vertical-align:middle}
+    .pv-cell:last-child{border-right:none}
+    .swatch{display:inline-flex;align-items:center;gap:6px}
+    .s-hex{display:inline-block;width:22px;height:22px;border:1px solid #e5e7eb;border-radius:4px}
+    .s-img{width:21px;height:21px;border-radius:4px;object-fit:cover;border:1px solid #e5e7eb}
+    .pv-imgs{display:flex;gap:4px;flex-wrap:wrap}
+    .pv-imgs img{width:35px;height:35px;border-radius:6px;object-fit:cover;border:1px solid #e5e7eb}
+    .pv-actions{margin-top:14px;display:flex;gap:8px;flex-wrap:wrap}
+
+block content
+  if !product
+    .pv-wrap
+      .pv-topbar
+        a.btn(href="/admin/products") Quay lại danh sách
+      .pv-card
+        .pv-info
+          h1 Không tìm thấy sản phẩm
+  else
+    .pv-wrap
+      .pv-topbar
+        a.btn(href="/admin/products") Quay lại danh sách
+        .pv-actions
+          a.btn.btn--primary(href=`/admin/products/${product.id}/edit`) Sửa
+          form(method="post" action=`/admin/products/${product.id}/delete` onsubmit="return confirm('Xóa (mềm) sản phẩm này?')")
+            button.btn.btn--danger(type="submit") Xóa (mềm)
+
+      .pv-card
+        // ===== Left: Gallery =====
+        .pv-gal
+          if product.images && product.images.length
+            ul.pv-thumbs
+              each u, i in product.images
+                li(class=i===0 ? 'is-active' : '')
+                  img(src=u alt=`${product.title} - ${i+1}`)
+          .pv-main
+            img#pvMain(src=(product.images && product.images[0]) || '/images/placeholder.jpg' alt=product.title)
+
+        // ===== Right: Info =====
+        .pv-info
+          .pv-cat
+            span Danh mục:
+            strong #{product.categoryTitle}
+          h1= product.title
+
+          .pv-price
+            span.cur= product.priceText
+            if product.discount && product.discount > 0
+              span.pv-badge -#{product.discount}%
+
+          .pv-meta
+            .pv-chip Còn lại: #[strong #{product.stockLeft}]
+            .pv-chip Biến thể: #[strong #{product.variantCount}]
+
+          // Sizes (above Description)
+          if product.size && product.size.length
+            .pv-sec
+              .pv-sec__hd
+                .pv-sec__ttl Kích cỡ
+              .pv-sizes
+                each s in product.size
+                  span.pv-sizechip= s
+
+          // Description
+          if product.description
+            .pv-sec
+              .pv-sec__hd
+              .pv-sec__ttl Mô tả
+            .pv-desc!= product.description
+            .pv-sec
+                .pv-sec__hd
+                .pv-sec__ttl Trạng thái
+                if product.status === 'inactive'
+                    span.pv-badge.pv-badge--muted Không hoạt động
+                else
+                    span.pv-badge.pv-badge--ok Hoạt động
+
+
+      // ===== Variants =====
+      - const pv = Array.isArray(product?.productVariants) ? product.productVariants.filter(v => !v.deleted) : []
+      if pv && pv.length
+        .pv-sec.pv-wrap
+          .pv-sec__hd
+            .pv-sec__ttl Biến thể
+          table.pv-tbl
+            thead
+              tr
+                th(style="width:32%") Màu
+                th(style="width:12%") Tồn kho
+                th(style="width:14%") Mẫu màu
+                th Ảnh
+            tbody
+              each v in pv
+                tr.pv-row
+                  td.pv-cell
+                    .swatch
+                      span= v.color
+                      if v.colors && v.colors.name
+                        span(style="color:#6b7280") (#{v.colors.name})
+                  td.pv-cell= v.stock
+                  td.pv-cell
+                    if v.colors && v.colors.hex
+                      span.s-hex(style=`background:${v.colors.hex}`)
+                    else if v.colors && v.colors.swatchUrl
+                      img.s-img(src=v.colors.swatchUrl)
+                    else
+                      span(style="color:#9ca3af") —
+                  td.pv-cell
+                    if v.images && v.images.length
+                      .pv-imgs
+                        each imgUrl in v.images
+                          img(src=imgUrl)
+                    else
+                      span(style="color:#9ca3af") —
+
+  // Thumbs -> main preview
+  script.
+    (function(){
+      var list = document.querySelectorAll('.pv-thumbs li');
+      var main = document.getElementById('pvMain');
+      if(!list || !main) return;
+      list.forEach(function(li){
+        li.addEventListener('click', function(){
+          var img = li.querySelector('img');
+          if(img && img.src){ main.src = img.src; }
+          document.querySelectorAll('.pv-thumbs li').forEach(function(x){ x.classList.remove('is-active'); });
+          li.classList.add('is-active');
+        });
+      });
+    })();

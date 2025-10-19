@@ -1,0 +1,109 @@
+//- Admin Login Page (orange theme, simple)
+doctype html
+html(lang="vi")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport", content="width=device-width, initial-scale=1")
+    link(rel="icon" type="image/png" href="/images/favicon.png")
+    title X-Mate Admin | Đăng nhập
+
+    // Simple orange theme
+    style.
+      :root{ --accent:#f97316; --accent-strong:#ea580c; --ink:#0f172a; --muted:#6b7280; --line:#fde68a50; }
+      *{box-sizing:border-box}
+      body{background:linear-gradient(180deg,#fff7ed,#fff) fixed;min-height:100vh;margin:0;font-family:system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif;color:var(--ink)}
+      .visually-hidden{position:absolute!important;clip:rect(1px,1px,1px,1px);padding:0;border:0;height:1px;width:1px;overflow:hidden;white-space:nowrap}
+      .auth-page{display:grid;place-items:center;padding:28px}
+      .auth-card{position:relative;width:min(460px,94vw);background:#fff;border:1px solid var(--line);border-radius:22px;padding:22px 22px 26px;box-shadow:0 20px 40px rgba(249,115,22,.18)}
+      .auth-card__close{position:absolute;inset-inline-end:18px;top:16px;text-decoration:none;font-size:22px;line-height:1;color:#9ca3af}
+      .auth-card__close:hover{color:#6b7280}
+      .brand{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+      .brand .logo{width:28px;height:28px;object-fit:contain;display:block}
+      .brand .txt{font-weight:800;letter-spacing:.2px}
+      .auth-card__title{font-size:24px;margin:6px 0 4px}
+      .auth-card__subtitle{color:var(--muted);margin:0 0 14px}
+      .alert{background:#fff1f2;color:#b42318;padding:10px 14px;border-radius:12px;border:1px solid #fecdd3;margin:8px 0 14px}
+      .auth-form{display:grid;gap:12px;margin-top:6px}
+      .auth-input{height:44px;border-radius:12px;border:1px solid #f9731633;background:#fff;padding:0 12px;font-size:14px;color:var(--ink);width:100%}
+      .auth-input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px #f973162e}
+      .auth-form__field--password{position:relative;display:flex;align-items:center}
+      .auth-form__field--password .auth-input{padding-right:44px}
+      .auth-password-toggle{position:absolute;right:6px;top:50%;transform:translateY(-50%);display:inline-flex;align-items:center;justify-content:center;width:36px;height:36px;border:0;border-radius:10px;background:#f973161a;color:var(--accent);cursor:pointer}
+      .auth-password-toggle:focus{outline:2px solid #f973162e;outline-offset:2px}
+      .auth-password-toggle .icon-off{display:none}
+      .auth-password-toggle.is-active .icon-on{display:none}
+      .auth-password-toggle.is-active .icon-off{display:inline-block}
+      .auth-links{display:flex;align-items:center;justify-content:space-between;margin-top:6px;gap:12px}
+      .auth-links a{color:var(--accent);text-decoration:none}
+      .auth-links a:hover{text-decoration:underline}
+      .auth-submit{margin-top:6px;height:46px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-weight:700;letter-spacing:.08em;cursor:pointer;transition:transform .12s ease, box-shadow .12s ease, background .12s ease}
+      .auth-submit:hover{box-shadow:0 14px 24px rgba(249,115,22,.28);transform:translateY(-1px);background:var(--accent-strong)}
+      .footer{margin-top:12px;text-align:center;color:var(--muted);font-size:12px}
+
+  body
+    .auth-page
+      .auth-card
+        // Use shared icon mixins
+        include ../../mixins/icons.pug
+
+        // Close/back
+        a.auth-card__close(href="/" aria-label="Quay lại trang chủ")
+          span(aria-hidden="true") &times;
+
+        // Brand
+        .brand
+          img.logo(src="/images/logo-rm-bg.png" alt="X-Mate")
+          span.txt X-Mate Admin
+
+        // Heading
+        h1.auth-card__title Đăng nhập quản trị
+        p.auth-card__subtitle Truy cập bảng điều khiển quản trị X‑Mate.
+
+        // Flash/Error messages (optional)
+        if messages && messages.error
+          .alert= messages.error
+        if error
+          .alert= error
+
+        // Login form
+        form.auth-form(action="/admin/login" method="post")
+          label.visually-hidden(for="email") Email
+          input#email.auth-input(type="email" name="email" placeholder="Email quản trị" required autofocus autocomplete="username")
+
+          .auth-form__field.auth-form__field--password
+            label.visually-hidden(for="password") Mật khẩu
+            input#password.auth-input(type="password" name="password" placeholder="Mật khẩu" required autocomplete="current-password")
+            button#pw-toggle.auth-password-toggle(type="button" aria-label="Hiện mật khẩu" aria-pressed="false")
+              span.icon-on
+                +ic_eye()
+              span.icon-off
+                +ic_eye_off()
+
+          // Options
+          .auth-links
+            label(for="remember" style="display:flex;align-items:center;gap:8px")
+              input#remember(type="checkbox" name="remember" value="1")
+              | Ghi nhớ đăng nhập
+
+          button.auth-submit(type="submit") Đăng nhập
+
+        .footer
+          | © #{new Date().getFullYear()} X‑Mate 
+          
+
+    // Scripts: toggle show/hide password + icon switch
+    script.
+      (function(){
+        var input = document.getElementById('password');
+        var btn = document.getElementById('pw-toggle');
+        if(!input || !btn) return;
+        btn.addEventListener('click', function(){
+          var showing = input.type === 'text';
+          input.type = showing ? 'password' : 'text';
+          this.classList.toggle('is-active', !showing);
+          this.setAttribute('aria-pressed', String(!showing));
+          this.setAttribute('aria-label', showing ? 'Hiện mật khẩu' : 'Ẩn mật khẩu');
+          this.focus();
+        });
+      })();
+

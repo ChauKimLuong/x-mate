@@ -1,0 +1,46 @@
+extends ../../layouts/default
+
+block content
+  .user-form-wrapper
+    .user-form
+      h2 #{mode === 'create' ? 'Thêm nhân viên mới' : 'Sửa người dùng'}
+      p Quản lý thông tin người dùng và phân quyền.
+
+      form(method="post" action=(mode === 'create' ? '/admin/users' : `/admin/users/${form.id}`))
+        .grid
+          .left
+            label Họ tên
+            input(type="text" name="full_name" value=form.full_name placeholder="Nhập họ tên" required)
+
+            label Email
+            input(type="email" name="email" value=form.email placeholder="Nhập email" required)
+
+            label SĐT
+            input(type="text" name="phone" value=form.phone placeholder="Nhập số điện thoại")
+
+            label Giới tính
+            select(name="gender")
+              option(value="") Chọn giới tính
+              - const _g = (form && form.gender && String(form.gender).toLowerCase()) || ''
+              option(value="Nam" selected=(_g==='nam' || _g==='male' || form.gender==='Nam')) Nam
+              option(value="Nữ" selected=(_g==='nữ' || _g==='nu' || _g==='female' || form.gender==='Nữ')) Nữ
+
+          .right
+            label Vai trò
+            select(name="role")
+              each r in roles
+                option(value=r.id selected=(form.role===r.id))= r.name
+
+            if mode === 'create'
+              label Mật khẩu
+              input(type="password" name="password" placeholder="Nhập mật khẩu" required)
+
+            label Trạng thái
+            select(name="status")
+              option(value="active" selected=form.status==='active') Hoạt động
+              option(value="inactive" selected=form.status==='inactive') Không hoạt động
+              option(value="banned" selected=form.status==='banned') Cấm
+
+        .actions
+          button.btn-orange(type="submit") #{mode === 'create' ? 'Tạo người dùng' : 'Cập nhật người dùng'}
+          a.btn-cancel(href="/admin/users") Hủy

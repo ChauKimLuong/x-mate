@@ -1,0 +1,148 @@
+extends ../../layouts/default.pug
+
+block content
+  style.
+    .orders-wrapper {
+      padding: 2rem;
+      background: #f9fafc;
+      font-family: "Poppins", sans-serif;
+    }
+
+    .orders-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      padding: 1.5rem 2rem;
+    }
+
+    h3.page-title {
+      font-weight: 600;
+      color: #222;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 1.5rem;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: center;
+      font-size: 14px;
+    }
+
+    thead {
+      background-color: #f3f4f6;
+    }
+
+    th {
+      padding: 12px 10px;
+      color: #555;
+      text-transform: uppercase;
+      font-weight: 600;
+      font-size: 13px;
+    }
+
+    td {
+      padding: 14px 10px;
+      border-bottom: 1px solid #eee;
+      vertical-align: middle;
+    }
+
+    tr:hover {
+      background-color: #f9f9ff;
+    }
+
+    .product-thumb {
+      width: 60px;
+      height: 60px;
+      border-radius: 8px;
+      object-fit: cover;
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+    }
+
+    .badge {
+      padding: 5px 12px;
+      border-radius: 12px;
+      font-weight: 600;
+      font-size: 12px;
+      display: inline-block;
+    }
+
+    .badge-pending { background-color: #fff3cd; color: #856404; }
+    .badge-confirmed { background-color: #d4edda; color: #155724; }
+    .badge-cancelled { background-color: #f8d7da; color: #721c24; }
+
+    .action-group {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .btn {
+      border: none;
+      border-radius: 8px;
+      font-size: 13px;
+      font-weight: 500;
+      padding: 6px 12px;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .btn i {
+      font-size: 14px;
+    }
+
+    .btn-confirm { background-color: #007bff; color: #fff; }
+    .btn-cancel { background-color: #dc3545; color: #fff; }
+    .btn-view { background-color: #6c757d; color: #fff; }
+
+    .btn:hover { opacity: 0.9; transform: translateY(-1px); }
+
+  .orders-wrapper
+    h3.page-title
+      i.bi.bi-card-list
+      |  Quản lý đơn hàng
+
+    .orders-card
+      table
+        thead
+          tr
+            th Sản phẩm
+            th Khách hàng
+            th Tổng
+            th Trạng thái
+            th Thao tác
+        tbody
+          each order in orders
+            - const thumb = order.thumbnail || '/img/default-product.jpg'
+            tr
+              td
+                img.product-thumb(src=thumb, alt="Ảnh sản phẩm")
+              td #{order.customerName}
+              td #{Number(order.total || 0).toLocaleString('vi-VN')} ₫
+              td
+                if order.status === 'pending'
+                  span.badge.badge-pending Chờ xử lý
+                else if order.status === 'completed'
+                  span.badge.badge-confirmed Đã xác nhận
+                else
+                  span.badge.badge-cancelled Đã hủy
+              td
+                .action-group
+                  if order.status === 'pending'
+                    form(action=`/admin/orders/${order.id}/confirm`, method="POST")
+                      button.btn.btn-confirm(type="submit", title="Xác nhận")
+                        i.bi.bi-check-circle
+                        | Xác nhận
+                    form(action=`/admin/orders/${order.id}/cancel`, method="POST")
+                      button.btn.btn-cancel(type="submit", title="Hủy")
+                        i.bi.bi-x-circle
+                        | Hủy
+                  a.btn.btn-view(href=`/admin/orders/${order.id}/detail`, title="Xem")
+                    i.bi.bi-eye
+                    | Xem
