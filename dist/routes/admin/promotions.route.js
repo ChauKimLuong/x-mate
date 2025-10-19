@@ -1,0 +1,12 @@
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const promotions_controller_1 = require("../../controllers/admin/promotions.controller");
+const r = (0, express_1.Router)();
+r.get("/", promotions_controller_1.list);
+r.get("/create", promotions_controller_1.createForm);
+r.post("/", promotions_controller_1.create);
+r.get("/:id/edit", promotions_controller_1.editForm);
+r.post("/:id", promotions_controller_1.update);
+r.get("/:id/delete", promotions_controller_1.remove);
+exports.default = r;

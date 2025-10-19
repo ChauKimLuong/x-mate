@@ -1,0 +1,40 @@
+"use strict";
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
+Object.defineProperty(exports, "__esModule", { value: true });
+const express_1 = require("express");
+const products_route_1 = __importDefault(require("./products.route"));
+const inventory_route_1 = __importDefault(require("./inventory.route"));
+const inventory_support_route_1 = __importDefault(require("./inventory-support.route"));
+const reviews_route_1 = __importDefault(require("./reviews.route"));
+const orders_route_1 = __importDefault(require("./orders.route"));
+const dashboard_controller_1 = require("../../controllers/admin/dashboard.controller");
+const promotions_route_1 = __importDefault(require("./promotions.route"));
+const reports_route_1 = __importDefault(require("./reports.route"));
+const users_route_1 = __importDefault(require("./users.route"));
+const auth_route_1 = __importDefault(require("./auth.route"));
+const categories_route_1 = __importDefault(require("./categories.route"));
+const adminAuth_1 = require("../../middlewares/adminAuth");
+const roleGuard_1 = require("../../middlewares/roleGuard");
+const r = (0, express_1.Router)();
+r.use("/", auth_route_1.default);
+r.use(adminAuth_1.requireAdmin);
+r.get("/", (req, res) => {
+    var _a, _b;
+    const role = (_b = (_a = req.session) === null || _a === void 0 ? void 0 : _a.admin) === null || _b === void 0 ? void 0 : _b.role;
+    if (role === "staff")
+        return res.redirect("/admin/orders");
+    return res.redirect("/admin/dashboard");
+});
+r.get("/dashboard", roleGuard_1.onlyAdmin, dashboard_controller_1.dashboard);
+r.use("/promotions", roleGuard_1.onlyAdmin, promotions_route_1.default);
+r.use("/reports", roleGuard_1.onlyAdmin, reports_route_1.default);
+r.use("/users", roleGuard_1.onlyAdmin, users_route_1.default);
+r.use("/categories", roleGuard_1.onlyAdmin, categories_route_1.default);
+r.use("/products", roleGuard_1.onlyAdmin, products_route_1.default);
+r.use("/inventory-support", roleGuard_1.onlyAdmin, inventory_support_route_1.default);
+r.use("/inventory", inventory_route_1.default);
+r.use("/reviews", reviews_route_1.default);
+r.use("/orders", orders_route_1.default);
+exports.default = r;

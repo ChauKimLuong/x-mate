@@ -1,0 +1,56 @@
+extends ../../layouts/default
+
+block content
+  style.
+    .review-wrapper {
+      padding: 2rem;
+      font-family: "Poppins", sans-serif;
+      background: #f9fafc;
+    }
+    .review-card {
+      background: #fff;
+      border-radius: 16px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+      padding: 1.5rem 2rem;
+    }
+    table { width: 100%; border-collapse: collapse; }
+    th, td { padding: 12px 10px; text-align: left; border-bottom: 1px solid #eee; }
+    tr:hover { background: #f9f9ff; }
+    .product-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; }
+    .badge { padding: 4px 8px; border-radius: 6px; font-size: 12px; }
+    .btn-view {
+      background-color: #6c757d; color: #fff;
+      padding: 6px 12px; border-radius: 8px;
+      text-decoration: none;
+    }
+
+  .review-wrapper
+    h3.page-title(style="margin-bottom:1rem") Đánh giá sản phẩm
+    .review-card
+      if reviews.length
+        table
+          thead
+            tr
+              th Ảnh
+              th Sản phẩm
+              th Người đánh giá
+              th Đánh giá
+              th Nội dung
+              th Phản hồi
+              th Ngày
+              th Thao tác
+          tbody
+            each r in reviews
+              tr
+                td
+                  img.product-thumb(src=r.thumbnail, alt="Ảnh sản phẩm")
+                td= r.productTitle
+                td= r.customerName
+                td #{'★'.repeat(r.rating)}
+                td= r.content
+                td #{r.replyCount} phản hồi
+                td= r.createdAt.toLocaleString()
+                td
+                  a.btn-view(href=`/admin/reviews/${r.id}/detail`) Xem chi tiết
+      else
+        p Không có đánh giá.

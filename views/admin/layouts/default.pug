@@ -1,0 +1,271 @@
+//- views/admin/layouts/default.pug
+doctype html
+html(lang="vi")
+  head
+    meta(charset="utf-8")
+    meta(name="viewport", content="width=device-width,initial-scale=1")
+    link(rel="icon" type="image/png" href="/images/favicon.png")
+
+    title= title || "Admin"
+
+    // Global styles
+    link(rel="stylesheet", href="/css/admin/admin.css")
+    link(rel="stylesheet", href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css")
+
+    // Page-specific styles
+    if title === 'Reviews List'
+      link(rel="stylesheet", href="/css/components/reviews.css")
+    if title === 'Order'
+      link(rel="stylesheet", href="/css/components/orders.css")
+
+    // Tiny CSS (sidebar + submenu)
+    style.
+      :root{
+        --sb-bg:#0b1220;          /* nền sidebar */
+        --sb-fg:#9aa4b2;          /* chữ mặc định */
+        --sb-fg-muted:#6b7280;
+        --sb-active:#ffffff;      
+        --sb-accent:#f97316;      
+        --sb-item-hover:rgba(255,255,255,.04);
+        --sb-item-active:rgba(249,115,22,.10);
+      }
+      .container{background:#fff;}
+      .sidebar .brand{display:flex;align-items:center;gap:10px;padding:14px 16px}
+      .sidebar .brand .logo{display:flex;align-items:center;gap:10px;text-decoration:none;color:#e5e7eb}
+      .sidebar .brand .logo-img{width:24px;height:24px;object-fit:contain;display:block}
+      .sidebar .brand .txt{font-weight:700;letter-spacing:.2px}
+
+      .sidebar{background:var(--sb-bg);color:var(--sb-fg)}
+      .sidebar .brand{display:flex;gap:8px;align-items:center;padding:14px 16px;font-weight:700;color:#e5e7eb}
+      .sidebar .menu{display:flex;flex-direction:column;gap:2px;padding:8px}
+      .sidebar .logo-badge{
+        width:32px;height:32px;border-radius:10px;
+        background:#fff;               /* nền sáng giúp PNG đen nổi bật */
+        display:inline-flex;align-items:center;justify-content:center;
+        box-shadow:0 8px 18px rgba(0,0,0,.25);
+      }
+      /* item */
+      .sidebar .item{
+        display:flex;align-items:center;gap:10px;
+        padding:10px 12px;border-radius:10px;color:var(--sb-fg);
+        text-decoration:none;user-select:none;cursor:pointer;background:transparent;border:0;
+      }
+      .sidebar .item:hover{background:var(--sb-item-hover)}
+      .sidebar .item .ico{width:22px;height:22px;display:inline-flex;align-items:center;justify-content:center;color:var(--sb-fg-muted)}
+      .sidebar .item .ico svg{display:block;width:1em;height:1em;color:currentColor}
+      .sidebar .item .lbl{font-weight:600;letter-spacing:.2px}
+      .sidebar .item .caret{margin-left:auto;transition:transform .2s ease;color:var(--sb-fg-muted)}
+
+      .sidebar .item.active{
+        background:var(--sb-item-active); color:var(--sb-active);
+      }
+      .sidebar .item.active .ico{color:var(--sb-accent)}
+      .sidebar .item.active .caret{color:var(--sb-accent)}
+
+      /* nhóm có submenu mở */
+      .sidebar .item.has-children[aria-expanded="true"]{
+        background:var(--sb-item-active); color:var(--sb-active);
+      }
+      .sidebar .item.has-children[aria-expanded="true"] .ico{color:var(--sb-accent)}
+      .sidebar .item.has-children[aria-expanded="true"] .caret{transform:rotate(180deg);color:var(--sb-accent)}
+
+      .submenu{display:none;margin:4px 0 8px 34px;padding-left:8px;border-left:1px dashed rgba(255,255,255,.08)}
+      .submenu.open{display:block}
+      .submenu a{
+        display:flex;align-items:center;gap:10px;
+        padding:8px 10px;border-radius:8px;color:var(--sb-fg);text-decoration:none;
+      }
+      .submenu a:hover{background:var(--sb-item-hover)}
+      .submenu a.active{color:var(--sb-active);background:var(--sb-item-active)}
+      .submenu a .dot{width:6px;height:6px;border-radius:999px;background:var(--sb-fg-muted)}
+      .submenu a.active .dot{background:var(--sb-accent)}
+
+    // Sidebar color override
+    style.
+      :root{ --sb-fg:#6b7280; --sb-fg-muted:#6b7280; }
+
+    // Optional head block
+    block head
+
+    // Chart.js (Dashboard)
+    script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js")
+
+  body(class=((typeof admin !== 'undefined' && admin && admin.role && String(admin.role).toLowerCase()==='staff') ? 'role-staff' : 'role-admin'))
+    include ../mixins/icons
+
+    - const is = (k) => (active===k);
+    - const __role = (typeof admin !== 'undefined' && admin && admin.role) ? String(admin.role).toLowerCase() : '';
+    - const __isStaff = __role === 'staff';
+    - const __isAdmin = __role === 'admin';
+    if __isStaff
+      style.
+        .menu-overview,
+        .menu-products,
+        .menu-categories,
+        /* allow inventory support for staff */
+        .menu-promotions,
+        .menu-reports,
+        .menu-users { display: none !important; }
+        /* also hide their submenus entirely for staff */
+        #submenu-products,
+        #submenu-categories { display: none !important; }
+
+    .shell
+      // ============ SIDEBAR ============
+      aside.sidebar
+        .brand
+          
+          a.logo(href="/admin" aria-label="X-Mate")
+            span.logo-badge
+              img.logo-img(src="/images/logo-rm-bg.png" alt="X-Mate")
+            span.txt X-Mate
+        nav.menu
+          // Dashboard
+          a.item.menu-overview(class=is('overview')?'active':'', href="/admin")
+            span.ico
+              +icon-dashboard(20)
+            span.lbl Tổng quan
+
+          // Products (toggle)
+          - const openProducts = active && active.startsWith('products');
+          button.item.menu-products.has-children(type="button", aria-expanded=openProducts?'true':'false', data-target="#submenu-products", class=openProducts?'active':'')
+            span.ico
+              +icon-products(20)
+            span.lbl Sản Phẩm
+            span.caret ▾
+          ul.submenu#submenu-products(class=openProducts?'open':'')
+            li
+              a(class=is('products:list')?'active':'', href="/admin/products")
+                //- span.dot
+                span.lbl Danh sách
+            li
+              a(class=is('products:grid')?'active':'', href="/admin/products/edit")
+                //- span.dot
+                span.lbl Chỉnh sửa
+            li
+              a(class=is('products:create')?'active':'', href="/admin/products/create")
+                //- span.dot
+                span.lbl Thêm mới
+
+
+          // Categories (toggle)
+          - const openCategories = active && active.startsWith('categories');
+          button.item.menu-categories.has-children(type="button", aria-expanded=openCategories?'true':'false', data-target="#submenu-categories", class=openCategories?'active':'')
+            span.ico
+              +icon-categories(20)
+            span.lbl Danh mục
+            span.caret ▾
+          ul.submenu#submenu-categories(class=openCategories?'open':'')
+            li
+              a(class=is('categories:list')?'active':'', href="/admin/categories")
+                span.lbl Danh sách
+            li
+              a(class=is('categories:create')?'active':'', href="/admin/categories/create")
+                span.lbl Thêm mới
+
+          // Inventory (single)
+          a.item(class=is('inventory')?'active':'', href="/admin/inventory")
+            span.ico
+              +icon-inventory(20)
+            span.lbl Quản lý tồn kho
+
+          // Inventory Support
+          a.item.menu-inv-support(class=is('inventory-support')?'active':'', href="/admin/inventory-support")
+            span.ico
+              +icon-inv-support(20)
+            span.lbl Hỗ trợ tồn kho
+
+          // Orders
+          a.item(class=is('orders')?'active':'', href="/admin/orders")
+            span.ico
+              +icon-orders(20)
+            span.lbl Đơn hàng
+
+          // Promotions
+          a.item.menu-promotions(class=is('promotions')?'active':'', href="/admin/promotions")
+            span.ico
+              +icon-promotions(20)
+            span.lbl Khuyến mãi
+
+          // Reports
+          a.item.menu-reports(class=is('reports')?'active':'', href="/admin/reports/revenue")
+            span.ico
+              +icon-reports(20)
+            span.lbl Báo cáo
+
+          // Reviews
+          a.item(class=is('reviews')?'active':'', href="/admin/reviews")
+            span.ico
+              +icon-reviews(20)
+            span.lbl Reviews
+
+          // User
+          a.item.menu-users(class=is('users')?'active':'', href="/admin/users")
+            span.ico
+              +icon-users(20)
+            span.lbl Quản lý người dùng
+
+      // ============ MAIN CONTENT ============
+      main.main
+        header.topbar
+          .left
+          .right(style="display:flex;align-items:center;gap:10px")
+            .user
+              - const _admin = typeof admin !== 'undefined' ? admin : null;
+              - const _email = _admin && _admin.email ? _admin.email : '';
+              - const _avatar = _admin && _admin.avatar && _admin.avatar.trim() !== '' ? _admin.avatar : ('https://i.pravatar.cc/40?u=' + (_email || 'admin'));
+              - const _name = _admin && (_admin.full_name || _admin.email) ? (_admin.full_name || _admin.email) : 'Admin';
+              img(src=_avatar alt="avatar" style="width:40px;height:40px;border-radius:50%;object-fit:cover;")
+              span.name= _name
+            form(action="/admin/logout" method="post" style="display:inline")
+              button.btn(type="submit" style="background:#ef4444;border:0;color:#fff") Đăng xuất
+
+        .container
+          block content
+
+    // Sidebar toggle (đa nhóm, tự nhận data-target)
+    script.
+      (function(){
+        var KEY='sb-open';
+        function setOpen(btn, sub, open){
+          if(!btn||!sub) return;
+          btn.setAttribute('aria-expanded', open?'true':'false');
+          btn.classList.toggle('active', !!open);
+          sub.classList.toggle('open', !!open);
+        }
+        // click toggle
+        document.addEventListener('click', function(e){
+          var btn = e.target.closest && e.target.closest('.item.has-children[data-target]');
+          if(!btn) return;
+          var sel = btn.getAttribute('data-target');
+          var sub = document.querySelector(sel);
+          var open = btn.getAttribute('aria-expanded')==='true';
+          setOpen(btn, sub, !open);
+
+          // lưu trạng thái mở
+          try{
+            var raw = localStorage.getItem(KEY) || '[]';
+            var arr = JSON.parse(raw);
+            var id = sel.replace('#','');
+            if(!open){ if(!arr.includes(id)) arr.push(id); }
+            else{ arr = arr.filter(x=>x!==id); }
+            localStorage.setItem(KEY, JSON.stringify(arr));
+          }catch(_){}
+        });
+
+        // khôi phục trạng thái
+        try{
+          var arr = JSON.parse(localStorage.getItem(KEY) || '[]');
+          var isStaff = document.body && document.body.classList.contains('role-staff');
+          arr.forEach(function(id){
+            // Skip restricted submenus for staff
+            if(isStaff && (id === 'submenu-products' || id === 'submenu-categories')) return;
+            var btn = document.querySelector('.item.has-children[data-target="#'+id+'"]');
+            var sub = document.getElementById(id);
+            setOpen(btn, sub, true);
+          });
+        }catch(_){}
+      })();
+
+    // Page-level scripts
+    block scripts

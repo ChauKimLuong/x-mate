@@ -1,0 +1,477 @@
+﻿//- views/admin/pages/inventory-support/helper.pug
+extends ../../layouts/default
+include ../../mixins/icons
+include ./session-modal.pug
+
+block head
+  style.
+    :root{
+      --b:#e5e7eb;--bg:#fff;--txt:#111827;--muted:#98A2B3;--brand:#f97316;--brand-ink:#fff;
+      --shadow:0 8px 24px rgba(16,24,40,.06)
+    }
+    .tabs{display:flex;gap:8px;margin:0 0 16px}
+    .tabs .tab{padding:8px 12px;border:1px solid var(--b);border-radius:10px;background:var(--bg);cursor:pointer}
+    .tabs .tab[aria-selected="true"]{background:var(--brand);color:var(--brand-ink);border-color:var(--brand)}
+    .panel{display:none}
+    .panel.active{display:block}
+    .card{background:var(--bg);border-radius:18px;box-shadow:var(--shadow)}
+    .hstack{display:flex;gap:8px;align-items:center}
+    .btn{padding:8px 12px;border:1px solid var(--b);border-radius:10px;background:var(--bg);cursor:pointer}
+    .btn.primary{background:var(--brand);border-color:var(--brand);color:var(--brand-ink)}
+    .btn.danger{border-color:#fecaca;background:#fff5f5}
+    .num{text-align:right;font-variant-numeric:tabular-nums}
+    table{width:100%;border-collapse:separate;border-spacing:0}
+    thead th{padding:12px 14px;border-bottom:1px solid #eef0f5;text-align:left}
+    tbody td{padding:12px 14px;border-top:1px solid #f2f3f7}
+    .muted{color:var(--muted)}
+    .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    .badge{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid var(--b);background:var(--bg)}
+    .empty{padding:18px;text-align:center;color:var(--muted)}
+    /* Tooltip (dÃ¹ng chung) */
+    .btn.hint{display:inline-flex;align-items:center;justify-content:center;padding:0 8px;min-width:26px;height:26px;line-height:24px;border-radius:999px;font-weight:700;color:#ff7878}
+    .btn.hint:hover{background:#f5f5f5;color:#ff4d4f}
+    .tooltip-pop{position:fixed;z-index:70;max-width:340px;background:#111827;color:#fff;padding:10px 12px;border-radius:10px;box-shadow:0 8px 24px rgba(16,24,40,.2);font-size:13px}
+    .tooltip-pop .tt-hd{font-weight:700;margin-bottom:6px}
+    .tooltip-pop .tt-ft{margin-top:8px;color:#cbd5e1}
+    .tooltip-arrow{position:absolute;width:10px;height:10px;background:#111827;transform:rotate(45deg)}
+    /* icon trong nÃºt */
+    .btn .ico{display:inline-flex;vertical-align:middle;margin-right:8px}
+    .btn .ico svg{display:block}
+
+block content
+  +sessionModal()
+  h2(style="margin:0 0 16px") HỖ TRỢ TỒN KHO
+
+  // Tabs
+  .tabs(role="tablist")
+    button.tab( role="tab" aria-selected="true" aria-controls="p-low"   id="t-low") Tồn thấp / Đặt hàng
+    button.tab( role="tab" aria-selected="false" aria-controls="p-stock" id="t-stock") Kiểm kê
+    button.tab( role="tab" aria-selected="false" aria-controls="p-bulk"  id="t-bulk") Điều chỉnh hàng loạt
+    button.tab( role="tab" aria-selected="false" aria-controls="p-code"  id="t-code") Mã vạch / QR
+    button.tab( role="tab" aria-selected="false" aria-controls="p-diag"  id="t-diag") Chuẩn đoán
+
+  // Panel: Low-Stock / Reorder
+  .panel.active#p-low
+    .card(style="padding:16px")
+      .hstack(style="justify-content:space-between;margin-bottom:8px")
+        .hstack
+          .lbl(style="font-weight:700") Tồn tháng (Top N)
+          span.badge #{(lowStock && lowStock.length) || 0} items
+          button.btn.hint(type="button" data-tt-title="Low-Stock" data-tt-body="Số lượng hiện có (On hand) = Biến thể có thể tồn âm. Điểm đặt lại (RP) mặc định = 10. Suggest = max(0, RP - On hand)")
+            +icon-hint(16)
+        .hstack
+          input#lowLimit(type="number" min="1" max="200" placeholder="Limit" value="10" style="width:100px;padding:6px 10px;border:1px solid #e5e7eb;border-radius:10px")
+          button.btn#btnLowRefresh(type="button") Refresh
+          button.btn.primary#btnDraftPO(type="button")
+            span.ico
+              +icon-download(18)
+            | Tạo phiếu nhập hàng nháp
+          button.btn.hint(type="button" data-tt-title="Tạo phiếu nhấp" data-tt-body="Xuất CSV gồm các cột: productId,title,onHand,reorderPoint,suggestQty.")
+            +icon-hint(16)
+
+      if lowStock && lowStock.length
+        table#lowTable
+          colgroup
+            col(style="width:50%")
+            col(style="width:16%")
+            col(style="width:17%")
+            col(style="width:17%")
+          thead
+            tr
+              th Sản phẩm
+              th(style="text-align:right") Điểm đặt hàng lại
+              th(style="text-align:right") Số lượng hiện có
+              th(style="text-align:right") Đề xuất
+          tbody
+            each r in lowStock
+              - const rp = r.reorderPoint || 10
+              - const need = Math.max(0, rp - (r.stock || 0))
+              tr
+                td= r.title
+                td.num= rp
+                td.num= r.stock
+                td.num= need
+      else
+        .empty#lowEmpty Không có sản phẩm tồn thấp.
+
+  // Panel: Stocktake
+  .panel#p-stock
+    .grid2
+      .card(style="padding:16px")
+        h3(style="margin:0 0 10px") Đếm nhanh (1 sản phẩm)
+        form(method="post" action="/admin/inventory-support/quick-count")
+          .hstack(style="gap:12px;flex-wrap:wrap")
+            input(type="text" name="productId" placeholder="ID sản phẩm" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
+            input(type="text" name="variantId" placeholder="ID biến thể (tùy chọn)" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
+            input(type="number" name="counted" placeholder="Số đếm thực tế" required min="0" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;width:200px")
+            button.btn.primary(type="submit") Ghi nhận
+      // Create session
+      .card(style="padding:16px")
+        h3(style="margin:0 0 10px") Tạo phiên kiểm kê
+          form(method="post" action="/admin/inventory-support/stocktake")
+            .hstack(style="gap:12px;flex-wrap:wrap")
+              input(type="text" name="name" placeholder="Tên phiên" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:220px")
+              select(name="scope" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px")
+                option(value="all") Tất cả sản phẩm
+                option(value="active") Chỉ hoạt động
+                option(value="low") Chỉ tồn thấp
+              button.btn.primary(type="submit") Tạo
+          p.muted(style="margin:8px 0 0") Tạo session → tải CSV mẫu → nhập cột số đếm thực tế → tải lên → Ghi nhận
+
+    // Recent Sessions
+    .card(style="padding:16px; margin-top:16px")
+      h3(style="margin:0 0 10px") Recent Sessions
+      if sessions && sessions.length
+        table
+          thead
+            tr
+              th Tên
+              th Trạng thái
+              th Tạo lúc
+              th Thao tác
+          tbody
+            each s in sessions
+              tr
+                td= s.name
+                td
+                  span.badge= s.status
+                td= s.createdAt
+                td
+                  .hstack(style="gap:8px;align-items:center;flex-wrap:wrap")
+                    a.btn.session-view(href=`/admin/inventory-support/stocktake/${s.id}` data-sid=s.id) Xem
+                    if s.status === 'draft' || s.status === 'reviewing'
+                      a.btn.primary(href=`/admin/inventory-support/stocktake/${s.id}/download`)
+                        span.ico
+                          +icon-download(18)
+                        | CSV
+                      // Upload CSV ngay táº¡i dÃ²ng session
+                      form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/upload` enctype="multipart/form-data")
+                        input(type="file" name="file" accept=".csv" required)
+                        button.btn(type="submit")
+                          span.ico
+                            +icon-upload(18)
+                          | Tải lên
+                      form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/post`)
+                        button.btn(type="submit") Ghi nhận
+                    if s.status !== 'posted'
+                      form(method="post" action=`/admin/inventory-support/stocktake/${s.id}/delete` onsubmit="return confirm('XÃ³a session nÃ y?');")
+                        button.btn.danger(type="submit") Xóa
+
+      else
+        .empty Không có phiên kiểm kê nào.
+
+  // Panel: Bulk Adjust
+  .panel#p-bulk
+    .card(style="padding:16px")
+      .hstack(style="justify-content:space-between;margin-bottom:8px")
+        h3(style="margin:0")
+          | Điều chỉnh hàng loạt từ CSV
+          button.btn.hint(type="button" data-tt-title="Bulk Adjust" data-tt-body="Điều chỉnh kho hàng loạt từ CSV (productId, variantId?, delta, reason, note). Có preview trước khi commit.")
+            +icon-hint(16)
+        .hstack
+          a.btn(href="/admin/inventory-support/template.csv")
+            span.ico
+              +icon-download(18)
+            | Mẫu CSV
+          button.btn.primary#btnOpenUpload(type="button")
+            span.ico
+              +icon-upload(18)
+            | Tải lên CSV
+      p.muted Cột CSV: productId, variantId(tùy chọn), delta, reason(manualImport|manualAdjust|returnIn|returnOut), note(tùy chọn)
+      if bulkPreview && bulkPreview.length
+        table
+          thead
+            tr
+              th Sản phẩm
+              th Biến thể
+              th.delta Chênh lệch
+              th Lý do
+              th Note
+          tbody
+            each r in bulkPreview
+              tr
+                td= r.productId
+                td= r.variantId || '-'
+                td.num= r.delta
+                td= r.reason
+                td= r.note || ''
+        form(method="post" action="/admin/inventory-support/bulk-adjust/commit")
+          button.btn.primary(type="submit") Commit changes
+      else
+        .empty Chưa có bản xem trước. Dùng nút "Tải lên CSV" để xem.
+
+    // Upload CSV Modal (chá»‰ má»Ÿ tá»« tab Bulk)
+    .modal-backdrop#upModal(style="display:none")
+      .modal(role="dialog" aria-modal="true" aria-labelledby="upTitle")
+        .modal-hd#upTitle Tải lên CSV
+        form(method="post" action="/admin/inventory-support/bulk-adjust/upload" enctype="multipart/form-data")
+          .modal-bd
+            input(type="file" name="file" accept=".csv" required)
+            p.muted(style="margin:8px 0 0") File CSV sẽ được xem preview trước khi tải lên.
+          .modal-ft
+            button.btn(type="button" onclick="document.getElementById('upModal').style.display='none'") Hủy
+            button.btn.primary(type="submit") Tải lên
+
+  // Panel: Barcode / QR
+  .panel#p-code
+    .card(style="padding:16px")
+      h3(style="margin:0 0 10px")
+        | Tạo Mã Vạch / QR
+        button.btn.hint(type="button" data-tt-title="Barcode / QR" data-tt-body="Tạo mã vạch (barcode) hoặc mã QR cho sản phẩm hoặc biến thể.")
+          +icon-hint(16)
+      form.hstack(method="get" action="/admin/inventory-support/barcode")
+        input(type="text" name="productId" placeholder="ID sản phẩm" required style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:240px")
+        input(type="text" name="variantId" placeholder="ID biến thể (tùy chọn)" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px;min-width:240px")
+        select(name="type" style="padding:8px 12px;border:1px solid #e5e7eb;border-radius:10px")
+          option(value="barcode") Mã vạch
+          option(value="qr") Mã QR
+        button.btn.primary(type="submit") Tạo
+      if barcodeUrl
+        .hstack(style="margin-top:12px")
+          img#codePreview(src=barcodeUrl alt="code" style="max-height:160px")
+          a.btn(href=barcodeUrl target="_blank") Mở
+
+  // Panel: Diagnostics
+  .panel#p-diag
+    .card(style="padding:16px")
+      .hstack(style="justify-content:space-between;margin-bottom:8px")
+        h3(style="margin:0 0 10px") Chuẩn đoán tồn kho
+        .hstack
+          a.btn(href="/admin/inventory-support/export")
+            span.ico
+              +icon-download(18)
+            | Xuất CSV
+          a.btn(href="/admin/inventory-support/rebuild-onhand")
+            span.ico
+              +icon-rebuild(18)
+            | Tính lại Tồn kho
+    .grid2
+      .card(style="padding:16px")
+        h3(style="margin:0 0 10px")
+          | Tồn âm
+          button.btn.hint(type="button" data-tt-title="Tồn âm" data-tt-body="Biến thể có tồn kho âm do lỗi hệ thống hoặc nhập liệu sai.")
+            +icon-hint(16)
+        if diagnostics && diagnostics.negative && diagnostics.negative.length
+          table
+            thead
+              tr
+                th VariantId
+                th ID sản phẩm
+                th Tồn kho
+            tbody
+              each v in diagnostics.negative
+                tr
+                  td= v.id
+                  td= v.productId
+                  td.num= v.stock
+        else
+          .empty Không có tồn âm.
+      .card(style="padding:16px")
+        h3(style="margin:0 0 10px")
+          | Biến thể mất liên kết
+          button.btn.hint(type="button" data-tt-title="Orphan Variants" data-tt-body="Biến thể không có sản phẩm tương ứng.")
+            +icon-hint(16)
+        if diagnostics && diagnostics.orphan && diagnostics.orphan.length
+          table
+            thead
+              tr
+                th VariantId
+            tbody
+              each v in diagnostics.orphan
+                tr
+                  td= v.id
+        else
+          .empty Không có biến thể đơn lẻ.
+
+append scripts
+  script.
+    // ===== Tabs (shared) + lazy init theo tab =====
+    (function(){
+      var tabs=[].slice.call(document.querySelectorAll('.tabs .tab'));
+      var panels=[].slice.call(document.querySelectorAll('.panel'));
+      var TAB_KEY='inv_tab_active';
+      var inited = {};
+
+      function show(id){
+        if(!id) return;
+        tabs.forEach(function(t){
+          var on = t.getAttribute('aria-controls')===id;
+          t.setAttribute('aria-selected', String(on));
+        });
+        panels.forEach(function(p){ p.classList.toggle('active', p.id===id); });
+
+        if(location.hash!==('#'+id)) history.replaceState(null,'','#'+id);
+        try{ localStorage.setItem(TAB_KEY,id); }catch(e){}
+
+        if(!inited[id]){
+          inited[id] = true;
+          document.dispatchEvent(new CustomEvent('tab:show', { detail:{ id:id } }));
+        }
+      }
+
+      tabs.forEach(function(t){
+        t.addEventListener('click', function(){
+          var id=t.getAttribute('aria-controls'); if(id) show(id);
+        });
+      });
+
+      var defaultId='p-low';
+      var initId=(function(){
+        if(document.getElementById('codePreview')) return 'p-code';
+        if(location.hash && document.getElementById(location.hash.slice(1))) return location.hash.slice(1);
+        try{ var saved=localStorage.getItem(TAB_KEY); if(saved && document.getElementById(saved)) return saved; }catch(_){}
+        return defaultId;
+      })();
+      show(initId);
+    })();
+
+    // ===== Tooltips (shared) =====
+    (function () {
+      var tipEl=null, arrowEl=null, activeBtn=null, rafId=0;
+
+      function removeTip(){
+        if(rafId) cancelAnimationFrame(rafId), (rafId=0);
+        if(tipEl){ tipEl.remove(); tipEl=null; }
+        arrowEl=null;
+        if(activeBtn){
+          activeBtn.removeAttribute('aria-expanded');
+          activeBtn.removeAttribute('aria-describedby');
+          activeBtn=null;
+        }
+      }
+      function placeTip(btn){
+        if(!tipEl) return;
+        var r=btn.getBoundingClientRect(), gap=8, vw=innerWidth, vh=innerHeight;
+        tipEl.style.top='0px'; tipEl.style.left='-9999px';
+        var tw=tipEl.offsetWidth, th=tipEl.offsetHeight;
+        var left=scrollX+r.right+gap, showRight=true;
+        if(left+tw+12>scrollX+vw){ left=scrollX+r.left-tw-gap; showRight=false; }
+        var top=scrollY+r.top+(r.height/2)-(th/2);
+        top=Math.max(scrollY+8, Math.min(top, scrollY+vh-th-8));
+        tipEl.style.top=top+'px'; tipEl.style.left=left+'px';
+        var ar=7; arrowEl.style.width=(ar*2)+'px'; arrowEl.style.height=(ar*2)+'px'; arrowEl.style.top=(th/2-ar)+'px';
+        arrowEl.style.left=''; arrowEl.style.right=''; arrowEl.style.transform='rotate(45deg)';
+        if(showRight) arrowEl.style.left=(-ar)+'px'; else arrowEl.style.right=(-ar)+'px';
+      }
+      function openTip(btn){
+        removeTip();
+        var title=btn.getAttribute('data-tt-title')||'Help';
+        var body=btn.getAttribute('data-tt-body')||'';
+        tipEl=document.createElement('div'); tipEl.className='tooltip-pop';
+        tipEl.setAttribute('role','dialog'); tipEl.setAttribute('aria-modal','false');
+        var tipId='tt-'+Math.random().toString(36).slice(2); tipEl.id=tipId;
+        tipEl.innerHTML='<div class="tt-hd">'+title+'</div><div class="tt-bd">'+body+'</div><div class="tt-ft">Nhấp ra ngoài để đóng</div>';
+        arrowEl=document.createElement('div'); arrowEl.className='tooltip-arrow'; arrowEl.style.position='absolute'; tipEl.appendChild(arrowEl);
+        document.body.appendChild(tipEl);
+        activeBtn=btn; activeBtn.setAttribute('aria-expanded','true'); activeBtn.setAttribute('aria-describedby', tipId);
+        placeTip(activeBtn);
+        var lx=scrollX, ly=scrollY, lw=innerWidth, lh=innerHeight;
+        function watch(){
+          if(!tipEl||!activeBtn) return;
+          if(lx!==scrollX||ly!==scrollY||lw!==innerWidth||lh!==innerHeight){ lx=scrollX; ly=scrollY; lw=innerWidth; lh=innerHeight; placeTip(activeBtn); }
+          rafId=requestAnimationFrame(watch);
+        }
+        rafId=requestAnimationFrame(watch);
+      }
+      document.addEventListener('click', function(e){
+        var btn=e.target && e.target.closest && e.target.closest('.btn.hint');
+        if(btn){ if(btn===activeBtn) removeTip(); else openTip(btn); e.preventDefault(); e.stopPropagation(); return; }
+        if(tipEl && !tipEl.contains(e.target)) removeTip();
+      }, { passive:false });
+      addEventListener('keydown', function(e){ if(e.key==='Escape') removeTip(); }, { passive:true });
+      addEventListener('resize', removeTip, { passive:true });
+      addEventListener('scroll', function(){ if(tipEl) removeTip(); }, true);
+    })();
+
+    // ===== Per-tab lazy init =====
+
+    // Low Stock: AJAX refresh + Draft PO
+    (function(){
+      function initLow(){
+        var btnRefresh=document.getElementById('btnLowRefresh');
+        var btnDraft=document.getElementById('btnDraftPO');
+        if(btnRefresh && !btnRefresh._bound){
+          btnRefresh._bound=true;
+          btnRefresh.addEventListener('click', refreshLowStock);
+        }
+        if(btnDraft && !btnDraft._bound){
+          btnDraft._bound=true;
+          btnDraft.addEventListener('click', createDraftPO);
+        }
+      }
+      document.addEventListener('tab:show', function(e){
+        if(e.detail.id==='p-low') initLow();
+      });
+      if(document.querySelector('#p-low.active')) initLow();
+
+      function htmlEscape(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      window.refreshLowStock = function(){
+        var limit = parseInt((document.getElementById('lowLimit')||{}).value||'10',10);
+        fetch('/admin/inventory-support/low-stock?limit='+encodeURIComponent(limit||10))
+          .then(function(r){ return r.ok ? r.json() : Promise.reject(r); })
+          .then(function(json){
+            var table = document.getElementById('lowTable');
+            var empty = document.getElementById('lowEmpty');
+            if(!json || !json.ok){ throw new Error('bad'); }
+            var rows = json.rows || [];
+            if(!rows.length){
+              if(table) table.remove();
+              if(empty) empty.textContent='Không có mặt hàng tồn kho thấp.';
+              else {
+                var div=document.createElement('div'); div.className='empty'; div.id='lowEmpty'; div.textContent='Không có mặt hàng tồn kho thấp.';
+                var panel=document.getElementById('p-low'); panel && panel.querySelector('.card').appendChild(div);
+              }
+              return;
+            }
+            if(!table){
+              var wrap = document.createElement('table'); wrap.id='lowTable';
+              wrap.innerHTML='<colgroup><col style="width:50%"><col style="width:16%"><col style="width:17%"><col style="width:17%"></colgroup><thead><tr><th>Sản phẩm</th><th style="text-align:right">Điểm đặt hàng lại</th><th style="text-align:right">Số lượng hiện có</th><th style="text-align:right">Đề xuất</th></tr></thead><tbody></tbody>';
+              var panel=document.getElementById('p-low'); panel && panel.querySelector('.card').appendChild(wrap);
+              table = wrap;
+              var e = document.getElementById('lowEmpty'); if(e) e.remove();
+            }
+            var tbody = table.querySelector('tbody'); if(!tbody){ tbody=document.createElement('tbody'); table.appendChild(tbody); }
+            tbody.innerHTML = rows.map(function(r){
+              var rp = r.reorderPoint || 10;
+              var on = r.stock || 0;
+              var need = Math.max(0, rp - on);
+              return '<tr>'
+                + '<td>'+htmlEscape(r.title)+'</td>'
+                + '<td class="num">'+rp+'</td>'
+                + '<td class="num">'+on+'</td>'
+                + '<td class="num">'+need+'</td>'
+                + '</tr>';
+            }).join('');
+          })
+          .catch(function(){ alert('Làm mới thất bại'); });
+      };
+
+      function createDraftPO(){
+        fetch('/admin/inventory-support/reorder-draft', {method:'POST'})
+          .then(function(r){ return r.ok ? r.blob() : Promise.reject(r); })
+          .then(function(b){
+            var url=URL.createObjectURL(b);
+            var a=document.createElement('a'); a.href=url; a.download='reorder-draft.csv'; a.click();
+            setTimeout(function(){ URL.revokeObjectURL(url); }, 1500);
+          })
+          .catch(function(){ alert('Không thể tạo file nháp.'); });
+      }
+      window.createDraftPO = createDraftPO;
+    })();
+
+    // Bulk: má»Ÿ modal upload
+    (function(){
+      function initBulk(){
+        var btn=document.getElementById('btnOpenUpload');
+        var modal=document.getElementById('upModal');
+        if(btn && !btn._bound){
+          btn._bound=true;
+          btn.addEventListener('click', function(){ if(modal) modal.style.display='flex'; });
+        }
+      }
+      document.addEventListener('tab:show', function(e){
+        if(e.detail.id==='p-bulk') initBulk();
+      });
+      if(document.querySelector('#p-bulk.active')) initBulk();
+    })();
+

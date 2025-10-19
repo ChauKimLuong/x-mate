@@ -1,0 +1,111 @@
+extends ../../layouts/default
+include ../../mixins/icons
+
+block content
+  - const KP = kpis || { totalOrders: 0, deals: 0, newLeads: 0, bookedRev: 0 }
+  - const DL = deltas || { totalOrders: 0, deals: 0, newLeads: 0, bookedRev: 0 }
+  - const pretty = (n) => Number(n || 0).toLocaleString()
+
+  .dash-wrap
+    h2.welcome Xin chào
+
+    .kpi-row
+      // 4 KPI
+      .kpi-card
+        .ico-bg.peach
+          +ic_bag()
+        .meta
+          .label Tổng đơn hàng
+          .value #{pretty(KP.totalOrders)}
+        .delta
+          if DL.totalOrders >= 0
+            span.up ▲ #{DL.totalOrders}% 
+            span.muted so với tháng trước
+          else
+            span.down ▼ #{Math.abs(DL.totalOrders)}%
+            span.muted vs Last Month
+
+      .kpi-card
+        .ico-bg.peach
+          +ic_lock()
+        .meta
+          .label Giao dịch
+          .value #{pretty(KP.deals)}
+        .delta
+          if DL.deals >= 0
+            span.up ▲ #{DL.deals}% 
+            span.muted so với tháng trước
+          else
+            span.down ▼ #{Math.abs(DL.deals)}%
+            span.muted vs Last Month
+
+      .kpi-card
+        .ico-bg.peach
+          +ic_userAdd()
+        .meta
+          .label Khách hàng tiềm năng mới
+          .value #{pretty(KP.newLeads)}
+        .delta
+          if DL.newLeads >= 0
+            span.up ▲ #{DL.newLeads}% 
+            span.muted so với tháng trước
+          else
+            span.down ▼ #{Math.abs(DL.newLeads)}%
+            span.muted vs Last Month
+
+      .kpi-card
+        .ico-bg.peach
+          +ic_coin()
+        .meta
+          .label Doanh thu ghi nhận
+          .value #{pretty(KP.bookedRev / 1000)}k đ
+        .delta
+          if DL.bookedRev >= 0
+            span.up ▲ #{DL.bookedRev}% 
+            span.muted so với tháng trước
+          else
+            span.down ▼ #{Math.abs(DL.bookedRev)}%
+            span.muted vs Last Month
+
+    // Grid 4 charts (equal parts)
+    .perf-grid(style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px")
+      // Card 1: Performance Overview
+      .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px;display:flex;flex-direction:column")
+        .perf-hd(style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px")
+          .ttl Tổng quan hiệu suất
+          .seg
+            button(class=(period === "ALL" ? "on" : "") onclick="location.href='?period=ALL'") ALL
+            button(class=(period === "1M" ? "on" : "") onclick="location.href='?period=1M'") 1M
+            button(class=(period === "6M" ? "on" : "") onclick="location.href='?period=6M'") 6M
+            button(class=(period === "1Y" ? "on" : "") onclick="location.href='?period=1Y'") 1Y
+        .perf-bd(style="flex:1")
+          canvas#perfChart(height="160")
+
+      // Card 2: Daily Revenue
+      .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
+        h3(style="margin:0 0 8px;font-size:14px") Doanh thu theo ngày (30 ngày)
+        canvas#revenueLineChart(height="160")
+
+      // Card 3: Revenue by Category
+      .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
+        h3(style="margin:0 0 8px;font-size:14px") Doanh thu theo danh mục
+        canvas#categoryBarChart(height="160")
+
+      // Card 4: Top Products
+      .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
+        h3(style="margin:0 0 8px;font-size:14px") Sản phẩm bán chạy (SL)
+        canvas#topProductsBarChart(height="160")
+
+block scripts
+  script(src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js")
+  script.
+    window.__chart = {
+      labels: !{JSON.stringify(labels)},
+      views: !{JSON.stringify(seriesViews)},
+      added: !{JSON.stringify(seriesAdded)},
+      completed: !{JSON.stringify(seriesCompleted)}
+    };
+    window.__revenueDaily = !{JSON.stringify(revenueDaily || { labels: [], values: [] })};
+    window.__catRevenue  = !{JSON.stringify(catRevenue || { labels: [], values: [] })};
+    window.__topProducts = !{JSON.stringify(topProducts || { labels: [], values: [] })};
+  script(src="/js/admin/admin-dashboard.js")
