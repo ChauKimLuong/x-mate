@@ -1,0 +1,19 @@
+{
+    "functions": {
+        "api/index.ts": {
+            "includeFiles": [
+                "views/**",
+                "public/**",
+                "prisma/**",
+                "node_modules/.prisma/**",
+                "node_modules/bwip-js/**"
+            ]
+        }
+    },
+    "routes": [
+        {
+            "src": "/(.*)",
+            "dest": "api/index.ts"
+        }
+    ]
+}
