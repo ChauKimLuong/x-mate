@@ -28,11 +28,20 @@ const formatCurrency = (amount: number): string => {
 };
 
 const buildColorPalette = (product: any) => {
-    const palette = new Map<string, { name: string; hex: string }>();
+    const palette = new Map<
+        string,
+        { name: string; hex: string | null; swatchUrl: string | null }
+    >();
 
-    const register = (nameRaw?: string | null, hexRaw?: string | null) => {
+    const register = (
+        nameRaw?: string | null,
+        hexRaw?: string | null,
+        swatchRaw?: string | null
+    ) => {
         const name = nameRaw?.trim() ?? "";
-        const hexCandidate = hexRaw?.trim() ?? "";
+        const hexCandidate = typeof hexRaw === "string" ? hexRaw.trim() : "";
+        const swatchCandidate =
+            typeof swatchRaw === "string" ? swatchRaw.trim() : "";
         let hex = "";
         if (hexCandidate && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hexCandidate)) {
             hex = hexCandidate;
@@ -42,11 +51,13 @@ const buildColorPalette = (product: any) => {
         ) {
             hex = name;
         }
-        const key = (name || hex || "default").toLowerCase();
+        const swatchUrl = hex ? "" : swatchCandidate;
+        const key = (name || hex || swatchUrl || "default").toLowerCase();
         if (!palette.has(key)) {
             palette.set(key, {
                 name: name || "Màu khác",
-                hex: hex || "#1f2937",
+                hex: hex || null,
+                swatchUrl: swatchUrl || null,
             });
         }
     };
@@ -55,7 +66,12 @@ const buildColorPalette = (product: any) => {
         ? product.productVariants
         : [];
     prismaVariants.forEach((variant: any) => {
-        register(variant?.color ?? null, variant?.colorHexLegacy ?? null);
+        const variantColor = (variant as any)?.colors ?? null;
+        register(
+            variant?.color ?? variantColor?.name ?? null,
+            variant?.colorHexLegacy ?? variantColor?.hex ?? null,
+            variantColor?.swatchUrl ?? variant?.swatchUrlLegacy ?? null
+        );
     });
 
     const legacyVariants = Array.isArray(product?.variants)
@@ -64,12 +80,37 @@ const buildColorPalette = (product: any) => {
     legacyVariants.forEach((variant: any) => {
         register(
             variant?.color ?? null,
-            variant?.colorHexLegacy ?? variant?.colorHex ?? null
+            variant?.colorHexLegacy ?? variant?.colorHex ?? null,
+            variant?.swatchUrlLegacy ?? null
         );
     });
 
     const colorField = Array.isArray(product?.colors) ? product.colors : [];
-    colorField.forEach((colorName: string) => register(colorName ?? "", null));
+    colorField.forEach((colorValue: any) => {
+        if (typeof colorValue === "string") {
+            const trimmed = colorValue.trim();
+            if (!trimmed) {
+                return;
+            }
+            if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
+                register("", trimmed, null);
+            } else if (/^https?:\/\//i.test(trimmed)) {
+                register("", null, trimmed);
+            } else {
+                register(trimmed, null, null);
+            }
+        } else if (
+            colorValue &&
+            typeof colorValue === "object" &&
+            ("name" in colorValue || "hex" in colorValue || "swatchUrl" in colorValue)
+        ) {
+            register(
+                (colorValue as any).name ?? null,
+                (colorValue as any).hex ?? null,
+                (colorValue as any).swatchUrl ?? null
+            );
+        }
+    });
 
     return Array.from(palette.values()).slice(0, 8);
 };
@@ -80,7 +121,14 @@ export const detail = async (req: Request, res: Response) => {
         const { slug } = req.params;
         const product = await prisma.products.findFirst({
             where: { slug, deleted: false },
-            include: { productVariants: true, categories: true },
+            include: {
+                productVariants: {
+                    include: {
+                        colors: true,
+                    },
+                },
+                categories: true,
+            },
         });
 
         if (!product) {

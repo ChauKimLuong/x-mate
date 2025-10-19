@@ -80,12 +80,23 @@ block content
               .product-detail__swatches.swatches
                 each color, idx in product.colors
                   - const colorActive = (product.defaultColor ? color.name === product.defaultColor.name : idx === 0) ? 'is-active' : ''
+                  - const colorObj = color || {}
+                  - const colorHex = (typeof colorObj.hex === 'string' && colorObj.hex) ? colorObj.hex : ''
+                  - const hasHex = !!colorHex
+                  - const rawSwatchUrl = !hasHex && typeof colorObj.swatchUrl === 'string' ? colorObj.swatchUrl : ''
+                  - const safeSwatchUrl = rawSwatchUrl ? String(rawSwatchUrl).replace(/'/g, "\\'") : ''
+                  - const swatchStyles = []
+                  - if (hasHex) swatchStyles.push(`--swatch-color:${colorHex}`)
+                  - if (safeSwatchUrl) swatchStyles.push(`--swatch-image:url('${safeSwatchUrl}')`)
+                  - if (!swatchStyles.length) swatchStyles.push(`--swatch-color:#1f2937`)
+                  - const swatchStyle = swatchStyles.join(';')
                   button(
                     type="button"
                     class=colorActive
                     data-color-name=color.name
-                    data-color-hex=color.hex
-                    style=`--swatch:${color.hex || '#1f2937'}`
+                    data-color-hex=colorHex
+                    data-color-swatch=safeSwatchUrl
+                    style=swatchStyle
                   )
                     span.visually-hidden= color.name
 

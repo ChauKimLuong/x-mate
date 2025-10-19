@@ -38,9 +38,27 @@ mixin productCard(p)
             .swatches
                 each color, idx in colors
                     - const act = idx === 0 ? ' is-active' : ''
-                    - const swatchName = color?.name || 'Màu khác'
-                    - const swatchHex = color?.hex || '#1f2937'
-                    button.swatch(class=act type="button" data-color-name=swatchName data-color-hex=swatchHex style=`--swatch:${swatchHex}`)
+                    - const colorObj = color || {}
+                    - const swatchRawName = typeof colorObj.name === 'string' ? colorObj.name : ''
+                    - const swatchName = (swatchRawName && swatchRawName.trim()) ? swatchRawName : 'Màu khác'
+                    - const colorHex = (typeof colorObj.hex === 'string' && colorObj.hex) ? colorObj.hex : ''
+                    - const hasHex = !!colorHex
+                    - const rawSwatchUrl = !hasHex && typeof colorObj.swatchUrl === 'string' ? colorObj.swatchUrl : ''
+                    - const safeSwatchUrl = rawSwatchUrl ? String(rawSwatchUrl).replace(/'/g, "\\'") : ''
+                    - const styleParts = []
+                    - if (hasHex) styleParts.push(`--swatch-color:${colorHex}`)
+                    - if (safeSwatchUrl) styleParts.push(`--swatch-image:url('${safeSwatchUrl}')`)
+                    - if (!styleParts.length) styleParts.push(`--swatch-color:#1f2937`)
+                    - const swatchStyle = styleParts.join(';')
+                    button.swatch(
+                        class=act
+                        type="button"
+                        data-color-name=swatchName
+                        data-color=swatchName
+                        data-color-hex=colorHex
+                        data-color-swatch=safeSwatchUrl
+                        style=swatchStyle
+                    )
                         span.visually-hidden= swatchName
 
         .info

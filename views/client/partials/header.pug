@@ -90,8 +90,7 @@ header.site-header
           span.fa-solid.fa-cart-shopping
           -
             var _qty = (typeof cartQuantity === 'number' && isFinite(cartQuantity)) ? cartQuantity : 0;
-          if _qty > 0
-            span.cart__badge= _qty
+          span.cart__badge(style=_qty > 0 ? '' : 'display:none')= _qty > 0 ? _qty : ''
 
 //- .promo-strip
 //-   .container

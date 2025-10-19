@@ -10,7 +10,14 @@
       cartBadge = document.querySelector('.cart__badge')
     }
     if (cartBadge && typeof count === 'number' && !Number.isNaN(count)) {
-      cartBadge.textContent = String(count)
+      var normalized = Math.max(0, Math.floor(count))
+      if (normalized > 0) {
+        cartBadge.textContent = String(normalized)
+        cartBadge.style.display = ''
+      } else {
+        cartBadge.textContent = ''
+        cartBadge.style.display = 'none'
+      }
     }
   }
 
