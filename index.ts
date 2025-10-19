@@ -46,6 +46,7 @@ app.use(cartQuantityMiddleware);
 clientRoutes(app);
 app.use("/admin", adminRouter);
 
+const PORT = parseInt(process.env.PORT ?? "3000", 10);
 app.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server on http://localhost:${PORT}`);
+  console.log(`Server đang chạy tại http://localhost:${PORT}`);
 });
