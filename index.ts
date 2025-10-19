@@ -46,8 +46,6 @@ app.use(cartQuantityMiddleware);
 clientRoutes(app);
 app.use("/admin", adminRouter);
 
-// Start server
-// app.listen(PORT, () => {
-//   console.log(`Server đang chạy tại http://localhost:${PORT}`);
-// });
-export default app;
+app.listen(PORT, "0.0.0.0", () => {
+  console.log(`Server on http://localhost:${PORT}`);
+});
