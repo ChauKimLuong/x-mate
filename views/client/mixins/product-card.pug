@@ -45,6 +45,7 @@ mixin productCard(p)
                     - const hasHex = !!colorHex
                     - const rawSwatchUrl = !hasHex && typeof colorObj.swatchUrl === 'string' ? colorObj.swatchUrl : ''
                     - const safeSwatchUrl = rawSwatchUrl ? String(rawSwatchUrl).replace(/'/g, "\\'") : ''
+                    - const colorImageRaw = (typeof colorObj.image === 'string' && colorObj.image) ? colorObj.image : ''
                     - const styleParts = []
                     - if (hasHex) styleParts.push(`--swatch-color:${colorHex}`)
                     - if (safeSwatchUrl) styleParts.push(`--swatch-image:url('${safeSwatchUrl}')`)
@@ -57,6 +58,7 @@ mixin productCard(p)
                         data-color=swatchName
                         data-color-hex=colorHex
                         data-color-swatch=safeSwatchUrl
+                        data-color-image=colorImageRaw
                         style=swatchStyle
                     )
                         span.visually-hidden= swatchName

@@ -28,60 +28,61 @@ const formatCurrency = (amount: number): string => {
 };
 
 const buildColorPalette = (product: any) => {
-    const palette = new Map<
+    const colorMap = new Map<
         string,
-        { name: string; hex: string | null; swatchUrl: string | null }
+        { name: string; hex: string | null; swatchUrl: string | null; image: string | null }
     >();
-
-    const register = (
+    const recordColor = (
         nameRaw?: string | null,
         hexRaw?: string | null,
-        swatchRaw?: string | null
+        swatchRaw?: string | null,
+        imageRaw?: string | null
     ) => {
         const name = nameRaw?.trim() ?? "";
         const hexCandidate = typeof hexRaw === "string" ? hexRaw.trim() : "";
         const swatchCandidate =
             typeof swatchRaw === "string" ? swatchRaw.trim() : "";
+        const imageCandidate =
+            typeof imageRaw === "string" ? imageRaw.trim() : "";
         let hex = "";
         if (hexCandidate && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hexCandidate)) {
             hex = hexCandidate;
-        } else if (
-            name.startsWith("#") &&
-            /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(name)
-        ) {
+        } else if (name.startsWith("#") && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(name)) {
             hex = name;
         }
         const swatchUrl = hex ? "" : swatchCandidate;
         const key = (name || hex || swatchUrl || "default").toLowerCase();
-        if (!palette.has(key)) {
-            palette.set(key, {
-                name: name || "Màu khác",
-                hex: hex || null,
-                swatchUrl: swatchUrl || null,
-            });
+        const existing = colorMap.get(key);
+        if (existing) {
+            if (!existing.name && name) existing.name = name;
+            if (!existing.hex && hex) existing.hex = hex;
+            if (!existing.swatchUrl && swatchUrl) existing.swatchUrl = swatchUrl;
+            if (!existing.image && imageCandidate) existing.image = imageCandidate;
+            return;
         }
+        colorMap.set(key, {
+            name: name || "Mau khac",
+            hex: hex || null,
+            swatchUrl: swatchUrl || null,
+            image: imageCandidate || null,
+        });
     };
 
-    const prismaVariants = Array.isArray(product?.productVariants)
-        ? product.productVariants
-        : [];
-    prismaVariants.forEach((variant: any) => {
+prismaVariants.forEach((variant: any) => {
         const variantColor = (variant as any)?.colors ?? null;
-        register(
-            variant?.color ?? variantColor?.name ?? null,
-            variant?.colorHexLegacy ?? variantColor?.hex ?? null,
-            variantColor?.swatchUrl ?? variant?.swatchUrlLegacy ?? null
+        recordColor(
+            (variant as any)?.color ?? variantColor?.name ?? null,
+            (variant as any)?.colorHexLegacy ?? variantColor?.hex ?? null,
+            variantColor?.swatchUrl ?? (variant as any)?.swatchUrlLegacy ?? null,
+            Array.isArray(variant?.images) && variant.images.length ? variant.images[0] : null
         );
     });
-
-    const legacyVariants = Array.isArray(product?.variants)
-        ? product.variants
-        : [];
     legacyVariants.forEach((variant: any) => {
-        register(
+        recordColor(
             variant?.color ?? null,
             variant?.colorHexLegacy ?? variant?.colorHex ?? null,
-            variant?.swatchUrlLegacy ?? null
+            (variant as any)?.swatchUrlLegacy ?? null,
+            Array.isArray(variant?.images) && variant.images.length ? variant.images[0] : null
         );
     });
 
@@ -93,26 +94,27 @@ const buildColorPalette = (product: any) => {
                 return;
             }
             if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
-                register("", trimmed, null);
+                recordColor("", trimmed, null, null);
             } else if (/^https?:\/\//i.test(trimmed)) {
-                register("", null, trimmed);
+                recordColor("", null, trimmed, null);
             } else {
-                register(trimmed, null, null);
+                recordColor(trimmed, null, null, null);
             }
         } else if (
             colorValue &&
             typeof colorValue === "object" &&
             ("name" in colorValue || "hex" in colorValue || "swatchUrl" in colorValue)
         ) {
-            register(
+            recordColor(
                 (colorValue as any).name ?? null,
                 (colorValue as any).hex ?? null,
-                (colorValue as any).swatchUrl ?? null
+                (colorValue as any).swatchUrl ?? null,
+                (colorValue as any).image ?? null
             );
         }
     });
 
-    return Array.from(palette.values()).slice(0, 8);
+    return Array.from(colorMap.values()).slice(0, 8);
 };
 
 // [GET] /product/detail/:slug

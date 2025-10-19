@@ -5,6 +5,7 @@ const router = express.Router();
 
 router.get("/", homeController.index);
 router.get("/search", homeController.search);
+router.get("/hang-moi", homeController.hangMoi);
 router.get("/sale", homeController.sale);
 router.get("/the-thao", homeController.theThao);
 

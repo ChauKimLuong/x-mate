@@ -21,6 +21,61 @@
     }
   }
 
+  function cacheDefaultImages(card) {
+    var primary = card.querySelector('.product-thumb:not(.product-thumb--hover)')
+    var hover = card.querySelector('.product-thumb--hover')
+    if (primary && !primary.dataset.originalSrc) {
+      primary.dataset.originalSrc = primary.getAttribute('src') || ''
+    }
+    if (hover && !hover.dataset.originalSrc) {
+      hover.dataset.originalSrc = hover.getAttribute('src') || ''
+    }
+    if (primary) {
+      var defaultImage = primary.dataset.originalSrc || primary.getAttribute('src') || ''
+      card.dataset.defaultImage = defaultImage
+      if (!card.getAttribute('data-product-image') && defaultImage) {
+        card.setAttribute('data-product-image', defaultImage)
+      }
+    }
+    if (hover) {
+      card.dataset.defaultHover =
+        hover.dataset.originalSrc || hover.getAttribute('src') || ''
+    }
+  }
+
+  function applyColorImage(card, imageUrl) {
+    var primary = card.querySelector('.product-thumb:not(.product-thumb--hover)')
+    var hover = card.querySelector('.product-thumb--hover')
+    var normalized = typeof imageUrl === 'string' ? imageUrl.trim() : ''
+
+    if (normalized) {
+      if (primary) {
+        primary.setAttribute('src', normalized)
+      }
+      if (hover) {
+        hover.setAttribute('src', normalized)
+      }
+      card.setAttribute('data-product-image', normalized)
+      return
+    }
+
+    var fallback = card.dataset.defaultImage || (primary && primary.dataset.originalSrc) || ''
+    var hoverFallback =
+      card.dataset.defaultHover ||
+      (hover && hover.dataset.originalSrc) ||
+      fallback
+
+    if (primary && fallback) {
+      primary.setAttribute('src', fallback)
+    }
+    if (hover && hoverFallback) {
+      hover.setAttribute('src', hoverFallback)
+    }
+    if (fallback) {
+      card.setAttribute('data-product-image', fallback)
+    }
+  }
+
   function setSelectedColor(card, button) {
     var swatches = card.querySelectorAll('.swatch')
     swatches.forEach(function (item) {
@@ -34,6 +89,9 @@
     } else {
       card.removeAttribute('data-selected-color')
     }
+
+    var colorImage = button.getAttribute('data-color-image') || ''
+    applyColorImage(card, colorImage)
   }
 
   function getSelectedColor(card) {
@@ -139,12 +197,19 @@
   }
 
   cards.forEach(function (card) {
+    cacheDefaultImages(card)
     var initial = card.querySelector('.swatch.is-active')
     if (initial) {
       var colorValue = initial.getAttribute('data-color')
       if (colorValue) {
         card.setAttribute('data-selected-color', colorValue)
       }
+      var initialImage = initial.getAttribute('data-color-image') || ''
+      if (initialImage) {
+        applyColorImage(card, initialImage)
+      }
+    } else if (card.dataset.defaultImage) {
+      card.setAttribute('data-product-image', card.dataset.defaultImage)
     }
 
     card.querySelectorAll('.swatch').forEach(function (button) {

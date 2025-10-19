@@ -2,6 +2,8 @@ import { Request, Response } from "express";
 import prisma from "../../config/database";
 import bcrypt from "bcrypt";
 
+const CART_COOKIE_NAME = "cart_id";
+
 // [GET] /auth/login
 export const login = async (req: Request, res: Response) => {
     res.render("client/pages/user/login");
@@ -103,6 +105,11 @@ export const logout = async (req: Request, res: Response) => {
         }
 
         res.clearCookie("token_user");
+        res.clearCookie(CART_COOKIE_NAME);
+        if (req.session) {
+            delete (req.session as any).cart;
+            delete (req.session as any).cartCoupon;
+        }
 
         req.flash("success", "Đăng xuất thành công!");
         return res.redirect("/auth/login");

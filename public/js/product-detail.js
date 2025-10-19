@@ -1,6 +1,8 @@
 ﻿//@ts-nocheck
 ;(function () {
   var mainImage = document.getElementById('mainImage')
+  var defaultMainImage = mainImage ? mainImage.getAttribute('src') || '' : ''
+  var addToCartBtn = document.querySelector('[data-action="add-to-cart"]')
 
   var thumbButtons = document.querySelectorAll('.gallery__thumbs button')
   if (thumbButtons.length && mainImage) {
@@ -22,6 +24,10 @@
     })
   }
 
+  if (addToCartBtn && defaultMainImage && !addToCartBtn.getAttribute('data-product-image')) {
+    addToCartBtn.setAttribute('data-product-image', defaultMainImage)
+  }
+
   var colorButtons = document.querySelectorAll('.product-detail__swatches button')
   var colorValueLabel = document.querySelector('[data-selected-color]')
   if (colorButtons.length) {
@@ -35,8 +41,39 @@
         if (colorValueLabel) {
           colorValueLabel.textContent = colorName
         }
+        var colorImage = btn.getAttribute('data-color-image') || ''
+        if (mainImage) {
+          if (colorImage) {
+            mainImage.src = colorImage
+          } else if (defaultMainImage) {
+            mainImage.src = defaultMainImage
+          }
+        }
+        if (addToCartBtn) {
+          if (colorImage) {
+            addToCartBtn.setAttribute('data-product-image', colorImage)
+          } else if (defaultMainImage) {
+            addToCartBtn.setAttribute('data-product-image', defaultMainImage)
+          }
+        }
       })
     })
+    var initialColorBtn = document.querySelector(
+      '.product-detail__swatches button.is-active'
+    )
+    if (initialColorBtn) {
+      var initialImage = initialColorBtn.getAttribute('data-color-image') || ''
+      if (initialImage) {
+        if (mainImage) {
+          mainImage.src = initialImage
+        }
+        if (addToCartBtn) {
+          addToCartBtn.setAttribute('data-product-image', initialImage)
+        }
+      }
+    }
+  } else if (addToCartBtn && defaultMainImage) {
+    addToCartBtn.setAttribute('data-product-image', defaultMainImage)
   }
 
   var sizeButtons = document.querySelectorAll('.product-detail__sizes button')
@@ -78,7 +115,6 @@
     return value
   }
 
-  var addToCartBtn = document.querySelector('[data-action="add-to-cart"]')
   if (!addToCartBtn) return
 
   addToCartBtn.addEventListener('click', function () {

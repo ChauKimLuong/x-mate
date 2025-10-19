@@ -75,16 +75,21 @@ block content
           if product.colors && product.colors.length
             .product-detail__section
               .product-detail__section-head
-                span.product-detail__section-label Màu sắc:
-                span.product-detail__section-value(data-selected-color)= (product.defaultColor && product.defaultColor.name) || product.colors[0].name
+                span.product-detail__section-label Mau sac:
+                -
+                  const _initialColorName = (product.defaultColor && product.defaultColor.name) || product.colors[0].name || "Mau khac"
+                span.product-detail__section-value(data-selected-color)= _initialColorName
               .product-detail__swatches.swatches
                 each color, idx in product.colors
                   - const colorActive = (product.defaultColor ? color.name === product.defaultColor.name : idx === 0) ? 'is-active' : ''
                   - const colorObj = color || {}
+                  - const swatchName = (typeof colorObj.name === 'string' && colorObj.name.trim()) ? colorObj.name : 'Mau khac'
                   - const colorHex = (typeof colorObj.hex === 'string' && colorObj.hex) ? colorObj.hex : ''
                   - const hasHex = !!colorHex
                   - const rawSwatchUrl = !hasHex && typeof colorObj.swatchUrl === 'string' ? colorObj.swatchUrl : ''
-                  - const safeSwatchUrl = rawSwatchUrl ? String(rawSwatchUrl).replace(/'/g, "\\'") : ''
+                  - const safeSwatchUrl = rawSwatchUrl ? String(rawSwatchUrl).replace(/'/g, "\'") : ''
+                  - const colorImageRaw = (typeof colorObj.image === 'string' && colorObj.image) ? colorObj.image : ''
+                  - const safeColorImage = colorImageRaw ? String(colorImageRaw).replace(/'/g, "\'") : ''
                   - const swatchStyles = []
                   - if (hasHex) swatchStyles.push(`--swatch-color:${colorHex}`)
                   - if (safeSwatchUrl) swatchStyles.push(`--swatch-image:url('${safeSwatchUrl}')`)
@@ -93,12 +98,13 @@ block content
                   button(
                     type="button"
                     class=colorActive
-                    data-color-name=color.name
+                    data-color-name=swatchName
                     data-color-hex=colorHex
                     data-color-swatch=safeSwatchUrl
+                    data-color-image=safeColorImage
                     style=swatchStyle
                   )
-                    span.visually-hidden= color.name
+                    span.visually-hidden= swatchName
 
           if product.sizes && product.sizes.length
             .product-detail__section

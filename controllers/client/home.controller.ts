@@ -90,17 +90,20 @@ const buildProductCardData = (
 
     const colorMap = new Map<
         string,
-        { name: string; hex: string | null; swatchUrl: string | null }
+        { name: string; hex: string | null; swatchUrl: string | null; image: string | null }
     >();
     const recordColor = (
         nameRaw?: string | null,
         hexRaw?: string | null,
-        swatchRaw?: string | null
+        swatchRaw?: string | null,
+        imageRaw?: string | null
     ) => {
         const name = nameRaw?.trim() ?? "";
         const hexCandidate = typeof hexRaw === "string" ? hexRaw.trim() : "";
         const swatchCandidate =
             typeof swatchRaw === "string" ? swatchRaw.trim() : "";
+        const imageCandidate =
+            typeof imageRaw === "string" ? imageRaw.trim() : "";
         let hex = "";
         if (hexCandidate && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hexCandidate)) {
             hex = hexCandidate;
@@ -109,28 +112,37 @@ const buildProductCardData = (
         }
         const swatchUrl = hex ? "" : swatchCandidate;
         const key = (name || hex || swatchUrl || "default").toLowerCase();
-        if (!colorMap.has(key)) {
-            colorMap.set(key, {
-                name: name || "Màu khác",
-                hex: hex || null,
-                swatchUrl: swatchUrl || null,
-            });
+        const existing = colorMap.get(key);
+        if (existing) {
+            if (!existing.name && name) existing.name = name;
+            if (!existing.hex && hex) existing.hex = hex;
+            if (!existing.swatchUrl && swatchUrl) existing.swatchUrl = swatchUrl;
+            if (!existing.image && imageCandidate) existing.image = imageCandidate;
+            return;
         }
+        colorMap.set(key, {
+            name: name || "Mau khac",
+            hex: hex || null,
+            swatchUrl: swatchUrl || null,
+            image: imageCandidate || null,
+        });
     };
 
-    prismaVariants.forEach((variant: any) => {
+prismaVariants.forEach((variant: any) => {
         const variantColor = (variant as any)?.colors ?? null;
         recordColor(
             (variant as any)?.color ?? variantColor?.name ?? null,
             (variant as any)?.colorHexLegacy ?? variantColor?.hex ?? null,
-            variantColor?.swatchUrl ?? (variant as any)?.swatchUrlLegacy ?? null
+            variantColor?.swatchUrl ?? (variant as any)?.swatchUrlLegacy ?? null,
+            Array.isArray(variant?.images) && variant.images.length ? variant.images[0] : null
         );
     });
     legacyVariants.forEach((variant: any) => {
         recordColor(
             variant?.color ?? null,
             variant?.colorHexLegacy ?? variant?.colorHex ?? null,
-            (variant as any)?.swatchUrlLegacy ?? null
+            (variant as any)?.swatchUrlLegacy ?? null,
+            Array.isArray(variant?.images) && variant.images.length ? variant.images[0] : null
         );
     });
 
@@ -142,11 +154,11 @@ const buildProductCardData = (
                 return;
             }
             if (/^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(trimmed)) {
-                recordColor("", trimmed, null);
+                recordColor("", trimmed, null, null);
             } else if (/^https?:\/\//i.test(trimmed)) {
-                recordColor("", null, trimmed);
+                recordColor("", null, trimmed, null);
             } else {
-                recordColor(trimmed, null, null);
+                recordColor(trimmed, null, null, null);
             }
         } else if (
             colorValue &&
@@ -156,7 +168,8 @@ const buildProductCardData = (
             recordColor(
                 (colorValue as any).name ?? null,
                 (colorValue as any).hex ?? null,
-                (colorValue as any).swatchUrl ?? null
+                (colorValue as any).swatchUrl ?? null,
+                (colorValue as any).image ?? null
             );
         }
     });
@@ -309,6 +322,81 @@ export const search = async (req: Request, res: Response) => {
     }
 };
 
+export const hangMoi = async (req: Request, res: Response) => {
+    const oneWeekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+    try {
+        const [products, categories] = await Promise.all([
+            prisma.products.findMany({
+                where: {
+                    deleted: false,
+                    createdAt: {
+                        gte: oneWeekAgo,
+                    },
+                },
+                include: {
+                    productVariants: {
+                        include: {
+                            colors: true,
+                        },
+                    },
+                    categories: true,
+                },
+                orderBy: {
+                    createdAt: "desc",
+                },
+            }),
+            prisma.categories.findMany({
+                where: { status: { equals: "active" } },
+                select: {
+                    id: true,
+                    title: true,
+                    slug: true,
+                    parentId: true,
+                    description: true,
+                },
+            }),
+        ]);
+
+        const viewProducts = products.map((product) =>
+            buildProductCardData(product as any)
+        );
+
+        const primaryCategories = buildPrimaryNav(categories);
+
+        res.locals.primaryCategories = primaryCategories;
+        res.locals.searchQuery = "";
+
+        
+        res.render("client/pages/home/index", {
+            products: viewProducts,
+            isSearch: false,
+            searchQuery: "",
+            searchTotal: viewProducts.length,
+            primaryCategories,
+            summaryHeading: "Hang moi moi tuan",
+            summaryHighlight: "Ra mat 7 ngay gan nhat",
+            summaryMeta: `${viewProducts.length} san pham`,
+        });
+    } catch (error) {
+        console.error("NEW ARRIVALS PAGE ERROR:", error);
+        const fallbackCategories = Array.isArray(res.locals.primaryCategories)
+            ? res.locals.primaryCategories
+            : [];
+        
+        res.status(500).render("client/pages/home/index", {
+            products: [],
+            isSearch: false,
+            searchQuery: "",
+            searchTotal: 0,
+            error: "Khong the tai danh sach hang moi.",
+            primaryCategories: fallbackCategories,
+            summaryHeading: "Hang moi moi tuan",
+            summaryHighlight: "Ra mat 7 ngay gan nhat",
+            summaryMeta: "0 san pham",
+        });
+    }
+};
 
 export const sale = async (req: Request, res: Response) => {
     try {
