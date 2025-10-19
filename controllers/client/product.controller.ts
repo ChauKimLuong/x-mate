@@ -30,7 +30,12 @@ const formatCurrency = (amount: number): string => {
 const buildColorPalette = (product: any) => {
     const colorMap = new Map<
         string,
-        { name: string; hex: string | null; swatchUrl: string | null; image: string | null }
+        {
+            name: string;
+            hex: string | null;
+            swatchUrl: string | null;
+            image: string | null;
+        }
     >();
     const recordColor = (
         nameRaw?: string | null,
@@ -45,9 +50,15 @@ const buildColorPalette = (product: any) => {
         const imageCandidate =
             typeof imageRaw === "string" ? imageRaw.trim() : "";
         let hex = "";
-        if (hexCandidate && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hexCandidate)) {
+        if (
+            hexCandidate &&
+            /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(hexCandidate)
+        ) {
             hex = hexCandidate;
-        } else if (name.startsWith("#") && /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(name)) {
+        } else if (
+            name.startsWith("#") &&
+            /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.test(name)
+        ) {
             hex = name;
         }
         const swatchUrl = hex ? "" : swatchCandidate;
@@ -56,8 +67,10 @@ const buildColorPalette = (product: any) => {
         if (existing) {
             if (!existing.name && name) existing.name = name;
             if (!existing.hex && hex) existing.hex = hex;
-            if (!existing.swatchUrl && swatchUrl) existing.swatchUrl = swatchUrl;
-            if (!existing.image && imageCandidate) existing.image = imageCandidate;
+            if (!existing.swatchUrl && swatchUrl)
+                existing.swatchUrl = swatchUrl;
+            if (!existing.image && imageCandidate)
+                existing.image = imageCandidate;
             return;
         }
         colorMap.set(key, {
@@ -68,21 +81,33 @@ const buildColorPalette = (product: any) => {
         });
     };
 
-prismaVariants.forEach((variant: any) => {
+    const prismaVariants = Array.isArray(product?.productVariants)
+        ? product.productVariants
+        : [];
+    prismaVariants.forEach((variant: any) => {
         const variantColor = (variant as any)?.colors ?? null;
         recordColor(
             (variant as any)?.color ?? variantColor?.name ?? null,
             (variant as any)?.colorHexLegacy ?? variantColor?.hex ?? null,
-            variantColor?.swatchUrl ?? (variant as any)?.swatchUrlLegacy ?? null,
-            Array.isArray(variant?.images) && variant.images.length ? variant.images[0] : null
+            variantColor?.swatchUrl ??
+                (variant as any)?.swatchUrlLegacy ??
+                null,
+            Array.isArray(variant?.images) && variant.images.length
+                ? variant.images[0]
+                : null
         );
     });
+    const legacyVariants = Array.isArray((product as any)?.variants)
+        ? ((product as any)?.variants as any[])
+        : [];
     legacyVariants.forEach((variant: any) => {
         recordColor(
             variant?.color ?? null,
             variant?.colorHexLegacy ?? variant?.colorHex ?? null,
             (variant as any)?.swatchUrlLegacy ?? null,
-            Array.isArray(variant?.images) && variant.images.length ? variant.images[0] : null
+            Array.isArray(variant?.images) && variant.images.length
+                ? variant.images[0]
+                : null
         );
     });
 
@@ -103,7 +128,9 @@ prismaVariants.forEach((variant: any) => {
         } else if (
             colorValue &&
             typeof colorValue === "object" &&
-            ("name" in colorValue || "hex" in colorValue || "swatchUrl" in colorValue)
+            ("name" in colorValue ||
+                "hex" in colorValue ||
+                "swatchUrl" in colorValue)
         ) {
             recordColor(
                 (colorValue as any).name ?? null,
@@ -120,9 +147,23 @@ prismaVariants.forEach((variant: any) => {
 // [GET] /product/detail/:slug
 export const detail = async (req: Request, res: Response) => {
     try {
-        const { slug } = req.params;
+        const rawSlug = typeof req.params?.slug === "string" ? req.params.slug : "";
+        const slug = rawSlug.trim();
+        if (!slug) {
+            return res
+                .status(404)
+                .render("client/pages/product/detail", { product: null });
+        }
+        console.log(slug);
+
         const product = await prisma.products.findFirst({
-            where: { slug, deleted: false },
+            where: {
+                deleted: false,
+                slug: {
+                    equals: slug,
+                    mode: "insensitive",
+                },
+            },
             include: {
                 productVariants: {
                     include: {
@@ -132,8 +173,10 @@ export const detail = async (req: Request, res: Response) => {
                 categories: true,
             },
         });
+        console.log(product);
 
         if (!product) {
+            console.warn("[PRODUCT DETAIL] Not found slug:", slug);
             return res
                 .status(404)
                 .render("client/pages/product/detail", { product: null });
@@ -159,7 +202,10 @@ export const detail = async (req: Request, res: Response) => {
         const discountPercent = Math.max(0, toNumber(product.discount) ?? 0);
         const priceAfterDiscount =
             discountPercent > 0
-                ? Math.max(0, Math.round(rawPrice * (100 - discountPercent) / 100))
+                ? Math.max(
+                      0,
+                      Math.round((rawPrice * (100 - discountPercent)) / 100)
+                  )
                 : rawPrice;
 
         const colors = buildColorPalette(product);
@@ -171,13 +217,17 @@ export const detail = async (req: Request, res: Response) => {
         const sizes = Array.from(
             new Set(
                 [...sizeFromProduct, ...legacySizes]
-                    .filter((size) => typeof size === "string" && size.trim() !== "")
+                    .filter(
+                        (size) => typeof size === "string" && size.trim() !== ""
+                    )
                     .map((size) => size.trim())
             )
         );
         const resolvedSizes = sizes.length ? sizes : ["Free Size"];
 
-        const shareUrl = `${req.protocol}://${req.get("host")}${req.originalUrl}`;
+        const shareUrl = `${req.protocol}://${req.get("host")}${
+            req.originalUrl
+        }`;
         const totalStock = prismaVariants.reduce(
             (sum, variant) => sum + (toNumber((variant as any)?.stock) ?? 0),
             0
@@ -210,8 +260,8 @@ export const detail = async (req: Request, res: Response) => {
         res.render("client/pages/product/detail", { product: viewModel });
     } catch (error) {
         console.error("PRODUCT DETAIL ERROR", error);
-        res
-            .status(500)
-            .render("client/pages/product/detail", { product: null });
+        res.status(500).render("client/pages/product/detail", {
+            product: null,
+        });
     }
 };

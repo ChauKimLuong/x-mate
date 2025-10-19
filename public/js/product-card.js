@@ -164,7 +164,7 @@
 
     button.disabled = true
     button.classList.add('is-loading')
-    showFeedback(card, 'Dang them vao gio hang...', false)
+    showFeedback(card, 'Đang thêm vào giỏ hàng!', false)
 
     fetch('/cart/items', {
       method: 'POST',
@@ -179,7 +179,7 @@
         if (!result) return
         if (result.ok && result.data && result.data.success) {
           updateCartBadge(result.data.cartQuantity)
-          showFeedback(card, 'Da them vao gio hang!', false)
+          showFeedback(card, 'Đã thêm vào giỏ hàng!', false)
         } else {
           var message =
             (result && result.data && result.data.message) ||

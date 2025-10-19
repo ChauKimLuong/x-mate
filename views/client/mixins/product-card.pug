@@ -20,7 +20,7 @@ mixin productCard(p)
         data-product-image=thumbnail
     )
         .thumb-wrap
-            .thumb-ratio
+            .thumb-ratio 
                 a.product-link(href=`/product/detail/${productSlug}` aria-label=productTitle)
                     img.product-thumb(src=thumbnail alt=productTitle loading="lazy")
                     if hoverThumbnail && hoverThumbnail !== thumbnail
@@ -28,7 +28,7 @@ mixin productCard(p)
             if sizes && sizes.length
                 .quick-add(tabindex="0")
                     .quick-add__title
-                        span Thêm nhanh vào giỏ hàng
+                        span Thêm vào giỏ hàng
                         span.quick-add__plus +
                     .quick-add__sizes
                         each s in sizes

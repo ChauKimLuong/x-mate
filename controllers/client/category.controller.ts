@@ -55,6 +55,9 @@ prismaVariants.forEach((variant: any) => {
             Array.isArray(variant?.images) && variant.images.length ? variant.images[0] : null
         );
     });
+    const legacyVariants = Array.isArray((product as any)?.variants)
+        ? ((product as any)?.variants as any[])
+        : [];
     legacyVariants.forEach((variant: any) => {
         recordColor(
             variant?.color ?? null,

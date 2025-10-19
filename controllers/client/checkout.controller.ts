@@ -621,7 +621,7 @@ export const checkoutPost = async (req: Request, res: Response) => {
     ) {
         req.flash(
             "error",
-            "Vui lòng nhập đầy đủ thông tin người nhận và chọn phương thức thanh toán."
+            "Vui lòng điền đầy đủ thông tin!"
         );
         return res.redirect(redirectTo);
     }
@@ -740,7 +740,7 @@ export const checkoutPost = async (req: Request, res: Response) => {
 
         req.flash(
             "success",
-            `Đặt hàng thành công! Mã đơn hàng của bạn là #${order.id}.`
+            `Đặt hàng thành công!`
         );
         return res.redirect("/");
     } catch (error) {
