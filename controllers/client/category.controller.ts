@@ -46,7 +46,11 @@ const buildColorPalette = (product: any) => {
         });
     };
 
-prismaVariants.forEach((variant: any) => {
+    // Collect colors from Prisma variants if present
+    const prismaVariants = Array.isArray(product?.productVariants)
+        ? (product.productVariants as any[])
+        : [];
+    prismaVariants.forEach((variant: any) => {
         const variantColor = (variant as any)?.colors ?? null;
         recordColor(
             (variant as any)?.color ?? variantColor?.name ?? null,

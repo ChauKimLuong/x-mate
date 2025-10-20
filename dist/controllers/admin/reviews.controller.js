@@ -18,13 +18,10 @@ exports.ReviewsController = {
             try {
                 const reviews = yield prisma.product_reviews.findMany({
                     include: {
-                        order_items: {
+                        order_item_ref: {
                             include: {
                                 products: {
-                                    select: {
-                                        title: true,
-                                        thumbnail: true,
-                                    },
+                                    select: { title: true, thumbnail: true },
                                 },
                             },
                         },
@@ -36,8 +33,8 @@ exports.ReviewsController = {
                     var _a, _b, _c, _d, _e;
                     return ({
                         id: r.id,
-                        productTitle: ((_b = (_a = r.order_items) === null || _a === void 0 ? void 0 : _a.products) === null || _b === void 0 ? void 0 : _b.title) || "Sản phẩm không xác định",
-                        thumbnail: ((_d = (_c = r.order_items) === null || _c === void 0 ? void 0 : _c.products) === null || _d === void 0 ? void 0 : _d.thumbnail) || "/img/default-product.jpg",
+                        productTitle: ((_b = (_a = r.order_item_ref) === null || _a === void 0 ? void 0 : _a.products) === null || _b === void 0 ? void 0 : _b.title) || "Sản phẩm không xác định",
+                        thumbnail: ((_d = (_c = r.order_item_ref) === null || _c === void 0 ? void 0 : _c.products) === null || _d === void 0 ? void 0 : _d.thumbnail) || "/img/default-product.jpg",
                         customerName: r.token_user || "Người dùng ẩn danh",
                         rating: r.rating,
                         content: r.content,
@@ -45,7 +42,11 @@ exports.ReviewsController = {
                         createdAt: r.created_at,
                     });
                 });
-                res.render("admin/pages/reviews/list", { title: "Reviews List", active: "reviews", reviews: formatted });
+                res.render("admin/pages/reviews/list", {
+                    title: "Reviews List",
+                    active: "reviews",
+                    reviews: formatted,
+                });
             }
             catch (err) {
                 console.error(err);
@@ -61,14 +62,10 @@ exports.ReviewsController = {
                 const review = yield prisma.product_reviews.findUnique({
                     where: { id },
                     include: {
-                        order_items: {
+                        order_item_ref: {
                             include: {
                                 products: {
-                                    select: {
-                                        title: true,
-                                        thumbnail: true,
-                                        price: true,
-                                    },
+                                    select: { title: true, thumbnail: true, price: true },
                                 },
                             },
                         },
@@ -79,14 +76,18 @@ exports.ReviewsController = {
                     return res.status(404).send("Không tìm thấy đánh giá.");
                 const viewModel = {
                     id: review.id,
-                    productTitle: ((_b = (_a = review.order_items) === null || _a === void 0 ? void 0 : _a.products) === null || _b === void 0 ? void 0 : _b.title) || "Không xác định",
-                    thumbnail: ((_d = (_c = review.order_items) === null || _c === void 0 ? void 0 : _c.products) === null || _d === void 0 ? void 0 : _d.thumbnail) || "/img/default-product.jpg",
+                    productTitle: ((_b = (_a = review.order_item_ref) === null || _a === void 0 ? void 0 : _a.products) === null || _b === void 0 ? void 0 : _b.title) || "Không xác định",
+                    thumbnail: ((_d = (_c = review.order_item_ref) === null || _c === void 0 ? void 0 : _c.products) === null || _d === void 0 ? void 0 : _d.thumbnail) || "/img/default-product.jpg",
                     rating: review.rating,
                     content: review.content,
                     replies: review.review_replies || [],
                     createdAt: review.created_at,
                 };
-                res.render("admin/pages/reviews/detail", { title: "Reviews Detail", active: "reviews", review: viewModel });
+                res.render("admin/pages/reviews/detail", {
+                    title: "Reviews Detail",
+                    active: "reviews",
+                    review: viewModel,
+                });
             }
             catch (err) {
                 console.error(err);
@@ -98,14 +99,14 @@ exports.ReviewsController = {
         return __awaiter(this, void 0, void 0, function* () {
             try {
                 const { reviewId, content } = req.body;
-                if (!reviewId || !content.trim()) {
+                if (!reviewId || !(content === null || content === void 0 ? void 0 : content.trim())) {
                     return res.status(400).send("Thiếu nội dung phản hồi");
                 }
                 yield prisma.review_replies.create({
                     data: {
                         review_id: reviewId,
                         author: "admin",
-                        content,
+                        content: content.trim(),
                     },
                 });
                 res.redirect(`/admin/reviews/${reviewId}/detail`);

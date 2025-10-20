@@ -99,21 +99,19 @@ export const getProducts = async (req: Request, res: Response) => {
     where.title = { contains: keyword, mode: 'insensitive' } as any;
   }
 
-  const findOpts: any = {
-    where,
-    include: {
-      categories: { select: { title: true } },
-      productVariants: {
-        where: { deleted: false },
-        select: { stock: true, images: true, color: true },
-      },
-    },
-    orderBy: { createdAt: 'desc' },
-  };
-  if (!allMode) { findOpts.skip = skip; findOpts.take = take; }
-
   const [rows, total] = await Promise.all([
-    prisma.products.findMany(findOpts),
+    prisma.products.findMany({
+      where,
+      include: {
+        categories: { select: { title: true } },
+        productVariants: {
+          where: { deleted: false },
+          select: { stock: true, images: true, color: true },
+        },
+      },
+      orderBy: { createdAt: 'desc' },
+      ...(allMode ? {} : { skip, take }),
+    }),
     prisma.products.count({ where }),
   ]);
 

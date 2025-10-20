@@ -33,7 +33,7 @@ r.use("/reports", roleGuard_1.onlyAdmin, reports_route_1.default);
 r.use("/users", roleGuard_1.onlyAdmin, users_route_1.default);
 r.use("/categories", roleGuard_1.onlyAdmin, categories_route_1.default);
 r.use("/products", roleGuard_1.onlyAdmin, products_route_1.default);
-r.use("/inventory-support", roleGuard_1.onlyAdmin, inventory_support_route_1.default);
+r.use("/inventory-support", inventory_support_route_1.default);
 r.use("/inventory", inventory_route_1.default);
 r.use("/reviews", reviews_route_1.default);
 r.use("/orders", orders_route_1.default);

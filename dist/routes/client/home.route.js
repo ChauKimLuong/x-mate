@@ -40,4 +40,8 @@ const express_1 = __importDefault(require("express"));
 const homeController = __importStar(require("../../controllers/client/home.controller"));
 const router = express_1.default.Router();
 router.get("/", homeController.index);
+router.get("/search", homeController.search);
+router.get("/hang-moi", homeController.hangMoi);
+router.get("/sale", homeController.sale);
+router.get("/the-thao", homeController.theThao);
 exports.default = router;

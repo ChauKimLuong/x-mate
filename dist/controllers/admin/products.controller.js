@@ -103,23 +103,14 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     if (keyword) {
         where.title = { contains: keyword, mode: 'insensitive' };
     }
-    const findOpts = {
-        where,
-        include: {
-            categories: { select: { title: true } },
-            productVariants: {
-                where: { deleted: false },
-                select: { stock: true, images: true, color: true },
-            },
-        },
-        orderBy: { createdAt: 'desc' },
-    };
-    if (!allMode) {
-        findOpts.skip = skip;
-        findOpts.take = take;
-    }
     const [rows, total] = yield Promise.all([
-        database_1.default.products.findMany(findOpts),
+        database_1.default.products.findMany(Object.assign({ where, include: {
+                categories: { select: { title: true } },
+                productVariants: {
+                    where: { deleted: false },
+                    select: { stock: true, images: true, color: true },
+                },
+            }, orderBy: { createdAt: 'desc' } }, (allMode ? {} : { skip, take }))),
         database_1.default.products.count({ where }),
     ]);
     const products = rows.map((p) => {

@@ -37,7 +37,14 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
 };
 Object.defineProperty(exports, "__esModule", { value: true });
 const express_1 = __importDefault(require("express"));
-const categoryController = __importStar(require("../../controllers/client/category.controller"));
+const cartController = __importStar(require("../../controllers/client/cart.controller"));
 const router = express_1.default.Router();
-router.get("/:slug", categoryController.detail);
+router.get("/", cartController.index);
+router.post("/items", cartController.addItem);
+router.post("/items/:id/quantity", cartController.updateItemQuantity);
+router.post("/items/:id/delete", cartController.removeItem);
+router.post("/items/batch-delete", cartController.removeSelectedItems);
+router.post("/coupon", cartController.applyCoupon);
+router.post("/prepare-checkout", cartController.prepareCheckout);
+router.post("/clear", cartController.clearCart);
 exports.default = router;

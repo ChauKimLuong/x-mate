@@ -728,15 +728,42 @@ function barcodeImage(req, res) {
             let label = variantId ? `${productId}-${variantId}` : `${productId}`;
             if (String(type) === "qr") {
                 try {
-                    const row = yield database_1.default.products.findUnique({ where: { id: String(productId) }, select: { slug: true } });
-                    const base = String(req.query.base || "").trim();
+                    const qSlug = String(req.query.slug || "").trim();
+                    const qPid = String(productId || "").trim();
+                    let slug = null;
+                    if (qSlug) {
+                        slug = qSlug;
+                    }
+                    else {
+                        const byId = yield database_1.default.products.findUnique({ where: { id: qPid }, select: { slug: true } });
+                        slug = (byId === null || byId === void 0 ? void 0 : byId.slug) || null;
+                        if (!slug) {
+                            const bySlug = yield database_1.default.products.findFirst({ where: { slug: qPid }, select: { slug: true } });
+                            slug = (bySlug === null || bySlug === void 0 ? void 0 : bySlug.slug) || null;
+                        }
+                    }
+                    const rawBase = String(req.query.base ||
+                        process.env.PUBLIC_BASE_URL ||
+                        process.env.APP_URL ||
+                        "").trim();
                     const xfProto = req.headers["x-forwarded-proto"] || "";
                     const xfHost = req.headers["x-forwarded-host"] || "";
                     const proto = (xfProto || req.protocol || "http").split(",")[0];
                     const host = (xfHost || req.get("host") || "").split(",")[0];
-                    const origin = base || (host ? `${proto}://${host}` : "");
-                    if ((row === null || row === void 0 ? void 0 : row.slug) && origin) {
-                        label = `${origin}/product/detail/${row.slug}`;
+                    function normalizeOrigin(input) {
+                        const s = (input || "").replace(/\/$/, "");
+                        try {
+                            const hasScheme = /^https?:\/\//i.test(s);
+                            const u = new URL(hasScheme ? s : `${proto}://${s}`);
+                            return `${u.protocol}//${u.host}`;
+                        }
+                        catch (_a) {
+                            return s;
+                        }
+                    }
+                    const origin = normalizeOrigin(rawBase || (host ? `${proto}://${host}` : ""));
+                    if (slug && origin) {
+                        label = new URL(`/product/detail/${slug}`, origin).toString();
                     }
                 }
                 catch (_a) { }

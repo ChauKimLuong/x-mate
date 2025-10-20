@@ -8,13 +8,17 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+var __importDefault = (this && this.__importDefault) || function (mod) {
+    return (mod && mod.__esModule) ? mod : { "default": mod };
+};
 Object.defineProperty(exports, "__esModule", { value: true });
 exports.remove = exports.update = exports.editForm = exports.create = exports.createForm = exports.list = void 0;
 const client_1 = require("@prisma/client");
 const nanoid_1 = require("nanoid");
+const bcrypt_1 = __importDefault(require("bcrypt"));
 const prisma = new client_1.PrismaClient();
 const list = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
-    var _a, _b, _c;
+    var _a, _b, _c, _d, _e, _f;
     try {
         const filter = req.query.role || "All";
         const allRoles = yield prisma.roles.findMany();
@@ -45,6 +49,11 @@ const list = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         });
     }
     catch (err) {
+        const anyErr = err;
+        if ((anyErr === null || anyErr === void 0 ? void 0 : anyErr.code) === 'P2002' && Array.isArray((_d = anyErr === null || anyErr === void 0 ? void 0 : anyErr.meta) === null || _d === void 0 ? void 0 : _d.target) && anyErr.meta.target.includes('email')) {
+            (_f = (_e = req).flash) === null || _f === void 0 ? void 0 : _f.call(_e, 'error', 'Email đã tồn tại');
+            return res.redirect('/admin/users/create');
+        }
         console.error("❌ Error loading users:", err);
         res.status(500).send("Error loading users");
     }
@@ -76,6 +85,13 @@ const create = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         }
         else {
             gender = null;
+        }
+        email = String(email || '').toLowerCase();
+        password = yield bcrypt_1.default.hash(String(password || ''), 10);
+        if (role && typeof role === 'string' && role.indexOf('-') === -1) {
+            const r = yield prisma.roles.findFirst({ where: { name: role } });
+            if (r)
+                role = r.id;
         }
         yield prisma.users.create({
             data: {
@@ -123,12 +139,25 @@ const editForm = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
 exports.editForm = editForm;
 const update = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const { full_name, email, phone, status, role, gender } = req.body;
+        const { full_name, email, phone, status, role, gender, password } = req.body;
         const id = req.params.id;
-        yield prisma.users.update({
-            where: { id },
-            data: { full_name, email, phone, status, role, gender },
-        });
+        let genderMapped = null;
+        if (typeof gender === 'string') {
+            const g = gender.trim().toLowerCase();
+            if (g === 'nam' || g === 'male')
+                genderMapped = 'Nam';
+            else if (g === 'nữ' || g === 'nu' || g === 'female')
+                genderMapped = 'Nữ';
+            else if (g === 'nam' || g === 'nữ')
+                genderMapped = gender;
+            else
+                genderMapped = null;
+        }
+        const updateData = { full_name, email: email ? String(email).toLowerCase() : undefined, phone, status, role, gender: genderMapped };
+        if (password && String(password).trim() !== "") {
+            updateData.password = yield bcrypt_1.default.hash(String(password), 10);
+        }
+        yield prisma.users.update({ where: { id }, data: updateData });
         res.redirect("/admin/users");
     }
     catch (err) {
