@@ -20,7 +20,7 @@ html(lang="vi")
     meta(charset="utf-8")
     meta(name="viewport", content="width=device-width, initial-scale=1")
     link(rel="icon" type="image/png" href="/images/favicon.png")
-    title X-Mate Admin | ÄÄƒng nháº­p
+    title X-Mate Admin | Đăng nhập
 
     // Base stylesheet náº¿u cÃ³
     // link(rel="stylesheet", href="/css/auth.css")
@@ -72,8 +72,8 @@ html(lang="vi")
           span.txt X-Mate Admin
 
         // Heading
-        h1.auth-card__title ÄÄƒng nháº­p quáº£n trá»‹
-        p.auth-card__subtitle Truy cáº­p báº£ng Ä‘iá»u khiá»ƒn quáº£n trá»‹ X-Mate.
+        h1.auth-card__title Đăng nhập quản trị
+        p.auth-card__subtitle Truy cập bằng điều khiển quản trị X-Mate.
 
         // Flash/Error messages (optional)
         if messages && messages.error
@@ -83,14 +83,14 @@ html(lang="vi")
 
         // Login form
         form.auth-form(action="/admin/login" method="post")
-          label.visually-hidden(for="email") Email quáº£n trá»‹
-          input#email.auth-input(type="email" name="email" placeholder="Email quáº£n trá»‹" required autofocus autocomplete="username")
+          label.visually-hidden(for="email") Email quản trị
+          input#email.auth-input(type="email" name="email" placeholder="Email quản trị" required autofocus autocomplete="username")
 
           .auth-form__field.auth-form__field--password
-            label.visually-hidden(for="password") Máº­t kháº©u
-            input#password.auth-input(type="password" name="password" placeholder="Máº­t kháº©u" required autocomplete="current-password")
-            //- Toggle: máº·c Ä‘á»‹nh áº©n máº­t kháº©u, khi báº¥m sáº½ hiá»‡n & Ä‘á»•i icon eye -> eye-off
-            button#pw-toggle.auth-password-toggle(type="button" aria-label="Hiá»‡n máº­t kháº©u" aria-pressed="false")
+            label.visually-hidden(for="password") Mật khẩu
+            input#password.auth-input(type="password" name="password" placeholder="Mật khẩu" required autocomplete="current-password")
+            //- Toggle: mặc định ẩn mật khẩu, khi bấm sẽ hiện & đổi icon eye -> eye-off
+            button#pw-toggle.auth-password-toggle(type="button" aria-label="Hiện mật khẩu" aria-pressed="false")
               span.icon-on
                 +ic_eye()
               span.icon-off
@@ -100,16 +100,16 @@ html(lang="vi")
           .auth-links
             label(for="remember" style="display:flex;align-items:center;gap:8px")
               input#remember(type="checkbox" name="remember" value="1")
-              | Ghi nhá»› Ä‘Äƒng nháº­p
-            a(href="/admin/forgot") QuÃªn máº­t kháº©u?
+              | Ghi nhớ đăng nhập
+            a(href="/admin/forgot") Quên mật khẩu?
 
-          button.auth-submit(type="submit") ÄÄƒng nháº­p
+          button.auth-submit(type="submit") Đăng nhập
 
         .footer
-          | Â© #{new Date().getFullYear()} X-Mate Â· 
-          a(href="/terms") Äiá»u khoáº£n
-          |  Â· 
-          a(href="/privacy") Báº£o máº­t
+          | Â© #{new Date().getFullYear()} X-Mate Â·
+          a(href="/terms") Điều khoản
+          |  Â·
+          a(href="/privacy") Bảo mật
 
     // Scripts: toggle hiá»ƒn/áº©n + Ä‘á»•i icon + a11y
     script.

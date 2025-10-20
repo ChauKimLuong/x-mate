@@ -131,13 +131,13 @@ html(lang="vi")
           button.item.menu-products.has-children(type="button", aria-expanded=openProducts?'true':'false', data-target="#submenu-products", class=openProducts?'active':'')
             span.ico
               +icon-products(20)
-            span.lbl Sản Phẩm
+            span.lbl Quản lý sản phẩm
             span.caret ▾
           ul.submenu#submenu-products(class=openProducts?'open':'')
             li
               a(class=is('products:list')?'active':'', href="/admin/products")
                 //- span.dot
-                span.lbl Danh sách
+                span.lbl Quản lý danh sách
             //- li
             //-   a(class=is('products:grid')?'active':'', href="/admin/products/edit")
             //-     //- span.dot
@@ -145,7 +145,7 @@ html(lang="vi")
             li
               a(class=is('products:create')?'active':'', href="/admin/products/create")
                 //- span.dot
-                span.lbl Thêm mới
+                span.lbl Quản lý thêm mới
 
 
           // Categories (toggle)
@@ -179,26 +179,25 @@ html(lang="vi")
           a.item(class=is('orders')?'active':'', href="/admin/orders")
             span.ico
               +icon-orders(20)
-            span.lbl Đơn hàng
+            span.lbl Quản lý đơn hàng
 
           // Promotions
           a.item.menu-promotions(class=is('promotions')?'active':'', href="/admin/promotions")
             span.ico
               +icon-promotions(20)
-            span.lbl Khuyến mãi
+            span.lbl Quản lý khuyến mãi
 
           // Reports
           a.item.menu-reports(class=is('reports')?'active':'', href="/admin/reports/revenue")
             span.ico
               +icon-reports(20)
-            span.lbl Báo cáo
+            span.lbl Quản lý báo cáo
 
           // Reviews
           a.item(class=is('reviews')?'active':'', href="/admin/reviews")
             span.ico
               +icon-reviews(20)
-            span.lbl Reviews
-
+            span.lbl Quản lý đánh giá
           // User
           a.item.menu-users(class=is('users')?'active':'', href="/admin/users")
             span.ico

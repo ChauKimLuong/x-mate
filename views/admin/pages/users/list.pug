@@ -5,7 +5,7 @@ block content
     // HEADER
     .header(style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;")
       h2.welcome(style="font-weight:800;font-size:22px;") QUẢN LÝ NGƯỜI DÙNG
-      a.btn-dark(href="/admin/users/create" style="padding:10px 16px;font-weight:600;border-radius:10px;") + Add Staff
+      a.btn-dark(href="/admin/users/create" style="padding:10px 16px;font-weight:600;border-radius:10px;") + Thêm nhân viên
 
     // FILTER PANELS
     .cards(style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px;")
@@ -13,10 +13,10 @@ block content
         h3(style="margin:0;font-weight:700;") 🧩 Tất cả
         p(style="margin:6px 0 0;font-size:26px;color:#ff6a21;font-weight:800;")= counts.all
       a.card(href="/admin/users?role=admin" style=`background:#e8f8f4;padding:16px;border-radius:16px;text-align:center;text-decoration:none;color:#111;box-shadow:0 4px 12px rgba(0,0,0,0.04);border:${filter==='admin'?'2px solid #1f7a47':'2px solid transparent'};`)
-        h3(style="margin:0;font-weight:700;") 👑 Admin
+        h3(style="margin:0;font-weight:700;") 👑 Chủ cửa hàng
         p(style="margin:6px 0 0;font-size:26px;color:#1f7a47;font-weight:800;")= counts.admin
       a.card(href="/admin/users?role=staff" style=`background:#f9fafb;padding:16px;border-radius:16px;text-align:center;text-decoration:none;color:#111;box-shadow:0 4px 12px rgba(0,0,0,0.04);border:${filter==='staff'?'2px solid #555':'2px solid transparent'};`)
-        h3(style="margin:0;font-weight:700;") 🧑‍💼 Staff
+        h3(style="margin:0;font-weight:700;") 🧑‍💼 Nhân viên
         p(style="margin:6px 0 0;font-size:26px;color:#555;font-weight:800;")= counts.staff
       a.card(href="/admin/users?role=customer" style=`background:#fde8e8;padding:16px;border-radius:16px;text-align:center;text-decoration:none;color:#111;box-shadow:0 4px 12px rgba(0,0,0,0.04);border:${filter==='customer'?'2px solid #b42318':'2px solid transparent'};`)
         h3(style="margin:0;font-weight:700;") 🛒 Khách hàng
