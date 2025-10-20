@@ -134,7 +134,7 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
     const products = rows.map((p) => {
         var _a, _b, _c, _d, _e;
         const variants = Array.isArray(p.productVariants) ? p.productVariants : [];
-        const variantImages = variants.flatMap((v) => Array.isArray(v.images) ? v.images : []);
+        const variantImages = variants.flatMap(v => Array.isArray(v.images) ? v.images : []);
         const firstVariantImg = variantImages.find(Boolean);
         const img = p.thumbnail || firstVariantImg || "/images/placeholder.jpg";
         const stockLeft = variants.reduce((sum, v) => sum + (toInt(v.stock) || 0), 0);
