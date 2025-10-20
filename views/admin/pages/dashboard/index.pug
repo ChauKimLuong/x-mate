@@ -4,7 +4,7 @@ include ../../mixins/icons
 block content
   - const KP = kpis || { totalOrders: 0, deals: 0, newLeads: 0, bookedRev: 0 }
   - const DL = deltas || { totalOrders: 0, deals: 0, newLeads: 0, bookedRev: 0 }
-  - const pretty = (n) => Number(n || 0).toLocaleString()
+  - const pretty = (n) => Number(n || 0).toLocaleString('vi-VN')
 
   .dash-wrap
     h2.welcome Xin chào
@@ -15,7 +15,7 @@ block content
         .ico-bg.peach
           +ic_bag()
         .meta
-          .label Tổng đơn hàng
+          .label Tổng số đơn hàng
           .value #{pretty(KP.totalOrders)}
         .delta
           if DL.totalOrders >= 0
@@ -23,13 +23,13 @@ block content
             span.muted so với tháng trước
           else
             span.down ▼ #{Math.abs(DL.totalOrders)}%
-            span.muted vs Last Month
+            span.muted vs Tháng trước
 
       .kpi-card
         .ico-bg.peach
           +ic_lock()
         .meta
-          .label Giao dịch
+          .label Ưu đãi
           .value #{pretty(KP.deals)}
         .delta
           if DL.deals >= 0
@@ -47,25 +47,25 @@ block content
           .value #{pretty(KP.newLeads)}
         .delta
           if DL.newLeads >= 0
-            span.up ▲ #{DL.newLeads}% 
+            span.up #{DL.newLeads}% 
             span.muted so với tháng trước
           else
             span.down ▼ #{Math.abs(DL.newLeads)}%
-            span.muted vs Last Month
+            span.muted vs Tháng trước
 
       .kpi-card
         .ico-bg.peach
           +ic_coin()
         .meta
           .label Doanh thu ghi nhận
-          .value #{pretty(KP.bookedRev / 1000)}k đ
+          .value #{new Intl.NumberFormat('vi-VN',{style:'currency',currency:'VND',maximumFractionDigits:0}).format(Math.max(0,Math.round(Number(KP.bookedRev||0))))}
         .delta
           if DL.bookedRev >= 0
             span.up ▲ #{DL.bookedRev}% 
             span.muted so với tháng trước
           else
             span.down ▼ #{Math.abs(DL.bookedRev)}%
-            span.muted vs Last Month
+            span.muted vs Tháng trước
 
     // Grid 4 charts (equal parts)
     .perf-grid(style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:16px;margin-top:16px")
@@ -83,7 +83,7 @@ block content
 
       // Card 2: Daily Revenue
       .card(style="background:#fff;border:1px solid #eef0f5;border-radius:14px;padding:12px;min-height:320px")
-        h3(style="margin:0 0 8px;font-size:14px") Doanh thu theo ngày (30 ngày)
+        h3(style="margin:0 0 8px;font-size:14px") Doanh thu theo ngày (#{typeof days !== 'undefined' ? days : 30} ngày)
         canvas#revenueLineChart(height="160")
 
       // Card 3: Revenue by Category
@@ -109,3 +109,9 @@ block scripts
     window.__catRevenue  = !{JSON.stringify(catRevenue || { labels: [], values: [] })};
     window.__topProducts = !{JSON.stringify(topProducts || { labels: [], values: [] })};
   script(src="/js/admin/admin-dashboard.js")
+
+
+
+
+
+

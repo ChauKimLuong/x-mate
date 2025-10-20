@@ -9,11 +9,15 @@ const prisma = new PrismaClient();
    ======================================================= */
 export const revenueReport = async (req: Request, res: Response) => {
   try {
-    const from = req.query.from ? new Date(req.query.from as string) : new Date("2025-01-01");
-    const to = req.query.to ? new Date(req.query.to as string) : new Date();
+    const rawFrom = req.query.from ? new Date(req.query.from as string) : new Date("2025-01-01");
+    const rawTo = req.query.to ? new Date(req.query.to as string) : new Date();
     const status = (req.query.status as string) || "All";
 
-    const where: any = { created_at: { gte: from, lte: to } };
+    // Normalize to [startOfDay(from), startOfDay(to)+1day) so the 'to' date is inclusive
+    const from = new Date(rawFrom.getFullYear(), rawFrom.getMonth(), rawFrom.getDate());
+    const toNext = new Date(rawTo.getFullYear(), rawTo.getMonth(), rawTo.getDate() + 1);
+
+    const where: any = { created_at: { gte: from, lt: toNext } };
     if (status !== "All") {
       const s = status.toLowerCase();
       if (s === "processing") where.status = { in: ["paid", "shipped"] };
@@ -66,7 +70,7 @@ export const revenueReport = async (req: Request, res: Response) => {
       title: "Reports",
       active: "reports",
       from: from.toISOString().substring(0, 10),
-      to: to.toISOString().substring(0, 10),
+      to: new Date(toNext.getTime() - 24 * 60 * 60 * 1000).toISOString().substring(0, 10),
       status,
       orders: rows,
       totalRevenue,
@@ -90,11 +94,14 @@ export const revenueReport = async (req: Request, res: Response) => {
    ======================================================= */
 export const exportRevenueExcel = async (req: Request, res: Response) => {
   try {
-    const from = req.query.from ? new Date(req.query.from as string) : new Date("2025-01-01");
-    const to = req.query.to ? new Date(req.query.to as string) : new Date();
+    const rawFrom = req.query.from ? new Date(req.query.from as string) : new Date("2025-01-01");
+    const rawTo = req.query.to ? new Date(req.query.to as string) : new Date();
     const status = (req.query.status as string) || "All";
 
-    const where: any = { created_at: { gte: from, lte: to } };
+    const from = new Date(rawFrom.getFullYear(), rawFrom.getMonth(), rawFrom.getDate());
+    const toNext = new Date(rawTo.getFullYear(), rawTo.getMonth(), rawTo.getDate() + 1);
+
+    const where: any = { created_at: { gte: from, lt: toNext } };
     if (status !== "All") {
       const s = status.toLowerCase();
       if (s === "processing") {
@@ -117,7 +124,7 @@ export const exportRevenueExcel = async (req: Request, res: Response) => {
       },
     });
 
-    if (!orders.length) return res.status(400).send("Không có dữ liệu để xuất Excel!");
+    // Always allow export; if no data, export an empty sheet with headers
 
     // Lấy danh sách user tương ứng qua token_user
     const tokens = Array.from(new Set(orders.map(o => o.token_user).filter(Boolean) as string[]));
@@ -168,7 +175,8 @@ export const exportRevenueExcel = async (req: Request, res: Response) => {
       });
     });
 
-    const buffer = await wb.xlsx.writeBuffer();
+    const rawBuffer: any = await wb.xlsx.writeBuffer();
+    const buffer = Buffer.isBuffer(rawBuffer) ? rawBuffer : Buffer.from(rawBuffer);
     res.setHeader("Content-Disposition", "attachment; filename=revenue_report.xlsx");
     res.setHeader(
       "Content-Type",
@@ -308,7 +316,7 @@ export const exportInventoryExcel = async (req: Request, res: Response) => {
       orderBy: { createdAt: "desc" },
     });
 
-    if (!movements.length) return res.status(400).send("Không có dữ liệu để xuất Excel!");
+    // Always allow export; if no data, export an empty sheet with headers
 
     const wb = new ExcelJS.Workbook();
     const ws = wb.addWorksheet("Inventory Report");
@@ -331,7 +339,8 @@ export const exportInventoryExcel = async (req: Request, res: Response) => {
       })
     );
 
-    const buffer = await wb.xlsx.writeBuffer();
+    const rawBuffer: any = await wb.xlsx.writeBuffer();
+    const buffer = Buffer.isBuffer(rawBuffer) ? rawBuffer : Buffer.from(rawBuffer);
     res.setHeader("Content-Disposition", "attachment; filename=inventory_report.xlsx");
     res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.send(buffer);

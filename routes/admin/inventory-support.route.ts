@@ -42,6 +42,7 @@ r.get("/template.csv", c.templateCsv);
 
 // Diagnostics & Rebuild
 r.get("/diagnostics", c.diagnostics);
+r.get("/history", c.historyJson);
 r.get("/rebuild-onhand", c.rebuildOnHand);
 
 export default r;

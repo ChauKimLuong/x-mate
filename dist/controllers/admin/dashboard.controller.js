@@ -116,22 +116,30 @@ const dashboard = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
         const seriesViews = monthly.map((m) => m.views);
         const seriesAdded = monthly.map((m) => m.added);
         const seriesCompleted = monthly.map((m) => m.completed);
+        const daysParam = Number(req.query.days);
+        const days = Number.isFinite(daysParam) ? Math.min(180, Math.max(7, Math.floor(daysParam))) : 30;
         const dayStart = new Date();
         dayStart.setHours(0, 0, 0, 0);
-        dayStart.setDate(dayStart.getDate() - 29);
+        dayStart.setDate(dayStart.getDate() - (days - 1));
+        const dayEnd = new Date();
+        dayEnd.setHours(23, 59, 59, 999);
+        const nextDay = new Date(dayEnd);
+        nextDay.setDate(nextDay.getDate() + 1);
         const revenueDailyRaw = yield prisma.$queryRawUnsafe(`
-      SELECT CAST(o."created_at" AS DATE) AS d,
-             COALESCE(SUM(o."grand_total"), 0)::float AS revenue
-      FROM "orders" o
-      WHERE o."status" = 'completed' AND o."created_at" >= '${dayStart.toISOString()}'
-      GROUP BY d
-      ORDER BY d ASC
-    `);
+  SELECT CAST(o."created_at" AS DATE) AS d,
+         COALESCE(SUM(o."grand_total"), 0)::float AS revenue
+  FROM "orders" o
+  WHERE o."status" = 'completed'
+    AND o."created_at" >= '${dayStart.toISOString()}'
+    AND o."created_at" <  '${nextDay.toISOString()}'
+  GROUP BY d
+  ORDER BY d ASC
+`);
         const dayKeys = [];
-        for (let i = 0; i < 30; i++) {
-            const d = new Date(dayStart);
-            d.setDate(dayStart.getDate() + i);
-            dayKeys.push(d.toISOString().slice(0, 10));
+        const cur = new Date(dayStart);
+        while (cur < nextDay) {
+            dayKeys.push(cur.toISOString().slice(0, 10));
+            cur.setDate(cur.getDate() + 1);
         }
         const fmtDay = (iso) => {
             const d = new Date(iso + 'T00:00:00');
@@ -191,10 +199,11 @@ const dashboard = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
             revenueDaily,
             catRevenue,
             topProducts,
+            days,
         });
     }
     catch (err) {
-        console.error("❌ Error loading dashboard:", err);
+        console.error("Error loading dashboard:", err);
         res.status(500).send("Error loading dashboard");
     }
 });

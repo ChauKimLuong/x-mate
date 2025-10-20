@@ -94,6 +94,12 @@ class OrdersController {
                             refOrderId: id,
                         },
                     });
+                    if (item.variant_id) {
+                        yield prisma.productVariants.update({
+                            where: { id: item.variant_id },
+                            data: { stock: { decrement: item.quantity } },
+                        });
+                    }
                 }
                 res.redirect("/admin/orders");
             }

@@ -30,6 +30,7 @@ exports.barcodeImage = barcodeImage;
 exports.exportCsv = exportCsv;
 exports.templateCsv = templateCsv;
 exports.diagnostics = diagnostics;
+exports.historyJson = historyJson;
 exports.rebuildOnHand = rebuildOnHand;
 exports.lookup = lookup;
 const database_1 = __importDefault(require("../../config/database"));
@@ -380,7 +381,7 @@ function downloadStocktake(req, res) {
 }
 function uploadStocktakeCsv(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
-        var _a, _b;
+        var _a, _b, _c, _d;
         try {
             const { sid } = req.params;
             const sessions = yield readSessions();
@@ -388,8 +389,10 @@ function uploadStocktakeCsv(req, res) {
             if (!s)
                 return res.status(404).send("Session not found");
             const file = req.file;
-            if (!(file === null || file === void 0 ? void 0 : file.buffer))
-                return res.status(400).send("CSV not found");
+            if (!(file === null || file === void 0 ? void 0 : file.buffer)) {
+                (_b = (_a = req).flash) === null || _b === void 0 ? void 0 : _b.call(_a, "error", "Không tìm thấy file CSV.");
+                return res.redirect("/admin/inventory-support#p-bulk");
+            }
             const text = file.buffer.toString("utf-8");
             const rows = parseCsvSimple(text);
             const header = rows.shift();
@@ -398,7 +401,7 @@ function uploadStocktakeCsv(req, res) {
             const byVariant = new Map();
             for (const r of rows) {
                 const variantId = r[0];
-                const counted = Number((_b = (_a = r[4]) !== null && _a !== void 0 ? _a : r[3]) !== null && _b !== void 0 ? _b : "");
+                const counted = Number((_d = (_c = r[4]) !== null && _c !== void 0 ? _c : r[3]) !== null && _d !== void 0 ? _d : "");
                 if (variantId)
                     byVariant.set(variantId, Number.isFinite(counted) ? counted : NaN);
             }
@@ -559,6 +562,7 @@ function stocktakeJson(req, res) {
 }
 function bulkUpload(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c, _d, _e, _f, _g, _h;
         try {
             const file = req.file;
             if (!(file === null || file === void 0 ? void 0 : file.buffer))
@@ -566,8 +570,10 @@ function bulkUpload(req, res) {
             const text = file.buffer.toString("utf-8");
             const rows = parseCsvSimple(text);
             const header = rows.shift();
-            if (!header)
-                return res.status(400).send("Invalid CSV");
+            if (!header) {
+                (_b = (_a = req).flash) === null || _b === void 0 ? void 0 : _b.call(_a, "error", "CSV không hợp lệ (thiếu dòng header).");
+                return res.redirect("/admin/inventory-support#p-bulk");
+            }
             const hmap = new Map(header.map((h, i) => [h.toLowerCase(), i]));
             function idx(name) {
                 const i = hmap.get(name.toLowerCase());
@@ -576,6 +582,8 @@ function bulkUpload(req, res) {
                 return i;
             }
             const out = [];
+            let skipped = 0;
+            const reasons = [];
             for (const r of rows) {
                 if (!r.length)
                     continue;
@@ -584,16 +592,33 @@ function bulkUpload(req, res) {
                 const delta = Number(r[idx("delta")]);
                 const reason = r[idx("reason")] || "manualAdjust";
                 const note = hmap.has("note") ? r[idx("note")] : null;
-                if (!productId || !Number.isFinite(delta))
+                if (!productId) {
+                    skipped++;
+                    reasons.push("Thiếu productId");
                     continue;
+                }
+                if (!Number.isFinite(delta)) {
+                    skipped++;
+                    reasons.push("delta không hợp lệ");
+                    continue;
+                }
                 out.push({ productId, variantId, delta, reason, note });
             }
             bulkPreviewCache = out;
-            return page(req, res);
+            const okCount = out.length;
+            if (okCount > 0) {
+                (_d = (_c = req).flash) === null || _d === void 0 ? void 0 : _d.call(_c, "success", `Tải CSV thành công: ${okCount} dòng hợp lệ${skipped ? ", bỏ qua " + skipped + " dòng" : ""}. Vui lòng kiểm tra và bấm Commit.`);
+            }
+            else {
+                const reasonText = reasons.length ? (". Lý do: " + Array.from(new Set(reasons)).join(", ")) : "";
+                (_f = (_e = req).flash) === null || _f === void 0 ? void 0 : _f.call(_e, "error", `Không có dòng hợp lệ trong CSV${reasonText}`);
+            }
+            return res.redirect("/admin/inventory-support#p-bulk");
         }
         catch (e) {
             console.error(e);
-            res.status(500).send("Bulk upload error");
+            (_h = (_g = req).flash) === null || _h === void 0 ? void 0 : _h.call(_g, "error", "Lỗi tải CSV: " + ((e === null || e === void 0 ? void 0 : e.message) || ""));
+            return res.redirect("/admin/inventory-support#p-bulk");
         }
     });
 }
@@ -637,10 +662,13 @@ function quickCount(req, res) {
 }
 function bulkCommit(req, res) {
     return __awaiter(this, void 0, void 0, function* () {
+        var _a, _b, _c, _d, _e, _f;
         try {
             const lines = bulkPreviewCache || [];
-            if (!lines.length)
-                return res.status(400).send("No preview to commit");
+            if (!lines.length) {
+                (_b = (_a = req).flash) === null || _b === void 0 ? void 0 : _b.call(_a, "error", "Không có dữ liệu để cập nhật. Vui lòng tải CSV trước.");
+                return res.redirect("/admin/inventory-support#p-bulk");
+            }
             yield database_1.default.$transaction((tx) => __awaiter(this, void 0, void 0, function* () {
                 for (const r of lines) {
                     yield tx.inventoryMovements.create({
@@ -673,11 +701,13 @@ function bulkCommit(req, res) {
                 }
             }));
             bulkPreviewCache = null;
-            res.redirect("/admin/inventory-support#p-bulk");
+            (_d = (_c = req).flash) === null || _d === void 0 ? void 0 : _d.call(_c, "success", `Đã cập nhật số lượng cho ${lines.length} dòng.`);
+            return res.redirect("/admin/inventory-support#p-bulk");
         }
         catch (e) {
             console.error(e);
-            res.status(500).send("Bulk commit error");
+            (_f = (_e = req).flash) === null || _f === void 0 ? void 0 : _f.call(_e, "error", "Cập nhật hàng loạt thất bại: " + ((e === null || e === void 0 ? void 0 : e.message) || ""));
+            return res.redirect("/admin/inventory-support#p-bulk");
         }
     });
 }
@@ -895,6 +925,73 @@ function diagnostics(req, res) {
             });
             const orphan = [];
             res.json({ ok: true, negative, orphan });
+        }
+        catch (e) {
+            console.error(e);
+            res.status(500).json({ ok: false });
+        }
+    });
+}
+function historyJson(req, res) {
+    return __awaiter(this, void 0, void 0, function* () {
+        try {
+            const limitRaw = Number(req.query.limit);
+            const take = Number.isFinite(limitRaw) ? Math.min(200, Math.max(1, Math.floor(limitRaw))) : 50;
+            const onlyCsv = String(req.query.onlyCsv || req.query.csv || "0") === "1";
+            const where = {};
+            if (onlyCsv) {
+                where.reason = { in: ["manualImport", "manualAdjust", "returnIn", "returnOut"] };
+                where.note = { not: undefined };
+                where.AND = [
+                    { reason: { notIn: ["orderPlaced", "orderCancelled"] } },
+                    { OR: [
+                            { note: null },
+                            { note: { not: { startsWith: "stocktake " } } },
+                        ]
+                    },
+                    { OR: [
+                            { note: null },
+                            { note: { not: "quickCount" } },
+                        ]
+                    },
+                    { OR: [
+                            { note: null },
+                            { note: { not: { startsWith: "adminEdit" } } },
+                        ]
+                    },
+                ];
+            }
+            const rows = yield database_1.default.inventoryMovements.findMany({
+                where,
+                orderBy: { createdAt: "desc" },
+                take,
+                select: {
+                    id: true,
+                    productId: true,
+                    variantId: true,
+                    delta: true,
+                    reason: true,
+                    note: true,
+                    createdAt: true,
+                    products: { select: { title: true } },
+                },
+            });
+            res.json({
+                ok: true,
+                rows: rows.map((m) => {
+                    var _a;
+                    return ({
+                        id: m.id,
+                        productId: m.productId,
+                        productTitle: ((_a = m.products) === null || _a === void 0 ? void 0 : _a.title) || m.productId,
+                        variantId: m.variantId || null,
+                        delta: m.delta,
+                        reason: m.reason,
+                        note: m.note || null,
+                        createdAt: m.createdAt,
+                    });
+                }),
+            });
         }
         catch (e) {
             console.error(e);

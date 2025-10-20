@@ -99,21 +99,40 @@ export const getProducts = async (req: Request, res: Response) => {
     where.title = { contains: keyword, mode: 'insensitive' } as any;
   }
 
-  const [rows, total] = await Promise.all([
-    prisma.products.findMany({
-      where,
-      include: {
-        categories: { select: { title: true } },
-        productVariants: {
-          where: { deleted: false },
-          select: { stock: true, images: true, color: true },
-        },
+  const findOpts: any = {
+    where,
+    include: {
+      categories: { select: { title: true } },
+      productVariants: {
+        where: { deleted: false },
+        select: { stock: true, images: true, color: true },
       },
-      orderBy: { createdAt: 'desc' },
-      ...(allMode ? {} : { skip, take }),
-    }),
+    },
+    orderBy: { createdAt: 'desc' },
+  };
+  if (!allMode) { findOpts.skip = skip; findOpts.take = take; }
+
+  const [rows, total] = await Promise.all([
+    prisma.products.findMany(findOpts),
     prisma.products.count({ where }),
   ]);
+  // Build rating map for listed products
+  const ids = rows.map((r) => r.id);
+  const ratingMap = new Map<string, { sum: number; count: number }>();
+  if (ids.length) {
+    const reviewRows = await prisma.product_reviews.findMany({
+      where: { order_item_ref: { is: { product_id: { in: ids } } } },
+      select: { rating: true, order_item_ref: { select: { product_id: true } } },
+    });
+    for (const r of reviewRows) {
+      const pid = (r as any).order_item_ref?.product_id as string | undefined;
+      if (!pid) continue;
+      const cur = ratingMap.get(pid) || { sum: 0, count: 0 };
+      cur.sum += Number(r.rating) || 0;
+      cur.count += 1;
+      ratingMap.set(pid, cur);
+    }
+  }
 
   const products = rows.map((p) => {
     const variants = Array.isArray(p.productVariants) ? p.productVariants : [];
@@ -139,8 +158,8 @@ export const getProducts = async (req: Request, res: Response) => {
       left: stockLeft,
       sold: p.soldCount,
       category: p.categories?.title || "—",
-      rating: p.ratingAvg,
-      reviews: p.ratingCount,
+      rating: (ratingMap.get(p.id)?.count ? (ratingMap.get(p.id)!.sum / ratingMap.get(p.id)!.count) : (p as any).ratingAvg || 0),
+      reviews: ratingMap.get(p.id)?.count ?? (p as any).ratingCount ?? 0,
       slug: p.slug,             // nếu cần link trong action/view
     };
   });

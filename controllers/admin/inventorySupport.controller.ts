@@ -411,7 +411,10 @@ export async function uploadStocktakeCsv(req: Request, res: Response) {
 
     // Expect multer puts file buffer at (req as any).file.buffer
     const file = (req as any).file;
-    if (!file?.buffer) return res.status(400).send("CSV not found");
+    if (!file?.buffer) {
+      (req as any).flash?.("error", "Không tìm thấy file CSV.");
+      return res.redirect("/admin/inventory-support#p-bulk");
+    }
 
     const text = file.buffer.toString("utf-8");
     const rows = parseCsvSimple(text);
@@ -591,7 +594,10 @@ export async function bulkUpload(req: Request, res: Response) {
     const text = file.buffer.toString("utf-8");
     const rows = parseCsvSimple(text);
     const header = rows.shift();
-    if (!header) return res.status(400).send("Invalid CSV");
+    if (!header) {
+      (req as any).flash?.("error", "CSV không hợp lệ (thiếu dòng header).");
+      return res.redirect("/admin/inventory-support#p-bulk");
+    }
     // expected: productId, variantId(optional), delta, reason, note(optional)
     const hmap = new Map(header.map((h, i) => [h.toLowerCase(), i]));
     function idx(name: string) {
@@ -600,6 +606,7 @@ export async function bulkUpload(req: Request, res: Response) {
       return i;
     }
     const out: { productId: string; variantId?: string | null; delta: number; reason: string; note?: string | null }[] = [];
+    let skipped = 0; const reasons: string[] = [];
     for (const r of rows) {
       if (!r.length) continue;
       const productId = r[idx("productId")];
@@ -607,16 +614,25 @@ export async function bulkUpload(req: Request, res: Response) {
       const delta = Number(r[idx("delta")]);
       const reason = r[idx("reason")] || "manualAdjust";
       const note = hmap.has("note") ? r[idx("note")] : null;
-      if (!productId || !Number.isFinite(delta)) continue;
+      if (!productId) { skipped++; reasons.push("Thiếu productId"); continue; }
+      if (!Number.isFinite(delta)) { skipped++; reasons.push("delta không hợp lệ"); continue; }
       out.push({ productId, variantId, delta, reason, note });
     }
     bulkPreviewCache = out;
 
-    // render page with preview
-    return page(req, res);
+    // Flash result and redirect to Bulk tab
+    const okCount = out.length;
+    if (okCount > 0) {
+      (req as any).flash?.("success", `Tải CSV thành công: ${okCount} dòng hợp lệ${skipped ? ", bỏ qua " + skipped + " dòng" : ""}. Vui lòng kiểm tra và bấm Commit.`);
+    } else {
+      const reasonText = reasons.length ? (". Lý do: " + Array.from(new Set(reasons)).join(", ")) : "";
+      (req as any).flash?.("error", `Không có dòng hợp lệ trong CSV${reasonText}`);
+    }
+    return res.redirect("/admin/inventory-support#p-bulk");
   } catch (e) {
     console.error(e);
-    res.status(500).send("Bulk upload error");
+    (req as any).flash?.("error", "Lỗi tải CSV: " + ((e as any)?.message || ""));
+    return res.redirect("/admin/inventory-support#p-bulk");
   }
 }
 export async function quickCount(req: Request, res: Response) {
@@ -672,7 +688,10 @@ export async function quickCount(req: Request, res: Response) {
 export async function bulkCommit(req: Request, res: Response) {
   try {
     const lines = bulkPreviewCache || [];
-    if (!lines.length) return res.status(400).send("No preview to commit");
+    if (!lines.length) {
+      (req as any).flash?.("error", "Không có dữ liệu để cập nhật. Vui lòng tải CSV trước.");
+      return res.redirect("/admin/inventory-support#p-bulk");
+    }
 
     await prisma.$transaction(async (tx) => {
       for (const r of lines) {
@@ -709,10 +728,12 @@ export async function bulkCommit(req: Request, res: Response) {
     });
 
     bulkPreviewCache = null;
-    res.redirect("/admin/inventory-support#p-bulk");
+    (req as any).flash?.("success", `Đã cập nhật số lượng cho ${lines.length} dòng.`);
+    return res.redirect("/admin/inventory-support#p-bulk");
   } catch (e) {
     console.error(e);
-    res.status(500).send("Bulk commit error");
+    (req as any).flash?.("error", "Cập nhật hàng loạt thất bại: " + ((e as any)?.message || ""));
+    return res.redirect("/admin/inventory-support#p-bulk");
   }
 }
 
@@ -968,6 +989,72 @@ export async function diagnostics(req: Request, res: Response) {
     });
     const orphan: { id: string }[] = []; // relation ensures none in normal case
     res.json({ ok: true, negative, orphan });
+  } catch (e) {
+    console.error(e);
+    res.status(500).json({ ok: false });
+  }
+}
+
+/** ========= History JSON ========= */
+export async function historyJson(req: Request, res: Response) {
+  try {
+    const limitRaw = Number(req.query.limit);
+    const take = Number.isFinite(limitRaw) ? Math.min(200, Math.max(1, Math.floor(limitRaw))) : 50;
+    const onlyCsv = String(req.query.onlyCsv || req.query.csv || "0") === "1";
+
+    // Build where: exclude order-related reasons; optionally exclude stocktake/quickCount/adminEdit
+    const where: any = {};
+    if (onlyCsv) {
+      where.reason = { in: ["manualImport", "manualAdjust", "returnIn", "returnOut"] } as any;
+      where.note = { not: undefined } as any; // dummy to allow AND conditions below
+      where.AND = [
+        { reason: { notIn: ["orderPlaced", "orderCancelled"] } as any },
+        { OR: [
+            { note: null },
+            { note: { not: { startsWith: "stocktake " } } as any },
+          ]
+        },
+        { OR: [
+            { note: null },
+            { note: { not: "quickCount" } as any },
+          ]
+        },
+        { OR: [
+            { note: null },
+            { note: { not: { startsWith: "adminEdit" } } as any },
+          ]
+        },
+      ];
+    }
+
+    const rows = await prisma.inventoryMovements.findMany({
+      where,
+      orderBy: { createdAt: "desc" },
+      take,
+      select: {
+        id: true,
+        productId: true,
+        variantId: true,
+        delta: true,
+        reason: true,
+        note: true,
+        createdAt: true,
+        products: { select: { title: true } },
+      },
+    });
+    res.json({
+      ok: true,
+      rows: rows.map((m) => ({
+        id: m.id,
+        productId: m.productId,
+        productTitle: m.products?.title || m.productId,
+        variantId: m.variantId || null,
+        delta: m.delta,
+        reason: m.reason,
+        note: m.note || null,
+        createdAt: m.createdAt,
+      })),
+    });
   } catch (e) {
     console.error(e);
     res.status(500).json({ ok: false });

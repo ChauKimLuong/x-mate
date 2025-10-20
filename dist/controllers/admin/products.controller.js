@@ -90,6 +90,7 @@ function saveFileToPublic(file_1) {
     });
 }
 const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     const allMode = String(req.query.take || '').toLowerCase() === 'all'
         || String(req.query.all || '') === '1';
     const page = Math.max(1, Number(req.query.page) || 1);
@@ -113,10 +114,27 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             }, orderBy: { createdAt: 'desc' } }, (allMode ? {} : { skip, take }))),
         database_1.default.products.count({ where }),
     ]);
+    const ids = rows.map((r) => r.id);
+    const ratingMap = new Map();
+    if (ids.length) {
+        const reviewRows = yield database_1.default.product_reviews.findMany({
+            where: { order_item_ref: { is: { product_id: { in: ids } } } },
+            select: { rating: true, order_item_ref: { select: { product_id: true } } },
+        });
+        for (const r of reviewRows) {
+            const pid = (_a = r.order_item_ref) === null || _a === void 0 ? void 0 : _a.product_id;
+            if (!pid)
+                continue;
+            const cur = ratingMap.get(pid) || { sum: 0, count: 0 };
+            cur.sum += Number(r.rating) || 0;
+            cur.count += 1;
+            ratingMap.set(pid, cur);
+        }
+    }
     const products = rows.map((p) => {
-        var _a;
+        var _a, _b, _c, _d, _e;
         const variants = Array.isArray(p.productVariants) ? p.productVariants : [];
-        const variantImages = variants.flatMap(v => Array.isArray(v.images) ? v.images : []);
+        const variantImages = variants.flatMap((v) => Array.isArray(v.images) ? v.images : []);
         const firstVariantImg = variantImages.find(Boolean);
         const img = p.thumbnail || firstVariantImg || "/images/placeholder.jpg";
         const stockLeft = variants.reduce((sum, v) => sum + (toInt(v.stock) || 0), 0);
@@ -130,8 +148,8 @@ const getProducts = (req, res) => __awaiter(void 0, void 0, void 0, function* ()
             left: stockLeft,
             sold: p.soldCount,
             category: ((_a = p.categories) === null || _a === void 0 ? void 0 : _a.title) || "—",
-            rating: p.ratingAvg,
-            reviews: p.ratingCount,
+            rating: (((_b = ratingMap.get(p.id)) === null || _b === void 0 ? void 0 : _b.count) ? (ratingMap.get(p.id).sum / ratingMap.get(p.id).count) : p.ratingAvg || 0),
+            reviews: (_e = (_d = (_c = ratingMap.get(p.id)) === null || _c === void 0 ? void 0 : _c.count) !== null && _d !== void 0 ? _d : p.ratingCount) !== null && _e !== void 0 ? _e : 0,
             slug: p.slug,
         };
     });

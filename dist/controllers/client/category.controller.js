@@ -53,6 +53,9 @@ const buildColorPalette = (product) => {
             image: imageCandidate || null,
         });
     };
+    const prismaVariants = Array.isArray(product === null || product === void 0 ? void 0 : product.productVariants)
+        ? product.productVariants
+        : [];
     prismaVariants.forEach((variant) => {
         var _a, _b, _c, _d, _e, _f, _g;
         const variantColor = (_a = variant === null || variant === void 0 ? void 0 : variant.colors) !== null && _a !== void 0 ? _a : null;

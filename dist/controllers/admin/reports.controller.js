@@ -18,10 +18,12 @@ const exceljs_1 = __importDefault(require("exceljs"));
 const prisma = new client_1.PrismaClient();
 const revenueReport = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const from = req.query.from ? new Date(req.query.from) : new Date("2025-01-01");
-        const to = req.query.to ? new Date(req.query.to) : new Date();
+        const rawFrom = req.query.from ? new Date(req.query.from) : new Date("2025-01-01");
+        const rawTo = req.query.to ? new Date(req.query.to) : new Date();
         const status = req.query.status || "All";
-        const where = { created_at: { gte: from, lte: to } };
+        const from = new Date(rawFrom.getFullYear(), rawFrom.getMonth(), rawFrom.getDate());
+        const toNext = new Date(rawTo.getFullYear(), rawTo.getMonth(), rawTo.getDate() + 1);
+        const where = { created_at: { gte: from, lt: toNext } };
         if (status !== "All") {
             const s = status.toLowerCase();
             if (s === "processing")
@@ -66,7 +68,7 @@ const revenueReport = (req, res) => __awaiter(void 0, void 0, void 0, function* 
             title: "Reports",
             active: "reports",
             from: from.toISOString().substring(0, 10),
-            to: to.toISOString().substring(0, 10),
+            to: new Date(toNext.getTime() - 24 * 60 * 60 * 1000).toISOString().substring(0, 10),
             status,
             orders: rows,
             totalRevenue,
@@ -86,10 +88,12 @@ const revenueReport = (req, res) => __awaiter(void 0, void 0, void 0, function* 
 exports.revenueReport = revenueReport;
 const exportRevenueExcel = (req, res) => __awaiter(void 0, void 0, void 0, function* () {
     try {
-        const from = req.query.from ? new Date(req.query.from) : new Date("2025-01-01");
-        const to = req.query.to ? new Date(req.query.to) : new Date();
+        const rawFrom = req.query.from ? new Date(req.query.from) : new Date("2025-01-01");
+        const rawTo = req.query.to ? new Date(req.query.to) : new Date();
         const status = req.query.status || "All";
-        const where = { created_at: { gte: from, lte: to } };
+        const from = new Date(rawFrom.getFullYear(), rawFrom.getMonth(), rawFrom.getDate());
+        const toNext = new Date(rawTo.getFullYear(), rawTo.getMonth(), rawTo.getDate() + 1);
+        const where = { created_at: { gte: from, lt: toNext } };
         if (status !== "All") {
             const s = status.toLowerCase();
             if (s === "processing") {
@@ -110,8 +114,6 @@ const exportRevenueExcel = (req, res) => __awaiter(void 0, void 0, void 0, funct
                 token_user: true,
             },
         });
-        if (!orders.length)
-            return res.status(400).send("Không có dữ liệu để xuất Excel!");
         const tokens = Array.from(new Set(orders.map(o => o.token_user).filter(Boolean)));
         const users = tokens.length
             ? yield prisma.users.findMany({
@@ -151,7 +153,8 @@ const exportRevenueExcel = (req, res) => __awaiter(void 0, void 0, void 0, funct
                 status: o.status,
             });
         });
-        const buffer = yield wb.xlsx.writeBuffer();
+        const rawBuffer = yield wb.xlsx.writeBuffer();
+        const buffer = Buffer.isBuffer(rawBuffer) ? rawBuffer : Buffer.from(rawBuffer);
         res.setHeader("Content-Disposition", "attachment; filename=revenue_report.xlsx");
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         res.send(buffer);
@@ -265,8 +268,6 @@ const exportInventoryExcel = (req, res) => __awaiter(void 0, void 0, void 0, fun
             include: { products: { select: { title: true } } },
             orderBy: { createdAt: "desc" },
         });
-        if (!movements.length)
-            return res.status(400).send("Không có dữ liệu để xuất Excel!");
         const wb = new exceljs_1.default.Workbook();
         const ws = wb.addWorksheet("Inventory Report");
         ws.columns = [
@@ -286,7 +287,8 @@ const exportInventoryExcel = (req, res) => __awaiter(void 0, void 0, void 0, fun
                 date: m.createdAt.toLocaleDateString("vi-VN"),
             });
         });
-        const buffer = yield wb.xlsx.writeBuffer();
+        const rawBuffer = yield wb.xlsx.writeBuffer();
+        const buffer = Buffer.isBuffer(rawBuffer) ? rawBuffer : Buffer.from(rawBuffer);
         res.setHeader("Content-Disposition", "attachment; filename=inventory_report.xlsx");
         res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
         res.send(buffer);

@@ -98,6 +98,13 @@ export class OrdersController {
             refOrderId: id,
           },
         });
+        // Giảm tồn kho theo biến thể ngay khi xác nhận đơn
+        if (item.variant_id) {
+          await prisma.productVariants.update({
+            where: { id: item.variant_id },
+            data: { stock: { decrement: item.quantity } },
+          });
+        }
       }
 
       res.redirect("/admin/orders");

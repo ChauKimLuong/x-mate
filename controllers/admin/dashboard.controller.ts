@@ -4,13 +4,13 @@ import { PrismaClient } from "@prisma/client";
 const prisma = new PrismaClient();
 
 /**
- * 📊 DASHBOARD CONTROLLER (compatible with new Prisma schema)
+ * ðŸ“Š DASHBOARD CONTROLLER (compatible with new Prisma schema)
  */
 export const dashboard = async (req: Request, res: Response) => {
   try {
     const period = (req.query.period as string) || "ALL";
 
-    // 1️⃣ Xác định khoảng thời gian lọc
+    // 1ï¸âƒ£ XÃ¡c Ä‘á»‹nh khoáº£ng thá»i gian lá»c
     const now = new Date();
     const start =
       period === "1M"
@@ -21,22 +21,22 @@ export const dashboard = async (req: Request, res: Response) => {
             ? new Date(now.setFullYear(now.getFullYear() - 1))
             : new Date(0);
 
-    // 2️⃣ KPI CƠ BẢN
+    // 2ï¸âƒ£ KPI CÆ  Báº¢N
     const [totalOrders, deals, newLeads] = await Promise.all([
       prisma.orders.count({ where: { created_at: { gte: start } } }),
       prisma.coupons.count({ where: { createdat: { gte: start } } }),
       prisma.users.count({ where: { created_at: { gte: start } } }),
     ]);
 
-    // 3️⃣ Tổng doanh thu đã hoàn thành
+    // 3ï¸âƒ£ Tá»•ng doanh thu Ä‘Ã£ hoÃ n thÃ nh
     const bookedRevAgg = await prisma.orders.aggregate({
       _sum: { grand_total: true },
       where: { status: "completed", created_at: { gte: start } },
     });
     const bookedRev = Number(bookedRevAgg._sum.grand_total || 0);
 
-    // 4️⃣ Truy vấn dữ liệu cho biểu đồ
-    // --- Đơn hàng hoàn thành theo tháng
+    // 4ï¸âƒ£ Truy váº¥n dá»¯ liá»‡u cho biá»ƒu Ä‘á»“
+    // --- ÄÆ¡n hÃ ng hoÃ n thÃ nh theo thÃ¡ng
     const ordersMonthly = await prisma.$queryRawUnsafe<
       { month: number; completed: number }[]
     >(`
@@ -49,7 +49,7 @@ export const dashboard = async (req: Request, res: Response) => {
       ORDER BY month;
     `);
 
-    // --- Sản phẩm bán ra theo tháng (order_items)
+    // --- Sáº£n pháº©m bÃ¡n ra theo thÃ¡ng (order_items)
     const addedMonthly = await prisma.$queryRawUnsafe<
       { month: number; added: number }[]
     >(`
@@ -62,7 +62,7 @@ export const dashboard = async (req: Request, res: Response) => {
       ORDER BY month;
     `);
 
-    // --- Số lượt xem / bán (dựa theo soldCount của products)
+    // --- Sá»‘ lÆ°á»£t xem / bÃ¡n (dá»±a theo soldCount cá»§a products)
     const viewsMonthly = await prisma.$queryRawUnsafe<
       { month: number; views: number }[]
     >(`
@@ -75,7 +75,7 @@ export const dashboard = async (req: Request, res: Response) => {
       ORDER BY month;
     `);
 
-    // 5️⃣ Gộp dữ liệu biểu đồ theo tháng
+    // 5ï¸âƒ£ Gá»™p dá»¯ liá»‡u biá»ƒu Ä‘á»“ theo thÃ¡ng
     const monthsSet = new Set([
       ...ordersMonthly.map((m) => m.month),
       ...addedMonthly.map((m) => m.month),
@@ -92,7 +92,7 @@ export const dashboard = async (req: Request, res: Response) => {
           ordersMonthly.find((m) => m.month === month)?.completed || 0,
       }));
 
-    // 6️⃣ Tính % thay đổi (delta)
+    // 6ï¸âƒ£ TÃ­nh % thay Ä‘á»•i (delta)
     const last = monthly[monthly.length - 1] || {
       views: 0,
       added: 0,
@@ -114,10 +114,9 @@ export const dashboard = async (req: Request, res: Response) => {
       newLeads: prev.views
         ? ((last.views - prev.views) / prev.views) * 100
         : 0,
-      bookedRev: +2.5, // giả định tạm cho hiển thị KPI
+      bookedRev: +2.5, 
     };
 
-    // 7️⃣ Chuẩn bị dữ liệu cho biểu đồ (Chart.js hoặc ApexChart)
     const monthNames = [
       "Jan",
       "Feb",
@@ -139,32 +138,47 @@ export const dashboard = async (req: Request, res: Response) => {
 
     // 7b) Additional datasets for richer dashboard
     // Daily order status counts (last 30 days)
-    const dayStart = new Date();
-    dayStart.setHours(0, 0, 0, 0);
-    dayStart.setDate(dayStart.getDate() - 29);
+    // Mặc định 30 ngày (bao gồm hôm nay). Vẫn cho phép ?days=...
+const daysParam = Number(req.query.days);
+const days = Number.isFinite(daysParam) ? Math.min(180, Math.max(7, Math.floor(daysParam))) : 30;
 
-    // Daily revenue (completed) last 30 days
-    const revenueDailyRaw = await prisma.$queryRawUnsafe<
-      { d: string; revenue: number }[]
-    >(`
-      SELECT CAST(o."created_at" AS DATE) AS d,
-             COALESCE(SUM(o."grand_total"), 0)::float AS revenue
-      FROM "orders" o
-      WHERE o."status" = 'completed' AND o."created_at" >= '${dayStart.toISOString()}'
-      GROUP BY d
-      ORDER BY d ASC
-    `);
+// dayStart: 00:00 hôm nay lùi (days - 1) ngày
+const dayStart = new Date();
+dayStart.setHours(0, 0, 0, 0);
+dayStart.setDate(dayStart.getDate() - (days - 1));
 
-    const dayKeys: string[] = [];
-    for (let i = 0; i < 30; i++) {
-      const d = new Date(dayStart);
-      d.setDate(dayStart.getDate() + i);
-      dayKeys.push(d.toISOString().slice(0, 10));
-    }
-    const fmtDay = (iso: string) => {
-      const d = new Date(iso + 'T00:00:00');
-      return `${String(d.getDate()).padStart(2, '0')}/${String(d.getMonth() + 1).padStart(2, '0')}`;
-    };
+// dayEnd: 23:59:59.999 hôm nay
+const dayEnd = new Date();
+dayEnd.setHours(23, 59, 59, 999);
+
+// nextDay (end-exclusive) để tránh rơi mất bản ghi cuối ngày
+const nextDay = new Date(dayEnd);
+nextDay.setDate(nextDay.getDate() + 1);
+
+// ----- QUERY doanh thu theo ngày: [dayStart, nextDay)
+const revenueDailyRaw = await prisma.$queryRawUnsafe<{ d: string; revenue: number }[]>(`
+  SELECT CAST(o."created_at" AS DATE) AS d,
+         COALESCE(SUM(o."grand_total"), 0)::float AS revenue
+  FROM "orders" o
+  WHERE o."status" = 'completed'
+    AND o."created_at" >= '${dayStart.toISOString()}'
+    AND o."created_at" <  '${nextDay.toISOString()}'
+  GROUP BY d
+  ORDER BY d ASC
+`);
+
+// ----- Sinh trục ngày: từ dayStart tới hết hôm nay (end-exclusive nextDay)
+const dayKeys: string[] = [];
+const cur = new Date(dayStart);
+while (cur < nextDay) {
+  dayKeys.push(cur.toISOString().slice(0, 10));
+  cur.setDate(cur.getDate() + 1);
+}
+const fmtDay = (iso: string) => {
+  const d = new Date(iso + 'T00:00:00');
+  return `${String(d.getDate()).padStart(2,'0')}/${String(d.getMonth()+1).padStart(2,'0')}`;
+};
+
     // Normalize date key from DB (Date or string) to 'YYYY-MM-DD'
     const revMap = new Map<string, number>();
     for (const r of revenueDailyRaw) {
@@ -218,7 +232,8 @@ export const dashboard = async (req: Request, res: Response) => {
       values: topProductsRaw.map(r => r.qty || 0),
     };
 
-    // 8️⃣ Render ra trang dashboard
+    // 8ï¸âƒ£ Render ra trang dashboard
+    // 8) Render ra trang dashboard
     res.render("admin/pages/dashboard/index", {
       title: "Dashboard",
       active: "overview",
@@ -232,9 +247,10 @@ export const dashboard = async (req: Request, res: Response) => {
       revenueDaily,
       catRevenue,
       topProducts,
+      days,
     });
   } catch (err) {
-    console.error("❌ Error loading dashboard:", err);
+    console.error("Error loading dashboard:", err);
     res.status(500).send("Error loading dashboard");
   }
 };

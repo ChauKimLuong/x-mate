@@ -41,6 +41,11 @@ block head
 block content
   +sessionModal()
   h2(style="margin:0 0 16px") HỖ TRỢ TỒN KHO
+  if messages && (messages.success || messages.error)
+    if messages.success
+      .alert(style="background:#ecfdf5;color:#065f46;padding:10px 14px;border:1px solid #a7f3d0;border-radius:10px;margin:8px 0")= messages.success
+    if messages.error
+      .alert(style="background:#fef2f2;color:#991b1b;padding:10px 14px;border:1px solid #fecaca;border-radius:10px;margin:8px 0")= messages.error
 
   // Tabs
   .tabs(role="tablist")
@@ -177,6 +182,10 @@ block content
             span.ico
               +icon-upload(18)
             | Tải lên CSV
+          button.btn#btnOpenHistory(type="button")
+            span.ico
+              +ic_clock()
+            | Xem lịch sử
       p.muted Cột CSV: productId, variantId(tùy chọn), delta, reason(manualImport|manualAdjust|returnIn|returnOut), note(tùy chọn)
       if bulkPreview && bulkPreview.length
         table
@@ -201,8 +210,8 @@ block content
         .empty Chưa có bản xem trước. Dùng nút "Tải lên CSV" để xem.
 
     // Upload CSV Modal (chá»‰ má»Ÿ tá»« tab Bulk)
-    .modal-backdrop#upModal(style="display:none")
-      .modal(role="dialog" aria-modal="true" aria-labelledby="upTitle")
+    .modal-backdrop#upModal(style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;background:rgba(2,6,23,.45)")
+      .modal(role="dialog" aria-modal="true" aria-labelledby="upTitle" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 24px 60px rgba(2,6,23,.25);max-width:720px;width:96vw;max-height:90vh;overflow:auto;padding:16px")
         .modal-hd#upTitle Tải lên CSV
         form(method="post" action="/admin/inventory-support/bulk-adjust/upload" enctype="multipart/form-data")
           .modal-bd
@@ -212,7 +221,27 @@ block content
             button.btn(type="button" onclick="document.getElementById('upModal').style.display='none'") Hủy
             button.btn.primary(type="submit") Tải lên
 
+    // History Modal (within Bulk panel)
+    .modal-backdrop#histModal(style="display:none;position:fixed;inset:0;z-index:60;align-items:center;justify-content:center;background:rgba(2,6,23,.45)")
+      .modal(role="dialog" aria-modal="true" aria-labelledby="histTitle" style="background:#fff;border:1px solid #e5e7eb;border-radius:12px;box-shadow:0 24px 60px rgba(2,6,23,.25);max-width:960px;width:96vw;max-height:90vh;overflow:auto;padding:16px")
+        .modal-hd#histTitle Lịch sử thay đổi tồn kho
+        .modal-bd
+          table(style="width:100%")
+            thead
+              tr
+                th Thời gian
+                th Sản phẩm
+                th Biến thể
+                th Chênh lệch
+                th Lý do
+                th Ghi chú
+            tbody#histBody
+              tr
+                td(colspan="6" style="text-align:center;color:#98A2B3;padding:8px 0") Đang tải...
+        .modal-ft
+          button.btn(type="button" onclick="document.getElementById('histModal').style.display='none'") Đóng
   // Panel: Barcode / QR
+
   .panel#p-code
     .card(style="padding:16px")
       h3(style="margin:0 0 10px")
@@ -392,16 +421,14 @@ append scripts
         var btnDraft=document.getElementById('btnDraftPO');
         if(btnRefresh && !btnRefresh._bound){
           btnRefresh._bound=true;
-          btnRefresh.addEventListener('click', refreshLowStock);
+          btnRefresh.addEventListener('click', function(){ if(window.refreshLowStock) window.refreshLowStock(); });
         }
         if(btnDraft && !btnDraft._bound){
           btnDraft._bound=true;
           btnDraft.addEventListener('click', createDraftPO);
         }
       }
-      document.addEventListener('tab:show', function(e){
-        if(e.detail.id==='p-low') initLow();
-      });
+      document.addEventListener('tab:show', function(e){ if(e.detail.id==='p-low') initLow(); });
       if(document.querySelector('#p-low.active')) initLow();
 
       function htmlEscape(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
@@ -469,9 +496,58 @@ append scripts
           btn.addEventListener('click', function(){ if(modal) modal.style.display='flex'; });
         }
       }
-      document.addEventListener('tab:show', function(e){
-        if(e.detail.id==='p-bulk') initBulk();
-      });
+      document.addEventListener('tab:show', function(e){ if(e.detail.id==='p-bulk') initBulk(); }); initBulk();
       if(document.querySelector('#p-bulk.active')) initBulk();
     })();
+
+
+
+
+
+    // Bulk history modal binding
+    (function(){
+      function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+      function renderHistory(rows){
+        var tbody = document.getElementById('histBody');
+        if(!tbody) return;
+        if(!rows || !rows.length){
+          tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#98A2B3;padding:8px 0">Khong co du lieu</td></tr>';
+          return;
+        }
+        tbody.innerHTML = rows.map(function(r){
+          var d = new Date(r.createdAt).toLocaleString('vi-VN');
+          return '<tr>'
+            + '<td>'+esc(d)+'</td>'
+            + '<td>'+esc(r.productTitle||r.productId)+'</td>'
+            + '<td>'+esc(r.variantId||'-')+'</td>'
+            + '<td class="num">'+(r.delta||0)+'</td>'
+            + '<td>'+esc(r.reason||'')+'</td>'
+            + '<td>'+esc(r.note||'')+'</td>'
+            + '</tr>';
+        }).join('');
+      }
+      function loadHistory(){
+        fetch('/admin/inventory-support/history?limit=50&onlyCsv=1')
+          .then(function(r){ return r.ok ? r.json() : Promise.reject(r); })
+          .then(function(json){ if(json && json.ok) renderHistory(json.rows||[]); else renderHistory([]); })
+          .catch(function(){ renderHistory([]); });
+      }
+      function initBulk2(){
+        var histBtn = document.getElementById('btnOpenHistory');
+        if(histBtn && !histBtn._bound){
+          histBtn._bound = true;
+          histBtn.addEventListener('click', function(){
+            var modalEl = document.getElementById('histModal');
+            if(modalEl) modalEl.style.display = 'flex';
+            loadHistory();
+          });
+        }
+      }
+      document.addEventListener('tab:show', function(e){ if(e.detail.id==='p-bulk') initBulk2(); });
+      initBulk2();
+    })();
+
+
+
+
 
